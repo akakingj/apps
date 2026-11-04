@@ -50,6 +50,8 @@ git clone https://github.com/jaimeen77-cmyk/idrive7-apps-jam.git
 cd idrive7-apps-jam
 ```
 
+
+
 자동 설치 스크립트로 게임 파일과 한국어 번역을 upstream 작업 폴더에 합칩니다.
 
 ```powershell
@@ -62,19 +64,45 @@ macOS/Linux도 동일합니다.
 python3 tools/install-overlay.py ../idrive7-apps
 ```
 
-
-대상 폴더에 기존 `apps/idrive_circuit`이 있으면 스크립트가 중지합니다. 이 저장소 버전으로 갱신하려면 내용을 먼저 확인한 뒤 `--force`를 사용하세요.
-
-```powershell
-python tools\install-overlay.py ..\idrive7-apps --force
-```
-
 혹은 그냥 경로를 바꿔서 복사해 넣어주면 됩니다.
 ```
 idrive7-apps-jam/apps/idrive_circuit
 →
 idrive7-apps/apps/idrive_circuit
 ```
+Windows PowerShell:
+
+```powershell
+Copy-Item -Recurse .\idrive7-apps-jam\apps\idrive_circuit .\idrive7-apps\apps\
+```
+
+macOS/Linux:
+
+```bash
+cp -R idrive7-apps-jam/apps/idrive_circuit idrive7-apps/apps/
+```
+
+옵션
+```text
+kit/icons/idrive_circuit.svg
+kit/tools/test_idrive_circuit.js
+```
+
+
+### 위의 작업 자동화
+대상 폴더에 기존 `apps/idrive_circuit`이 있으면 스크립트가 중지합니다. 이 저장소 버전으로 갱신하려면 내용을 먼저 확인한 뒤 `--force`를 사용하세요.
+
+```powershell
+python tools\install-overlay.py ..\idrive7-apps --force
+```
+
+macOS/Linux:
+
+```bash
+cd idrive7-apps-jam
+python3 tools/install-overlay.py ../idrive7-apps
+```
+
 
 한국어 번역을 합치지 않으려면 `--no-ko`를 추가할 수 있습니다.
 
