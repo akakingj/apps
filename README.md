@@ -114,6 +114,8 @@ Windows:
 
 ```powershell
 deploy\make-car-kit.cmd idrive_circuit
+
+deploy\make-car-kit.cmd --language ko idrive_circuit
 ```
 
 macOS/Linux/WSL:
@@ -134,6 +136,15 @@ powershell -ExecutionPolicy Bypass -File deploy\push-to-car.ps1 check `
 
 powershell -ExecutionPolicy Bypass -File deploy\push-to-car.ps1 install `
   -Key <SSH-개인키-경로> -Ip <헤드유닛-IP>
+
+
+powershell -ExecutionPolicy Bypass -File deploy\push-to-car.ps1 check `
+  -Kit dist\mgu-custom-apps-ko.tar.gz `
+  -Key <SSH키> -Ip <헤드유닛IP>
+
+powershell -ExecutionPolicy Bypass -File deploy\push-to-car.ps1 install `
+  -Kit dist\mgu-custom-apps-ko.tar.gz `
+  -Key <SSH키> -Ip <헤드유닛IP>
 ```
 
 macOS/Linux/WSL:
