@@ -199,14 +199,6 @@ tools/install-overlay.py        upstream 폴더에 안전하게 합치는 스크
 screenshots/                    실제 오프라인 렌더링 결과
 ```
 
-## 검증 결과
-
-- 30개 레벨의 해답·연결·누전 불변식 검사
-- Hint만 사용해 모든 레벨이 완료되는지 검사
-- 회전, Undo, 저장 복원, PAR와 별점 검사
-- 영어 및 한국어 offline preview 빌드
-- upstream 한국어·중국어 고정 언어 레이아웃 테스트
-
 ## 라이선스와 출처
 
 이 게임 소스는 MIT 라이선스입니다. 기반 런타임과 설치 방식은 [cauliflowermossgrape/idrive7-apps](https://github.com/cauliflowermossgrape/idrive7-apps)를 사용합니다. upstream 저장소의 renderer와 기타 구성요소에는 별도 라이선스가 적용될 수 있으므로 해당 저장소의 라이선스 안내도 확인하세요.
