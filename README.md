@@ -60,10 +60,18 @@ macOS/Linux도 동일합니다.
 python3 tools/install-overlay.py ../idrive7-apps
 ```
 
+
 대상 폴더에 기존 `apps/idrive_circuit`이 있으면 스크립트가 중지합니다. 이 저장소 버전으로 갱신하려면 내용을 먼저 확인한 뒤 `--force`를 사용하세요.
 
 ```powershell
 python tools\install-overlay.py ..\idrive7-apps --force
+```
+
+혹은 그냥 경로를 바꿔서 복사해 넣어주면 됩니다.
+```
+idrive7-game-idrivecircuit/apps/idrive_circuit
+→
+idrive7-apps/apps/idrive_circuit
 ```
 
 한국어 번역을 합치지 않으려면 `--no-ko`를 추가할 수 있습니다.
