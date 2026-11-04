@@ -1,0 +1,42 @@
+{
+  "id": "idrive_circuit",
+  "title": "iDrive Circuit",
+  "description": "A parked-only circuit puzzle: rotate the wiring to power every vehicle module",
+  "version": "1.0.0",
+  "vendor": "custom",
+  "loggingId": "OAA3",
+  "iconGlyph": "CIR",
+  "signals": {
+    "de.bmw.infotainment.vehicle.Vehicle2": {
+      "statusCarSpeed2": "rs"
+    }
+  },
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "canvas",
+      "title": "iDrive Circuit",
+      "bar": false,
+      "buttons": [
+        ["BTN_CURSOR", "Next tile"],
+        ["BTN_ROTATE", "Rotate"],
+        ["BTN_UNDO", "Undo"],
+        ["BTN_HINT", "Hint"],
+        ["BTN_RESTART", "Restart"],
+        ["BTN_PREV", "Previous level"],
+        ["BTN_NEXT", "Next level"],
+        ["BTN_SETTINGS", "Settings"]
+      ]
+    }
+  ],
+  "settings": [
+    {"key": "parkedOnly", "label": "Parked only (pauses while driving)", "type": "bool", "default": true},
+    {"key": "theme", "label": "Colour theme", "type": "choice", "default": "m_tricolour",
+     "options": [["m_red", "M Red"], ["m_tricolour", "M Tricolour"], ["ice", "Ice White"], ["amber", "Night Amber"]]},
+    {"key": "layout", "label": "Screen layout", "type": "choice", "default": "full",
+     "options": [["full", "Full screen"], ["standard", "Standard"]]},
+    {"key": "renderer", "label": "Renderer", "type": "choice", "default": "auto",
+     "options": [["auto", "GPU 60 fps (default)"], ["software", "Software"]]}
+  ]
+}
+

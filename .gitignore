@@ -1,0 +1,11 @@
+oap-sdk/
+dist/
+preview/
+*.mgu
+*.tgz
+*.tar.gz
+*.key
+*.pem
+id_rsa
+
+

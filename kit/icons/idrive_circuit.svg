@@ -1,0 +1,22 @@
+<!-- accent: #22d9ef -->
+<defs>
+  <linearGradient id="ic-wire" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#72efff"/><stop offset="0.5" stop-color="#18cfe8"/><stop offset="1" stop-color="#65e9ff"/>
+  </linearGradient>
+  <filter id="ic-glow" x="-80%" y="-80%" width="260%" height="260%">
+    <feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M34 70 H58 V43 H83 V70 H106" stroke="#18cfe8" stroke-opacity="0.24" stroke-width="13" filter="url(#ic-glow)"/>
+  <path d="M34 70 H58 V43 H83 V70 H106" stroke="url(#ic-wire)" stroke-width="6"/>
+  <circle cx="58" cy="70" r="7" fill="#07141b" stroke="#8ff5ff" stroke-width="3"/>
+  <circle cx="83" cy="43" r="7" fill="#07141b" stroke="#8ff5ff" stroke-width="3"/>
+  <circle cx="83" cy="70" r="7" fill="#07141b" stroke="#8ff5ff" stroke-width="3"/>
+  <rect x="11" y="51" width="27" height="38" rx="5" fill="#102733" stroke="#9af7ff" stroke-width="3"/>
+  <path d="M21 61 H28 L24 69 H30 L20 81 L23 71 H17 Z" fill="#d9fdff" stroke="none"/>
+  <rect x="38" y="62" width="5" height="16" rx="2" fill="#9af7ff" stroke="none"/>
+  <path d="M107 52 Q124 54 124 70 Q124 86 107 88 Z" fill="#102733" stroke="#9af7ff" stroke-width="3"/>
+  <path d="M127 58 L136 53 M129 70 H139 M127 82 L136 87" stroke="#9af7ff" stroke-width="3"/>
+</g>
+
