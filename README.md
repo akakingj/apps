@@ -1,84 +1,111 @@
 # iDrive Circuit for BMW iDrive 7
 
-BMW MGU / iDrive 7 커스텀 앱 환경에서 실행되는 주차 전용 회로 퍼즐입니다. 회로 타일을 회전해 배터리의 전력을 모든 차량 모듈에 연결하면 됩니다.
+English | [한국어](reame_kor.md)
 
-![iDrive Circuit 한국어 프리뷰](screenshots/preview-ko.png)
+iDrive Circuit is a parked-only wiring puzzle for the BMW MGU / iDrive 7 custom-app environment. Rotate the circuit tiles until battery power reaches every vehicle module without leaving an open connection.
 
-## 주요 기능
+![iDrive Circuit Korean preview](screenshots/preview-ko.png)
 
-- 튜토리얼을 포함한 30개 레벨
-- 터치와 iDrive 컨트롤러 조작
-- 전력 전파·끊어진 연결·완료 상태 실시간 표시
-- Undo, Hint, Restart, PAR 및 1~3성 평가
-- 현재 퍼즐, 최고 기록과 해금 상태 자동 저장
-- 네 가지 화면 테마와 GPU 60fps 렌더러 지원
-- GPU를 사용할 수 없을 때 소프트웨어 렌더링 지원
-- 기본값이 **Parked only**이며 차량이 3km/h를 넘으면 퍼즐 입력 잠금
-- 한국어 메뉴와 게임 상태 표시
+## Features
 
-이 게임의 회로는 전부 시뮬레이션입니다. 차량의 SOME/IP 또는 UDS 값을 변경하지 않습니다.
+- 30 levels, including guided tutorial boards
+- Touchscreen and iDrive controller input
+- Live visualization of powered paths, open connections, and completion state
+- Undo, Hint, Restart, par scores, and one-to-three-star ratings
+- Persistent puzzle progress, best scores, and level unlocks
+- Four color themes and support for the 60 fps GPU renderer
+- Software-rendering fallback when the GPU renderer is unavailable
+- **Parked only** enabled by default; puzzle input locks above 3 km/h
+- Optional Korean menus and game-status text
 
-## 중요한 안내
+All circuits in the game are simulated. The app does not send vehicle-control writes over SOME/IP or UDS.
 
-이 저장소는 [cauliflowermossgrape/idrive7-apps](https://github.com/cauliflowermossgrape/idrive7-apps)에 추가하는 소스 오버레이입니다. 단독으로 차량에 설치할 수 없습니다.
+## Important notice
 
-- BMW와 무관한 비공식 취미 프로젝트입니다.
-- 차량 MGU의 root shell 접근 권한이 필요하지만, 이 저장소는 root 획득 방법을 제공하지 않습니다.
-- BMW OAP SDK는 저작권이 있는 차량 소유자 파일이므로 포함하지 않습니다.
-- 차량 키, VIN, provisioning 파일도 포함하지 않습니다.
-- 먼저 upstream 프로젝트의 `check` 명령을 실행하고, 차량을 운전하면서 게임을 조작하지 마세요.
+This repository is a source overlay for [cauliflowermossgrape/idrive7-apps](https://github.com/cauliflowermossgrape/idrive7-apps). It cannot be installed on a vehicle by itself.
 
-## 준비 사항
+- This is an unofficial hobby project and is not affiliated with BMW.
+- Root-shell access to the MGU head unit is required. This repository does not provide a root-access method.
+- BMW's OAP SDK is copyrighted owner-supplied software and is not included.
+- Vehicle keys, VINs, and provisioning files are not included.
+- Always run the upstream `check` command before installation.
+- Do not operate the game while driving.
 
-1. MGU 헤드유닛이 장착된 BMW iDrive 7 차량
-2. 헤드유닛 root shell 접근
-3. Windows, macOS 또는 Linux PC
-4. Python 3.6 이상, Node.js 14 이상, OpenSSH
-5. 자신의 헤드유닛에서 추출한 `oap-sdk/`
+## Requirements
 
-자세한 환경 요구사항과 SDK 추출 절차는 [upstream README](https://github.com/cauliflowermossgrape/idrive7-apps#2-what-you-need)를 따르세요.
+1. A BMW with an MGU / iDrive 7 head unit
+2. Root-shell access to the head unit
+3. A Windows, macOS, or Linux computer
+4. Python 3.6 or newer, Node.js 14 or newer, and OpenSSH
+5. `oap-sdk/` extracted from your own head unit
 
-## 1. 소스 합치기
+Follow the [upstream requirements and SDK extraction guide](https://github.com/cauliflowermossgrape/idrive7-apps#2-what-you-need) for the vehicle-specific preparation.
 
-두 저장소를 나란히 받습니다.
+## 1. Add the game to idrive7-apps
+
+Clone the upstream project and this repository side by side:
 
 ```powershell
 git clone https://github.com/cauliflowermossgrape/idrive7-apps.git
-git clone https://github.com/jaimeen77-cmyk/idrive7-game-idrivecircuit.git
-cd idrive7-game-idrivecircuit
+git clone https://github.com/jaimeen77-cmyk/idrive7-apps-jam.git
 ```
 
-자동 설치 스크립트로 게임 파일과 한국어 번역을 upstream 작업 폴더에 합칩니다.
+### Manual copy
 
-```powershell
-python tools\install-overlay.py ..\idrive7-apps
-```
+For an English build, the minimum required step is to copy this directory:
 
-macOS/Linux도 동일합니다.
-
-```bash
-python3 tools/install-overlay.py ../idrive7-apps
-```
-
-
-대상 폴더에 기존 `apps/idrive_circuit`이 있으면 스크립트가 중지합니다. 이 저장소 버전으로 갱신하려면 내용을 먼저 확인한 뒤 `--force`를 사용하세요.
-
-```powershell
-python tools\install-overlay.py ..\idrive7-apps --force
-```
-
-혹은 그냥 경로를 바꿔서 복사해 넣어주면 됩니다.
-```
-idrive7-game-idrivecircuit/apps/idrive_circuit
+```text
+idrive7-apps-jam/apps/idrive_circuit
 →
 idrive7-apps/apps/idrive_circuit
 ```
 
-한국어 번역을 합치지 않으려면 `--no-ko`를 추가할 수 있습니다.
+Windows PowerShell:
 
-## 2. BMW OAP SDK 준비
+```powershell
+Copy-Item -Recurse .\idrive7-apps-jam\apps\idrive_circuit .\idrive7-apps\apps\
+```
 
-upstream 저장소의 안내에 따라 자신의 헤드유닛에서 `x_call` 앱을 복사하고 SDK를 추출합니다. 아래 결과가 upstream 저장소 안에 있어야 합니다.
+macOS/Linux:
+
+```bash
+cp -R idrive7-apps-jam/apps/idrive_circuit idrive7-apps/apps/
+```
+
+The following development files are optional:
+
+```text
+kit/icons/idrive_circuit.svg
+kit/tools/test_idrive_circuit.js
+```
+
+### Automated overlay installer
+
+The helper script copies the game, optional development files, and Korean translations into an upstream checkout:
+
+```powershell
+cd idrive7-apps-jam
+python tools\install-overlay.py ..\idrive7-apps
+```
+
+macOS/Linux:
+
+```bash
+cd idrive7-apps-jam
+python3 tools/install-overlay.py ../idrive7-apps
+```
+
+If `apps/idrive_circuit` already exists, inspect it before using `--force`. Add `--no-ko` if Korean translations should not be merged.
+
+For a manual Korean setup, merge `localization/ko-additions.tsv` into `idrive7-apps/kit/runtime/locales/ko.tsv`, then run:
+
+```powershell
+python kit\tools\sync_locales.py ko
+```
+
+## 2. Prepare the BMW OAP SDK
+
+Follow the upstream guide to copy the `x_call` app from your own head unit and extract the SDK. The upstream checkout must contain:
 
 ```text
 idrive7-apps/
@@ -88,119 +115,162 @@ idrive7-apps/
    └─ source/
 ```
 
-`oap-sdk/` 또는 SDK가 포함된 `.mgu` 파일을 GitHub에 올리지 마세요.
+Do not upload `oap-sdk/` or an SDK-containing `.mgu` package to GitHub.
 
-## 3. PC에서 테스트
+## 3. Test on the computer
 
-upstream `idrive7-apps` 폴더에서 실행합니다.
+Run these commands from the upstream `idrive7-apps` directory:
 
 ```powershell
 node kit\tools\test_idrive_circuit.js
-python kit\tools\build.py --language ko --preview-only idrive_circuit
+python kit\tools\build.py --preview-only idrive_circuit
 node kit\tools\preview.js dist\idrive_circuit preview\idrive_circuit frames=3
 ```
 
-실시간 브라우저 에뮬레이터:
+For a Korean offline preview:
+
+```powershell
+python kit\tools\build.py --language ko --preview-only idrive_circuit
+```
+
+Live browser emulator:
 
 ```powershell
 node kit\tools\emu.js idrive_circuit
 ```
 
-브라우저에서 `http://localhost:8077`을 열면 됩니다. 마우스는 터치, 휠 또는 `[`/`]`는 노브 회전, `Enter`는 노브 누름, 방향키는 노브 밀기입니다.
+Open `http://localhost:8077`. Mouse input acts as touch, the mouse wheel or `[`/`]` turns the controller, `Enter` presses it, and the arrow keys tilt it.
 
-## 4. 설치 키트 만들기
+## 4. Build the vehicle kit
 
-Windows:
+### Windows
+
+English:
 
 ```powershell
 deploy\make-car-kit.cmd idrive_circuit
+```
 
+Output:
+
+```text
+dist\mgu-custom-apps.tar.gz
+```
+
+Korean:
+
+```powershell
 deploy\make-car-kit.cmd --language ko idrive_circuit
 ```
 
-macOS/Linux/WSL:
+Output:
+
+```text
+dist\mgu-custom-apps-ko.tar.gz
+```
+
+### macOS/Linux/WSL
 
 ```bash
 deploy/make-car-kit.sh idrive_circuit
+deploy/make-car-kit.sh --language ko idrive_circuit
 ```
 
-완성된 키트는 upstream 저장소의 `dist/`에 생성됩니다.
+## 5. Check compatibility and install
 
-## 5. 차량 호환성 확인 및 설치
-
-Windows PowerShell:
+### Windows PowerShell — English kit
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File deploy\push-to-car.ps1 check `
-  -Key <SSH-개인키-경로> -Ip <헤드유닛-IP>
+  -Key <SSH-key-path> -Ip <head-unit-IP>
 
 powershell -ExecutionPolicy Bypass -File deploy\push-to-car.ps1 install `
-  -Key <SSH-개인키-경로> -Ip <헤드유닛-IP>
+  -Key <SSH-key-path> -Ip <head-unit-IP>
+```
 
+### Windows PowerShell — Korean kit
 
+```powershell
 powershell -ExecutionPolicy Bypass -File deploy\push-to-car.ps1 check `
   -Kit dist\mgu-custom-apps-ko.tar.gz `
-  -Key <SSH키> -Ip <헤드유닛IP>
+  -Key <SSH-key-path> -Ip <head-unit-IP>
 
 powershell -ExecutionPolicy Bypass -File deploy\push-to-car.ps1 install `
   -Kit dist\mgu-custom-apps-ko.tar.gz `
-  -Key <SSH키> -Ip <헤드유닛IP>
+  -Key <SSH-key-path> -Ip <head-unit-IP>
 ```
 
-macOS/Linux/WSL:
+### macOS/Linux/WSL
+
+English kit:
 
 ```bash
-HU=root@<헤드유닛-IP> KEY=<SSH-개인키-경로> deploy/push-to-car.sh check
-HU=root@<헤드유닛-IP> KEY=<SSH-개인키-경로> deploy/push-to-car.sh install
+HU=root@<head-unit-IP> KEY=<SSH-key-path> deploy/push-to-car.sh check
+HU=root@<head-unit-IP> KEY=<SSH-key-path> deploy/push-to-car.sh install
 ```
 
-`check`가 오류를 보고하면 설치하지 말고 먼저 원인을 해결하세요. 설치 후 약 1~2분 뒤 Apps 메뉴에 **iDrive Circuit** 타일이 표시됩니다.
+Korean kit:
 
-## 조작법
+```bash
+KIT=dist/mgu-custom-apps-ko HU=root@<head-unit-IP> KEY=<SSH-key-path> deploy/push-to-car.sh check
+KIT=dist/mgu-custom-apps-ko HU=root@<head-unit-IP> KEY=<SSH-key-path> deploy/push-to-car.sh install
+```
 
-### GPU 전체 화면
+If `check` reports an error, do not install until the cause has been resolved. The **iDrive Circuit** tile should appear in Apps approximately one or two minutes after installation.
 
-- 노브 회전: 타일 순서대로 이동
-- 노브 상하좌우 밀기: 화면에서 해당 방향의 타일로 이동
-- 노브 누르기: 선택 타일을 시계 방향으로 90도 회전
-- 터치: 누른 타일을 바로 회전
+## Controls
 
-### 표준/소프트웨어 화면
+### Full-screen GPU renderer
 
-- **Next tile**: 다음 타일 선택
-- **Rotate**: 선택 타일 회전
-- **Undo**, **Hint**, **Restart**, **Previous level**, **Next level**: 동일하게 사용
+- Turn controller: move through the tiles
+- Tilt controller: move to the nearest tile in that direction
+- Press controller: rotate the selected tile 90 degrees clockwise
+- Touch a tile: rotate it directly
 
-## 원상 복구
+### Standard/software renderer
 
-upstream 프로젝트의 `restore`는 모든 커스텀 앱과 관련 hook을 제거하고 최초 백업 상태로 되돌립니다.
+- **Next tile**: select the next tile
+- **Rotate**: rotate the selected tile
+- **Undo**, **Hint**, **Restart**, **Previous level**, and **Next level** work on both rendering paths
+
+## Restore the stock system
+
+The upstream `restore` command removes all custom apps and their associated hooks, then restores the original backup.
 
 Windows:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File deploy\push-to-car.ps1 restore `
-  -Key <SSH-개인키-경로> -Ip <헤드유닛-IP>
+  -Key <SSH-key-path> -Ip <head-unit-IP>
 ```
 
 macOS/Linux/WSL:
 
 ```bash
-HU=root@<헤드유닛-IP> KEY=<SSH-개인키-경로> deploy/push-to-car.sh restore
+HU=root@<head-unit-IP> KEY=<SSH-key-path> deploy/push-to-car.sh restore
 ```
 
-## 저장소 구성
+## Repository layout
 
 ```text
-apps/idrive_circuit/            게임 앱 소스와 아이콘
-kit/icons/idrive_circuit.svg    앱 타일 원본 SVG
+apps/idrive_circuit/            Game source and app icon
+kit/icons/idrive_circuit.svg    Source artwork for the app tile
 kit/tools/test_idrive_circuit.js
-localization/ko-additions.tsv   한국어 번역 추가분
-tools/install-overlay.py        upstream 폴더에 안전하게 합치는 스크립트
-screenshots/                    실제 오프라인 렌더링 결과
+localization/ko-additions.tsv   Korean translation additions
+tools/install-overlay.py        Safe overlay installer
+screenshots/                    Offline renderer output
 ```
 
-## 라이선스와 출처
+## Validation
 
-이 게임 소스는 MIT 라이선스입니다. 기반 런타임과 설치 방식은 [cauliflowermossgrape/idrive7-apps](https://github.com/cauliflowermossgrape/idrive7-apps)를 사용합니다. upstream 저장소의 renderer와 기타 구성요소에는 별도 라이선스가 적용될 수 있으므로 해당 저장소의 라이선스 안내도 확인하세요.
+- Connectivity, open-connection, and solution invariants for all 30 levels
+- Every level verified solvable using only the Hint action
+- Rotation, Undo, persistence, par, and star-score tests
+- English and Korean offline-preview builds
+- Upstream fixed-language layout tests for Korean and Chinese
+
+## License and attribution
+
+The game source is released under the MIT License. Its runtime and installation workflow are based on [cauliflowermossgrape/idrive7-apps](https://github.com/cauliflowermossgrape/idrive7-apps). The upstream renderer and other components may have separate licenses; consult the upstream licensing documentation as well.
 
 
