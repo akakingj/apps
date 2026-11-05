@@ -4,7 +4,7 @@ English | [한국어](reame_kor.md)
 
 iDrive Circuit is a parked-only wiring puzzle for the BMW MGU / iDrive 7 custom-app environment. Rotate the circuit tiles until battery power reaches every vehicle module without leaving an open connection.
 
-![iDrive Circuit Korean preview](screenshots/preview-ko.png)
+![iDrive Circuit Korean preview](screenshots/complete.png)
 
 ## Features
 
