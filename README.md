@@ -13,7 +13,10 @@ Two ordinary apps for the existing [idrive7-apps](https://github.com/cauliflower
 
 This repository now supports the **Repo tree** layout. In MGU Store, open
 **Settings → Add source**, enter `jaimeen77-cmyk/idrive7-apps-jam`, choose
-**main**, then **Check now**. Both apps build with Korean UI on the head unit.
+**main**, then **Check now**. Choose the listing marked **한국어** or **English**
+for each app. The head unit builds the selected language; no build flag is needed.
+Existing Korean app ids are retained. English editions have separate ids and settings.
+For Cluster Redline, enable Sport auto-display in only the edition you use.
 No GitHub token or publicly redistributed SDK is needed for this public source.
 
 [Store registration and migration guide](docs/MGU-STORE.ko.md).

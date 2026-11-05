@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare SDK-free Korean UI/runtime templates; app JavaScript stays in source."""
+"""Prepare SDK-free UI/runtime templates; app JavaScript stays in source."""
 import argparse
 import gzip
 import hashlib
@@ -22,16 +22,20 @@ def fingerprint(manifest, template):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--dist', type=Path, required=True, help='existing Korean builds; never copied wholesale')
+    parser.add_argument('--dist', type=Path, required=True, help='existing builds; never copied wholesale')
+    parser.add_argument('--language', choices=('ko', 'en'), default='ko')
     args = parser.parse_args()
     destination = ROOT / 'store/runtime'
     destination.mkdir(parents=True, exist_ok=True)
     entries = json.loads((ROOT / 'mgu-repo.json').read_text(encoding='utf-8'))['components']
     for entry in entries:
+        if entry['path'].startswith('store/apps/'):
+            continue  # Language variants share these two original app sources.
         app_id = entry['id']
         app_dir = ROOT / entry['path']
         spec = json.loads((app_dir / 'app.json').read_text(encoding='utf-8'))
-        package_path = args.dist / (app_id + '@' + spec['version'] + '-ko.1.tgz')
+        suffix = '-ko.1' if args.language == 'ko' else ''
+        package_path = args.dist / (app_id + '@' + spec['version'] + suffix + '.tgz')
         own = {'app.js'} | {p.name for p in app_dir.glob('*.js')}
         own.discard('main.js')
         with tempfile.TemporaryDirectory(prefix='jam-store-prepare-') as temp:
@@ -56,12 +60,13 @@ def main():
                     else:
                         raise ValueError('Unsupported archive member: ' + member.name)
             built_locale = json.loads((stage / 'javascript/kit/locale.json').read_text(encoding='utf-8'))
-            assert built_locale['language'] == 'ko'
+            assert built_locale['language'] == args.language
             assert not (stage / 'node_modules').exists()
             icon = stage / 'rhmiData/variantGroups/Common/images' / (app_id + '_icon.png')
             if not (app_dir / 'icon.png').exists():
                 shutil.copy2(icon, app_dir / 'icon.png')
-            archive = destination / (app_id + '.tgz')
+            runtime = app_id + ('.en' if args.language == 'en' else '')
+            archive = destination / (runtime + '.tgz')
             with gzip.GzipFile(filename=str(archive), mode='wb', mtime=0) as compressed:
                 with tarfile.open(fileobj=compressed, mode='w') as result:
                     for file in sorted(stage.rglob('*')):
@@ -78,10 +83,15 @@ def main():
                 assert not any('node_modules/' in name or '/oap-sdk/' in name for name in names)
                 assert not any('package/javascript/' + name in names for name in own)
             data = archive.read_bytes()
-            metadata = dict(schema=1, id=app_id, language='ko', source_version=spec['version'],
+            metadata = dict(schema=1, id=app_id, language=args.language, source_version=spec['version'],
                             ui_sha256=fingerprint(app_dir / 'app.json', app_id),
                             size=len(data), sha256=hashlib.sha256(data).hexdigest())
-            (destination / (app_id + '.json')).write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
+            (destination / (runtime + '.json')).write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
+            # Small Store manifests only; app logic remains in apps/<original-id>.
+            variant = ROOT / 'store/apps' / (app_id + '_en')
+            variant.mkdir(parents=True, exist_ok=True)
+            (variant / 'app.json').write_text(json.dumps(dict(id=app_id + '_en', version=spec['version']), indent=2) + '\n', encoding='utf-8')
+            shutil.copy2(app_dir / 'icon.png', variant / 'icon.png')
             print(app_id + ': ' + str(len(data)) + ' bytes; no SDK or app JavaScript in runtime template')
 
 

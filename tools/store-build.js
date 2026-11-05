@@ -44,16 +44,23 @@ function uuidFor(id, original) {
 }
 function build(options) {
     const template = options.template, id = options.id, version = options.version;
+    const language = options.language || 'ko';
+    if (['ko', 'en'].indexOf(language) < 0) throw new Error('Language must be ko or en');
     if (!ID.test(template || '') || !ID.test(id || '') || !VERSION.test(version || '')) throw new Error('Valid --template, --id and numeric --version are required');
     const appDir = path.resolve(ROOT, options.dir || '');
     if (appDir.indexOf(ROOT + path.sep) !== 0) throw new Error('App directory must be inside the repository');
     const spec = JSON.parse(fs.readFileSync(path.join(appDir, 'app.json'), 'utf8'));
     if (spec.id !== id || spec.version !== version) throw new Error('Build identity/version must match the selected app manifest');
-    const metadata = JSON.parse(fs.readFileSync(path.join(ROOT, 'store/runtime', template + '.json'), 'utf8'));
-    if (metadata.id !== template || metadata.language !== 'ko' || metadata.ui_sha256 !== fingerprint(spec, template)) {
-        throw new Error('Generated UI/locale is stale. Maintainer: rebuild the Korean app and run tools/prepare-store.py.');
+    const sourceDir = options.source ? path.resolve(ROOT, options.source) : appDir;
+    if (sourceDir.indexOf(ROOT + path.sep) !== 0) throw new Error('Source directory must be inside the repository');
+    const sourceSpec = JSON.parse(fs.readFileSync(path.join(sourceDir, 'app.json'), 'utf8'));
+    if (sourceSpec.version !== version || (options.source && sourceSpec.id !== template)) throw new Error('Language variant must match the current source id/version');
+    const runtime = template + (language === 'en' ? '.en' : '');
+    const metadata = JSON.parse(fs.readFileSync(path.join(ROOT, 'store/runtime', runtime + '.json'), 'utf8'));
+    if (metadata.id !== template || metadata.language !== language || metadata.ui_sha256 !== fingerprint(sourceSpec, template)) {
+        throw new Error('Generated UI/locale is stale. Maintainer: rebuild this language and run tools/prepare-store.py.');
     }
-    const archive = path.join(ROOT, 'store/runtime', template + '.tgz'), data = fs.readFileSync(archive);
+    const archive = path.join(ROOT, 'store/runtime', runtime + '.tgz'), data = fs.readFileSync(archive);
     if (data.length !== metadata.size || sha(data) !== metadata.sha256) throw new Error('Runtime template checksum mismatch');
     const out = path.resolve(options.out || process.env.MGU_OUT || '');
     if (!options.out && !process.env.MGU_OUT) throw new Error('MGU_OUT or --out is required');
@@ -67,15 +74,15 @@ function build(options) {
         const stage = path.join(work, 'package');
         if (walk(stage).some((f) => f.split(path.sep).indexOf('node_modules') >= 0)) throw new Error('SDK/native modules must not be distributed');
         // Compile the current app source into the prepared runtime/UI, not a frozen app bundle.
-        fs.readdirSync(appDir).forEach((name) => {
-            const file = path.join(appDir, name);
+        fs.readdirSync(sourceDir).forEach((name) => {
+            const file = path.join(sourceDir, name);
             if (!fs.statSync(file).isFile()) return;
             if (/\.(js|wasm|wad|pack)$/.test(name) || name === 'LICENSE' || name === 'NOTICE') {
                 fs.writeFileSync(path.join(stage, 'javascript', name === 'main.js' ? 'app.js' : name), fs.readFileSync(file));
             }
         });
         if (!fs.existsSync(path.join(stage, 'javascript/app.js'))) throw new Error('App main.js is missing');
-        const icon = path.join(appDir, 'icon.png');
+        const icon = path.join(sourceDir, 'icon.png');
         if (fs.existsSync(icon)) fs.writeFileSync(path.join(stage, 'rhmiData/variantGroups/Common/images', template + '_icon.png'), fs.readFileSync(icon));
         const packageFile = path.join(stage, 'package.json');
         const pkg = JSON.parse(fs.readFileSync(packageFile, 'utf8')), oldVersion = pkg.version;
@@ -104,14 +111,14 @@ function build(options) {
         fs.writeFileSync(packageFile, JSON.stringify(ready, null, 2) + '\n');
         const target = path.join(out, id + '@' + version + '.tgz');
         cp.execFileSync('tar', ['-czf', target, '-C', work, 'package']);
-        console.log('Built Korean Store app (SDK-free): ' + target);
+        console.log('Built ' + language + ' Store app (SDK-free): ' + target);
         return target;
     } finally { clean(work); }
 }
 function cli(args) {
     const options = {};
     for (let i = 0; i < args.length; i += 2) {
-        if (!/^--(?:template|id|version|dir|out)$/.test(args[i]) || args[i + 1] === undefined) throw new Error('Usage: --template <source-id> --id <id> --version <x.y.z> --dir <app-folder> [--out <empty-folder>]');
+        if (!/^--(?:template|id|version|dir|out|language|source)$/.test(args[i]) || args[i + 1] === undefined) throw new Error('Usage: --template <source-id> --id <id> --version <x.y.z> --dir <app-folder> [--language ko|en] [--source <source-folder>] [--out <empty-folder>]');
         options[args[i].slice(2)] = args[i + 1];
     }
     build(options);

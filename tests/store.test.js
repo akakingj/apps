@@ -13,20 +13,27 @@ function entries(archive) { return cp.execFileSync('tar', ['-tzf', archive], { e
 function read(archive, name) { return cp.execFileSync('tar', ['-xOzf', archive, name]); }
 function json(archive, name) { return JSON.parse(read(archive, 'package/' + name)); }
 function copy(from, to) { fs.mkdirSync(to, { recursive: true }); fs.readdirSync(from).forEach((n) => { const a = path.join(from, n), b = path.join(to, n); if (fs.statSync(a).isDirectory()) copy(a, b); else fs.copyFileSync(a, b); }); }
-function checkPackage(file, id, version, start) {
+function checkPackage(file, id, version, start, language) {
     const names = entries(file);
     assert(!names.some((n) => /(^|\/)node_modules\//.test(n) || /(^|\/)oap-sdk\//.test(n)), 'published/build output must contain no SDK');
     const p = json(file, 'package.json');
     assert.strictEqual(p.name, id); assert.strictEqual(p.version, version);
     assert.deepStrictEqual(p.mguHmi, ['ID7']); assert.strictEqual(p.mguLocalOnly, true);
     assert.strictEqual(p.mguAppStartType || 'manually', start);
-    assert.strictEqual(json(file, 'javascript/kit/locale.json').language, 'ko');
+    assert.strictEqual(json(file, 'javascript/kit/locale.json').language, language);
+    const title = json(file, 'rhmiData/variantGroups/Common/texts/en_GB.json')['SID_' + id.toUpperCase() + '_TITLE'];
+    assert.strictEqual(/[가-힣]/.test(title), language === 'ko', 'RHMI title must use the chosen language');
     assert.strictEqual(json(file, 'javascript/kit/app-spec.json').id, id);
     const app = json(file, 'rhmiData/application.json').application;
     assert.strictEqual(app.name, id); assert.strictEqual(app.version, version);
     const icon = 'package/rhmiData/variantGroups/Common/images/' + app.entryPoints[0].icon;
     assert(names.includes(icon), 'RHMI icon reference must exist after id aliasing');
     return app.uuid;
+}
+function optionsFor(args) {
+    const result = {};
+    for (let i = 0; i < args.length; i += 2) result[args[i].slice(2)] = args[i + 1];
+    return result;
 }
 (async () => {
     const doc = JSON.parse(fs.readFileSync(path.join(ROOT, 'mgu-repo.json')));
@@ -35,17 +42,22 @@ function checkPackage(file, id, version, start) {
         sourceParser = require(path.join(process.env.MGU_STORE_UPDATER_JS, 'sources'));
         const catalog = await sourceParser.repoCatalog((name) => Promise.resolve(fs.readFileSync(path.join(ROOT, name))), null, 'local');
         assert.deepStrictEqual(catalog.skipped, []);
-        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'idrive_circuit']);
+        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'idrive_circuit', 'idrive_circuit_en']);
         assert(catalog.components.every((c) => c.script.node === 'tools/store-build.js' && !c.script.network));
         assert.strictEqual(catalog.components.find((c) => c.id === 'cluster_redline').requires['cluster-render'], '0.3.10');
     }
+    const identities = new Set();
     for (const component of doc.components) {
         const id = component.id, spec = JSON.parse(fs.readFileSync(path.join(ROOT, component.path, 'app.json')));
-        const options = { template: id, id, version: spec.version, dir: component.path, out: path.join(temp, id) };
-        const file = build(options), start = id === 'cluster_redline' ? 'autostart' : 'manually';
-        const originalUuid = checkPackage(file, id, spec.version, start);
-        assert(read(file, 'package/javascript/app.js').equals(fs.readFileSync(path.join(ROOT, component.path, 'main.js'))));
-        const runtimeNames = entries(path.join(ROOT, 'store/runtime', id + '.tgz'));
+        const args = component.build.args.map((a) => a.replace('{id}', id).replace('{version}', spec.version).replace('{dir}', component.path));
+        const options = Object.assign(optionsFor(args), { out: path.join(temp, id) });
+        const source = options.source || component.path;
+        const file = build(options), start = options.template === 'cluster_redline' ? 'autostart' : 'manually';
+        const originalUuid = checkPackage(file, id, spec.version, start, options.language);
+        assert(!identities.has(originalUuid), 'language variants need separate RHMI identities'); identities.add(originalUuid);
+        assert(read(file, 'package/javascript/app.js').equals(fs.readFileSync(path.join(ROOT, source, 'main.js'))));
+        const runtime = options.template + (options.language === 'en' ? '.en' : '');
+        const runtimeNames = entries(path.join(ROOT, 'store/runtime', runtime + '.tgz'));
         assert(!runtimeNames.includes('package/javascript/app.js'), 'template must not freeze the app source');
         if (sourceParser) {
             const tar = require(path.join(process.env.MGU_STORE_UPDATER_JS, 'tar'));
@@ -58,19 +70,39 @@ function checkPackage(file, id, version, start) {
         copy(path.join(ROOT, component.path), dir);
         const modified = Object.assign({}, spec, { id: alias });
         fs.writeFileSync(path.join(dir, 'app.json'), JSON.stringify(modified));
-        fs.appendFileSync(path.join(dir, 'main.js'), '\n// latest source supplied by the repository\n');
-        const aliasFile = build({ template: id, id: alias, version: spec.version, dir: path.relative(ROOT, dir), out: path.join(temp, alias) });
-        const aliasUuid = checkPackage(aliasFile, alias, spec.version, start);
+        const aliasOptions = Object.assign({}, options, { id: alias, dir: path.relative(ROOT, dir), out: path.join(temp, alias) });
+        let sourceDir = dir;
+        if (options.source) {
+            sourceDir = path.join(sourceCopy, id + '-shared-source'); copy(path.join(ROOT, source), sourceDir);
+            aliasOptions.source = path.relative(ROOT, sourceDir);
+        }
+        fs.appendFileSync(path.join(sourceDir, 'main.js'), '\n// latest source supplied by the repository\n');
+        const aliasFile = build(aliasOptions);
+        const aliasUuid = checkPackage(aliasFile, alias, spec.version, start, options.language);
         assert.notStrictEqual(aliasUuid, originalUuid, 'aliased apps need distinct RHMI identities');
         assert(read(aliasFile, 'package/javascript/app.js').includes(Buffer.from('latest source supplied by the repository')));
         const aliasStrings = json(aliasFile, 'rhmiData/variantGroups/Common/texts/en_GB.json');
         assert(aliasStrings['SID_' + alias.toUpperCase() + '_TITLE']);
         // UI changes must never be installed with a stale generated screen or permission table.
-        modified.settings[0].label = 'Changed screen';
-        fs.writeFileSync(path.join(dir, 'app.json'), JSON.stringify(modified));
-        assert.throws(() => build({ template: id, id: alias, version: spec.version, dir: path.relative(ROOT, dir), out: path.join(temp, alias + '-bad') }), /stale/);
+        const sourceSpec = JSON.parse(fs.readFileSync(path.join(sourceDir, 'app.json')));
+        sourceSpec.settings[0].label = 'Changed screen';
+        fs.writeFileSync(path.join(sourceDir, 'app.json'), JSON.stringify(sourceSpec));
+        assert.throws(() => build(Object.assign({}, aliasOptions, { out: path.join(temp, alias + '-bad') })), /stale/);
+        if (sourceParser) {
+            const catalog = await sourceParser.repoCatalog((name) => Promise.resolve(fs.readFileSync(path.join(ROOT, name))), null, 'local');
+            const entry = catalog.components.find((c) => c.id === id);
+            assert(sourceParser.renameable(entry), 'every language variant must support Store collision ids');
+            const named = Object.assign({}, entry, { path: path.relative(ROOT, path.join(sourceCopy, id)), manifest: path.relative(ROOT, path.join(sourceCopy, id, 'app.json')) });
+            const files = [{ name: named.manifest, data: Buffer.from(JSON.stringify(spec)), mode: 0o644 }];
+            const renamed = sourceParser.renameApp(named, files, id + '3');
+            const target = path.join(ROOT, renamed.entry.path); copy(path.join(ROOT, component.path), target);
+            fs.writeFileSync(path.join(target, 'app.json'), renamed.files[1].data);
+            const actualOptions = Object.assign(optionsFor(renamed.entry.script.args), { out: path.join(temp, id + '3') });
+            const renamedFile = build(actualOptions);
+            checkPackage(renamedFile, id + '3', spec.version, start, options.language);
+        }
     }
-    console.log('PASS: Store repo listing, two Korean SDK-free builds, real source refresh, numeric versions, start types, collision-id UUID/icon rewrites and stale-UI rejection');
+    console.log('PASS: four English/Korean Store listings and SDK-free builds, current shared source, distinct language identities, real Store collision-id builds, autostart and stale-UI rejection');
 })().catch((e) => { console.error(e); process.exitCode = 1; }).then(() => {
     fs.rmSync(temp, { recursive: true, force: true }); fs.rmSync(sourceCopy, { recursive: true, force: true });
 });
