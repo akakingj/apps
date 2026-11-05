@@ -5,10 +5,15 @@ class Controller {
         this.client = client; this.painter = painter; this.policy = new Policy();
         this.ref = 0; this.previous = null; this.layerState = 'hidden'; this.refused = false;
         this.profile = null; this.layerRate = null;
+        this.gear = '--'; this.targetState = 'idle'; this.targetHolder = ''; this.targetReason = '';
         client.on('disconnected', () => { this.hide(); this.policy.reset(); });
         client.on('refused', () => { this.hide(); this.refused = true; });
         client.on('ready', () => { this.hide(); this.policy.reset(); this.refused = false; });
         client.on('layer', (ref, state) => { if (ref === this.ref) this.layerState = state; });
+        client.on('target', (target, state, holder, reason) => {
+            if (target !== 'map') return;
+            this.targetState = state; this.targetHolder = holder || ''; this.targetReason = reason || '';
+        });
     }
     hide() {
         if (this.ref) this.client.drop(this.ref);
@@ -21,11 +26,13 @@ class Controller {
         } else if (this.ref && this.layerRate !== cfg.frameRate) this.hide();
         this.profile = cfg.engineProfile;
         const d = this.policy.evaluate(now, this.client.ready && !this.refused, cfg);
+        d.gear = this.gear;
+        d.targetState = this.targetState; d.targetHolder = this.targetHolder; d.targetReason = this.targetReason;
         if (!d.show) { this.hide(); return Object.assign(d, { requested: false, layerState: this.layerState }); }
         if (!this.ref) {
-            this.ref = this.client.image({ target: 'map', klass: 'content', z: -100,
+            this.ref = this.client.image({ target: 'map', klass: 'content', z: 100,
                 x: 0, y: 0, w: this.painter.W, h: this.painter.H, iw: this.painter.W, ih: this.painter.H,
-                visible: false, prewarm: false, exclusive: false, contend: true, guide_hold: false, fps: d.config.frameRate });
+                visible: false, prewarm: false, exclusive: true, contend: true, guide_hold: false, fps: d.config.frameRate });
             if (!this.ref) { this.refused = true; d.show = false; d.reason = 'renderer_refused'; return d; }
             this.layerState = 'waiting';
             this.layerRate = d.config.frameRate;

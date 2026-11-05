@@ -2,7 +2,7 @@
 
 [English](README.md) | 한국어
 
-기존 `idrive7-apps`에 함께 넣어 빌드·설치하는 앱입니다. ID는 `cluster_redline`, 버전은 **0.3.0**입니다.
+기존 `idrive7-apps`에 함께 넣어 빌드·설치하는 앱입니다. ID는 `cluster_redline`, 버전은 **0.4.0**입니다.
 **실차 검증 전 시험판**이며 차량 값은 읽기만 합니다.
 
 ![한글 변속 알림](../../screenshots/cluster_redline/sport-shift.png)
@@ -65,7 +65,7 @@ RPM은 `actualValueRPMEngineCrankshaft × 0.25`, 모드는 `actualValueModeDrivi
 차량 신호에는 쓰기 API를 사용하지 않으며 엔진·변속기·코딩을 제어하지 않습니다.
 
 중앙 `map` 영역만 사용하고 전체 계기판 `panel`이나 HUD로 출력하지 않습니다.
-낮은 콘텐츠 우선순위와 비독점 레이어, `guide_hold=0`을 요청합니다.
+스포츠 모드에서는 `z=100`의 콘텐츠 레이어를 독점 표시하여 낮은 우선순위의 지도 레이어보다 먼저 표시합니다. 렌더러의 overlay·alert 레이어는 위에 남습니다. `guide_hold=0`으로 순정 길안내 패널은 유지하도록 요청합니다.
 `contend=1` 때문에 스포츠 모드에서는 중앙 순정 지도가 이 위젯으로 교체될 수 있습니다.
 순정 경고·길안내 우선순위, 화면 복귀, 자동 시작과 절전 진입은 실차 검증이 필요합니다.
 
@@ -75,3 +75,15 @@ RPM은 `actualValueRPMEngineCrankshaft × 0.25`, 모드는 `actualValueModeDrivi
 렌더링·설정 검사는 먼저 이 앱의 미리보기 빌드를 하세요.
 설정 검사는 `node tests/cluster_redline/profile-settings.test.js ../idrive7-apps`입니다.
 계기판 클라이언트는 원본을 수정하지 않았으며 MPL-2.0 라이선스와 출처를 저장소에 포함했습니다.
+
+## 0.4.0 수정
+
+- 가솔린·하이브리드에서도 2000 rpm 변속 알림 설정 적용
+- 설정값 도달 시 RPM 숫자를 빨간색으로 표시
+- 원본 M 삼색 스타일의 LED·청색/보라색/적색 바와 하단 단수 표시
+- 계기판 화면의 앱 이름과 하단 변속 문구 제거
+- 단수는 실제 신호만 사용하며, 없으면 `--` 표시
+- 렌더러의 현재/구형 메타데이터 경로를 확인하고 실제 버전과 지도 점유 상태 표시
+
+[지도 우선 표시·버전 오류 확인 안내](../../docs/CLUSTER-REDLINE-0.4.0.ko.md)를 확인하세요.
+순정 지도를 넘겨받으려면 렌더러의 `map_take_over_stock=1` 설정도 필요합니다.

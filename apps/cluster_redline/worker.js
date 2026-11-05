@@ -7,33 +7,28 @@ const { ClusterRender } = require('./cluster_render_client');
 const { Controller } = require('./controller');
 const painter = require('./draw');
 const { settings, DEFAULTS } = require('./policy');
+const renderer = require('./renderer');
+const gear = require('./gear');
 const CDS = 'de.bmw.infotainment.vehicle.CDS';
 const FES = 'de.bmw.infotainment.drivingexcitement.FES';
 const MODE_FIELD = 'statusFESVehicleDynamicSwitchHMI';
+const VEHICLE_INFO = 'de.bmw.infrastructure.VehicleInformation';
 function mono() { const p = process.hrtime(); return p[0] * 1000 + p[1] / 1000000; }
 function atomic(file, value) {
     const temp = file + '.tmp';
     fs.writeFileSync(temp, JSON.stringify(value) + '\n', { mode: 0o644 });
     fs.renameSync(temp, file);
 }
-function supportedRenderer(file) {
-    try {
-        const c = JSON.parse(fs.readFileSync(file || '/var/opt/cluster-render/current/component.json', 'utf8'));
-        const v = String(c.version || '').split('.').map(Number);
-        return c.id === 'cluster-render' && v.length === 3 && v.every((n) => isFinite(n) && n >= 0)
-            && (v[0] > 0 || v[1] > 3 || (v[1] === 3 && v[2] >= 10));
-    } catch (e) { return false; }
-}
+function supportedRenderer() { return renderer.inspect(undefined, fs).compatible; }
 function start(ctx) {
     const log = ctx.log, signals = ctx.signals;
     const client = new ClusterRender('cluster-redline'), controller = new Controller(client, painter);
     let config = settings(), lastStatus = -Infinity, stopped = false, timer;
+    let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub;
     const subs = [], errors = [];
     const reportError = (name, e) => { const s = name + ': ' + e; if (errors.indexOf(s) < 0) { errors.push(s); log.warn(s); } };
     const live = signals && typeof signals.hasNative === 'function' && signals.hasNative();
     if (!live) reportError('someip', 'live native binding unavailable; cluster output disabled');
-    const rendererOkay = live && supportedRenderer();
-    if (live && !rendererOkay) reportError('cluster-render', '0.3.10 or newer required; cannot verify installed component');
     client.on('ready', () => {
         // ID7 map geometry only: never fall back to panel, HUD, or another slot.
         if (client.backend !== 'id7' || String(client.targets).split(',').indexOf('map:1088x480') < 0 || !supportedRenderer()) {
@@ -41,7 +36,6 @@ function start(ctx) {
             reportError('cluster-render', 'unsupported backend, map geometry or version; display disabled');
         }
     });
-    if (rendererOkay) client.connect();
     if (live) {
         // Re-read getters even while values do not change. No set/call methods are used.
         signals.watch(CDS, '1', {
@@ -53,6 +47,13 @@ function start(ctx) {
         const handlers = {};
         handlers[MODE_FIELD] = (v) => controller.policy.modeSample(v && v.actualValueModeDrivingExperience, mono());
         signals.watch(FES, '1', handlers, log, { pollMs: 1000 }).then((s) => { subs.push(s); if (s.error) reportError(FES, s.error); }).catch((e) => reportError(FES, e));
+        signals.watch(VEHICLE_INFO, '1', {
+            statusGearboxDrive: (v) => { controller.gear = gear.gearbox(v); },
+            DataPowerTrain2: (v) => { controller.gear = gear.selection(v); },
+        }, log, { pollMs: 1000 }).then((s) => {
+            gearSub = s; subs.push(s);
+            if (s.error) { controller.gear = '--'; reportError('optional gear', s.error); }
+        }).catch((e) => { controller.gear = '--'; reportError('optional gear', e); });
     }
     function stop() {
         if (stopped) return;
@@ -63,6 +64,17 @@ function start(ctx) {
     function tick() {
         const at = mono();
         try {
+            if (live && at - lastRendererCheck >= 1000) {
+                lastRendererCheck = at; rendererInfo = renderer.inspect(undefined, fs);
+                if (rendererInfo.compatible && !connectionStarted) { connectionStarted = true; client.connect(); }
+                else if (!rendererInfo.compatible) {
+                    reportError('cluster-render', rendererInfo.reason);
+                    if (connectionStarted) { controller.hide(); controller.policy.reset(); client.close(); connectionStarted = false; }
+                }
+            }
+            // Gear fields may notify only on changes. Keep a known gear while its
+            // provider remains available, and clear it on provider loss/error.
+            if (gearSub && (gearSub.available === false || gearSub.error)) controller.gear = '--';
             const raw = {};
             Object.keys(DEFAULTS).forEach((k) => { raw[k] = ctx.settings.get(k); });
             config = settings(raw);
@@ -72,6 +84,8 @@ function start(ctx) {
                 atomic(path.join(ctx.dataDir, 'cluster-redline-status.json'), {
                     at: new Date().toISOString(), requested: !!state.requested, layerState: state.layerState || 'hidden',
                     reason: state.reason, mode: state.mode, rpm: state.rpm, shift: state.shift,
+                    gear: state.gear, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
+                    renderer: rendererInfo, requestedSettings: raw,
                     profile: config.engineProfile, config: config,
                     errors: errors.slice(-8), source: live ? 'live-someip' : 'offline-disabled',
                 });
@@ -84,4 +98,4 @@ function start(ctx) {
     tick();
     return { controller: controller, stop: stop };
 }
-module.exports = { start, supportedRenderer, CDS, FES, MODE_FIELD };
+module.exports = { start, supportedRenderer, CDS, FES, MODE_FIELD, VEHICLE_INFO };

@@ -88,4 +88,7 @@ Redline / scale	레드라인 / 눈금
 Normal modes and stale signals release the central display.	일반 모드·신호 끊김에서는 중앙 화면을 점유하지 않습니다.
 The background app checks display conditions even when this screen is closed.	앱 화면을 열지 않아도 백그라운드에서 표시 조건을 확인합니다.
 SHIFT NOW	변속 시점
+Map slot	지도 영역
+Renderer version	렌더러 버전
+Map takeover	지도 우선 표시
 

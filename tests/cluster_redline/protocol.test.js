@@ -43,6 +43,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         assert.deepStrictEqual(commands.map((x) => x.op), ['hello', 'layer', 'frame', 'set']);
         const layer = commands[1]; assert.strictEqual(layer.target, 'map'); assert.strictEqual(layer.visible, 0);
         assert.strictEqual(layer.guide_hold, 0); assert.strictEqual(layer.prewarm, 0);
+        assert.strictEqual(layer.contend, 1); assert.strictEqual(layer.exclusive, 1); assert.strictEqual(layer.z, 100);
         assert.strictEqual(commands[2].type, 0x46); assert.strictEqual(commands[2].bytes, 14 + 64);
         assert.strictEqual(commands[3].visible, 1);
         controller.policy.modeSample(4, 1100); controller.tick(1100); await sleep(20);

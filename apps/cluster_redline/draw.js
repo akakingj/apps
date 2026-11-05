@@ -1,42 +1,58 @@
 'use strict';
-const { Canvas } = require('./kit/canvas');
-const { t: translate } = require('./kit/i18n');
-const { PROFILES } = require('./policy');
+const { Canvas, ramp, withAlpha } = require('./kit/canvas');
 const W = 1088, H = 480;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const C = { bg: '#04060a', track: '#1b212b', tick: '#4c5666', text: '#f4f7fb', red: '#ff2a2a' };
 function draw(state) {
     const cv = new Canvas(W, H), cfg = state.config, rpm = state.rpm;
-    cv.clear('#090d13');
-    cv.roundRect(6, 6, W - 12, H - 12, 18, '#131b25');
-    cv.roundRect(8, 8, W - 16, H - 16, 17, '#090d13');
-    cv.text('REDLINE', W / 2, 47, 32, '#f2f5fa', { align: 'center', font: 'bold', spacing: 3 });
-    cv.text((PROFILES[cfg.engineProfile] || PROFILES.petrol).label, 48, 45, 23, '#9eafc7');
-    const colors = ['#12dcb1', '#12dcb1', '#12dcb1', '#12dcb1', '#ffdb32', '#ffdb32', '#ffdb32', '#ff3838', '#ff3838', '#ff3838'];
-    const lit = Math.floor(clamp((rpm - (cfg.shiftRpm - 2000)) / 2000, 0, 1) * colors.length);
-    colors.forEach((color, i) => cv.roundRect(210 + i * 68, 66, 46, 22, 8, state.shift || i < lit ? color : '#202933'));
-    cv.text(String(Math.round(rpm / 10) * 10), W / 2, 250, 156, state.shift ? '#ffe085' : '#f2f5fa', { align: 'center', font: 'num' });
-    cv.text('rpm', W / 2, 278, 23, '#a6b4c8', { align: 'center' });
-    const x0 = 70, width = W - x0 * 2, step = width / 24;
-    const fill = clamp(rpm / cfg.maxRpm, 0, 1) * 24;
-    for (let i = 0; i < 24; i++) {
-        const f = i / 24, color = f >= cfg.redlineRpm / cfg.maxRpm ? '#f33145' : f > 0.72 ? '#ffc735' : '#09c9eb';
-        cv.quad([[x0 + i * step + 10, 300], [x0 + (i + 1) * step - 2, 300], [x0 + (i + 1) * step - 12, 344], [x0 + i * step, 344]], i < fill ? color : '#202933');
-    }
-    for (let r = 0; r <= cfg.maxRpm; r += 1000) {
+    cv.clear(C.bg);
+    // Match the original M Tricolour Redline: angular chrome and no title/footer.
+    cv.polyline([[16, 77], [113, 77], [150, 103], [938, 103], [975, 77], [1072, 77]], 2, '#394452');
+    cv.polyline([[150, 103], [938, 103]], 2, '#707b8b');
+    cv.polyline([[16, 464], [113, 464], [150, 441], [426, 441]], 2, '#394452');
+    cv.polyline([[662, 441], [938, 441], [975, 464], [1072, 464]], 2, '#394452');
+    const colors = ['#19ee67', '#19ee67', '#19ee67', '#19ee67', '#19ee67',
+        '#ffd522', '#ffd522', '#ffd522', '#ffd522', '#f32d4c', '#f32d4c', '#f32d4c'];
+    const start = Math.max(0, cfg.shiftRpm - Math.min(2000, cfg.shiftRpm * 0.7));
+    const lit = state.shift ? colors.length : Math.floor(clamp((rpm - start) / (cfg.shiftRpm - start), 0, 1) * colors.length);
+    const ledW = 50, gap = 14, left = (W - colors.length * ledW - (colors.length - 1) * gap) / 2;
+    colors.forEach((color, i) => {
+        const x = left + i * (ledW + gap);
+        cv.roundRect(x - 3, 25, ledW + 6, 35, 7, withAlpha(color, i < lit ? 0.11 : 0.02));
+        cv.roundRect(x, 28, ledW, 29, 5, i < lit ? color : withAlpha(color, 0.13));
+    });
+    const rw = cv.text(String(Math.round(rpm / 10) * 10), W / 2, 205, 112,
+        state.shift ? C.red : C.text, { align: 'center', font: 'num' });
+    cv.text('rpm', W / 2 + rw / 2 + 12, 205, 24, state.shift ? C.red : '#a3afc0', { font: 'bold' });
+    const x0 = 60, width = W - 120, y0 = 229, y1 = 290, slant = 20;
+    const polygon = (a, b, color) => {
+        const xa = x0 + width * a / cfg.maxRpm, xb = x0 + width * b / cfg.maxRpm;
+        cv.quad([[xa + slant, y0], [xb + slant, y0], [xb, y1], [xa, y1]], color);
+    };
+    polygon(0, cfg.maxRpm, C.track);
+    polygon(cfg.redlineRpm, cfg.maxRpm, '#4c1621');
+    const hot = ['#1f5fd0', '#159cff', '#20c9ff', '#c04cdc', '#f12c65'];
+    const top = Math.min(rpm, cfg.maxRpm);
+    for (let r = 0; r < top; r += 500) polygon(r, Math.min(r + 500, top), state.shift ? C.red : ramp(hot, clamp(r / cfg.shiftRpm, 0, 1)));
+    for (let r = 500; r < cfg.maxRpm; r += 500) {
         const x = x0 + width * r / cfg.maxRpm;
-        cv.line(x, 350, x, 358, 2, r >= cfg.redlineRpm ? '#ff384a' : '#79899e');
-        cv.text(String(r / 1000), x, 381, 23, r >= cfg.redlineRpm ? '#ff384a' : '#b7c3d2', { align: 'center' });
+        cv.quad([[x + slant - 1, y0], [x + slant + 1, y0], [x + 1, y1], [x - 1, y1]], C.bg);
     }
-    if (state.shift) {
-        cv.roundRect(110, 402, W - 220, 57, 10, '#5e3b0b');
-        const labelWidth = cv.text(translate('SHIFT NOW'), W / 2 + 14, 443, 34, '#ffdc79', { align: 'center', font: 'bold' });
-        const arrowX = W / 2 + 14 - labelWidth / 2 - 29;
-        cv.line(arrowX, 437, arrowX, 415, 3, '#ffdc79');
-        cv.line(arrowX - 8, 423, arrowX, 415, 3, '#ffdc79');
-        cv.line(arrowX, 415, arrowX + 8, 423, 3, '#ffdc79');
-    } else {
-        cv.text(translate('SPORT') + '  ·  ' + translate('Shift alert') + ' ' + cfg.shiftRpm + ' rpm', W / 2, 441, 24, '#9eafc7', { align: 'center' });
+    if (top > 0) {
+        const x = x0 + width * top / cfg.maxRpm;
+        cv.line(x + slant, y0 - 3, x, y1 + 3, 5, state.shift ? C.red : '#f4f7fb');
     }
+    for (let r = 0; r <= cfg.maxRpm; r += 500) {
+        const x = x0 + width * r / cfg.maxRpm, major = r % 1000 === 0, color = r >= cfg.redlineRpm ? '#f32d4c' : '#b8c2d1';
+        cv.line(x, y1 + 6, x, y1 + (major ? 18 : 13), major ? 2 : 1, color);
+        if (major) cv.text(String(r / 1000), x, y1 + 41, 24, color, { align: 'center', font: 'bold' });
+    }
+    [[cfg.shiftRpm, '#ffd522'], [cfg.redlineRpm, '#f32d4c']].forEach((mark) => {
+        const x = x0 + width * mark[0] / cfg.maxRpm + slant;
+        cv.line(x, y0 - 12, x, y0 - 4, 4, mark[1]);
+    });
+    const gear = typeof state.gear === 'string' && /^(?:[1-9]|10|P|R|N|D|--)$/.test(state.gear) ? state.gear : '--';
+    cv.text(gear, W / 2, 453, gear.length > 1 ? 118 : 148, C.text, { align: 'center', font: 'gear' });
     return cv;
 }
 // Four independent horizontal regions keep updates below the link budget.

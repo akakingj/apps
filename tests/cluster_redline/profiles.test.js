@@ -5,6 +5,11 @@ const { Policy, PROFILES, settings } = require('../../apps/cluster_redline/polic
 const { Controller } = require('../../apps/cluster_redline/controller');
 const expected = { petrol: [6500, 7000, 8000], diesel: [4200, 5000, 6000], hybrid: [6500, 7000, 8000] };
 Object.keys(expected).forEach((profile) => {
+    const low = settings({ engineProfile: profile, shiftRpm: 2000 });
+    assert.strictEqual(low.shiftRpm, 2000, '2000 rpm offered by the UI must not silently become a profile default');
+    const threshold = new Policy(); threshold.modeSample(1, 0); threshold.rpmSample(1990, 1000);
+    assert.strictEqual(threshold.evaluate(1000, true, low).shift, false);
+    threshold.rpmSample(2000, 1000); assert.strictEqual(threshold.evaluate(1000, true, low).shift, true);
     const cfg = settings({ engineProfile: profile, shiftRpm: 0, redlineRpm: 0, maxRpm: 0 });
     assert.deepStrictEqual([cfg.shiftRpm, cfg.redlineRpm, cfg.maxRpm], expected[profile]);
     assert.deepStrictEqual(settings(cfg), cfg, 'normalization must be idempotent');

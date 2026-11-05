@@ -40,8 +40,11 @@ mgu.run({ async start(ctx) {
         cv.text(translate('Engine profile') + ': ' + translate(profile ? profile.label : 'Check required'), 820, 269, 25, '#a8bfd4');
         cv.text(translate('Shift alert') + ': ' + cfg.shiftRpm + ' rpm', 820, 311, 25, '#a8bfd4');
         cv.text(translate('Redline / scale') + ': ' + cfg.redlineRpm + ' / ' + cfg.maxRpm + ' rpm', 80, 353, 25, '#a8bfd4');
-        cv.text('Normal modes and stale signals release the central display.', 54, 437, 25, '#a8bfd4');
-        cv.text('The background app checks display conditions even when this screen is closed.', 54, 479, 23, '#8194a8');
+        const target = state && state.targetState || 'idle', holder = state && state.targetHolder || '--';
+        cv.text(translate('Map slot') + ': ' + target + ' / ' + holder + '   ' + translate('Gear') + ': ' + (state && state.gear || '--'), 54, 437, 25, '#a8bfd4');
+        const takeover = state && state.renderer && state.renderer.compatible ? state.renderer.takeOverStock : null;
+        cv.text(translate('Renderer version') + ': ' + (state && state.renderer && state.renderer.version || '--') +
+            '   ' + translate('Map takeover') + ': ' + (takeover === null ? '--' : takeover ? 'ON' : 'OFF'), 54, 479, 23, '#8194a8');
         await ctx.ui.image('MAIN_GFX', cv);
     }
     ctx.loop('MAIN', 2, render);

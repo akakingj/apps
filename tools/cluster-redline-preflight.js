@@ -3,6 +3,7 @@
 // This command reads files only; it never changes coding or starts an app.
 const fs = require('fs');
 const path = require('path');
+const renderer = require('../apps/cluster_redline/renderer');
 const FES = 'de.bmw.infotainment.drivingexcitement.FES';
 const CDS = 'de.bmw.infotainment.vehicle.CDS';
 function versionAtLeast(v, minimum) {
@@ -19,9 +20,9 @@ function check(root) {
         catch (e) { results.push({ name: name, ok: false, detail: e.message }); }
     }
     test('cluster-render', () => {
-        const c = JSON.parse(fs.readFileSync(file('var/opt/cluster-render/current/component.json'), 'utf8'));
-        if (c.id !== 'cluster-render' || !versionAtLeast(c.version, [0, 3, 10])) throw new Error('cluster-render 0.3.10+ required');
-        return c.version;
+        const info = renderer.inspect(root);
+        if (!info.compatible) throw new Error(info.reason);
+        return info.version + ' (' + info.metadata + ')';
     });
     test('live RPM and drive mode getters', () => {
         const db = JSON.parse(fs.readFileSync(file('etc/oap/someip/someip-interfaces.json'), 'utf8'));

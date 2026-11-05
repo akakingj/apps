@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0
+
+- Cluster Redline 0.4.0 fixes the ignored 2000 rpm setting for petrol/hybrid profiles.
+- Turn RPM digits red at the configured threshold; match M Tricolour styling and show real gear.
+- Remove the cluster title and shift footer.
+- Give Sport content precedence over lower map layers and report target holder/state.
+- Discover renderer metadata in both deployed layouts and distinguish 0.3.1 from 0.3.10.
+- Include a read-only-by-default renderer diagnostic with explicit reversible takeover setup in normal kits.
+
 ## 1.2.0
 
 - Use the normal upstream build, --language ko, make-car-kit and push-to-car workflow.

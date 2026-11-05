@@ -44,14 +44,20 @@ try {
     if (p.mguClusterRenderMinVersion !== undefined) {
         const minimum = p.mguClusterRenderMinVersion;
         if (typeof minimum !== 'string' || !/^\\d+\\.\\d+\\.\\d+$/.test(minimum)) throw new Error('Invalid cluster-render requirement');
-        const component = JSON.parse(fs.readFileSync('/var/opt/cluster-render/current/component.json', 'utf8'));
+        // Jam renderer discovery v2: prefer active metadata; old layouts store it at the tool root.
+        let component;
+        for (const file of ['/var/opt/cluster-render/current/component.json', '/var/opt/cluster-render/component.json']) {
+            try { component = JSON.parse(fs.readFileSync(file, 'utf8')); break; }
+            catch (e) { if (e.code !== 'ENOENT') throw e; }
+        }
+        if (!component) throw new Error('cluster-render metadata missing; need >= ' + minimum + ' (0.3.1 is older than 0.3.10)');
         if (component.id !== 'cluster-render' || typeof component.version !== 'string' || !/^\\d+\\.\\d+\\.\\d+$/.test(component.version)) throw new Error('cluster-render metadata is invalid');
         const have = component.version.split('.').map(Number), want = minimum.split('.').map(Number);
         let enough = true;
         for (let i = 0; i < 3; i++) {
             if (have[i] !== want[i]) { enough = have[i] > want[i]; break; }
         }
-        if (!enough) throw new Error('cluster-render ' + minimum + '+ required');
+        if (!enough) throw new Error('cluster-render >= ' + minimum + ' required; found ' + component.version + '. Update the renderer (current upstream: 0.4.0).');
     }
     process.stdout.write(start);
 } catch (e) { console.error('[mgu-app] package requirements: ' + e.message); process.exit(1); }
@@ -63,6 +69,15 @@ JAM_METADATA
 
 def installer_source(text):
     if INSTALL_MARKER in text:
+        if 'Jam renderer discovery v2' not in text:
+            text = replace_once(text, "        const component = JSON.parse(fs.readFileSync('/var/opt/cluster-render/current/component.json', 'utf8'));", """        // Jam renderer discovery v2: prefer active metadata; old layouts store it at the tool root.
+        let component;
+        for (const file of ['/var/opt/cluster-render/current/component.json', '/var/opt/cluster-render/component.json']) {
+            try { component = JSON.parse(fs.readFileSync(file, 'utf8')); break; }
+            catch (e) { if (e.code !== 'ENOENT') throw e; }
+        }
+        if (!component) throw new Error('cluster-render metadata missing; need >= ' + minimum + ' (0.3.1 is older than 0.3.10)');""")
+            text = replace_once(text, "if (!enough) throw new Error('cluster-render ' + minimum + '+ required');", "if (!enough) throw new Error('cluster-render >= ' + minimum + ' required; found ' + component.version + '. Update the renderer (current upstream: 0.4.0).');")
         return text
     text = replace_once(text, 'custom_list() {', APP_START_HELPER + 'custom_list() {')
     text = replace_once(text,
@@ -85,10 +100,27 @@ def installer_source(text):
     return text
 
 
+
+def kit_source(text):
+    if '# Jam cluster diagnostic v1' in text:
+        return text
+    before = "    for src, dst in CAR_FILES:"
+    addition = """    # Jam cluster diagnostic v1: standalone, read-only by default; explicit setup/restore options.
+    if 'cluster_redline' in apps:
+        shutil.copyfile(os.path.join(ROOT, 'apps', 'cluster_redline', 'renderer.js'),
+                        os.path.join(OUT, 'cluster-redline-renderer.js'))
+"""
+    text = replace_once(text, before, addition + before)
+    checksum = "    with open(os.path.join(OUT, 'KIT_SUMS'), 'w', encoding='utf-8', newline='\\n') as f:"
+    extra = "    if os.path.isfile(os.path.join(OUT, 'cluster-redline-renderer.js')): names.append('cluster-redline-renderer.js')\n"
+    return replace_once(text, checksum, extra + checksum)
+
+
 def plan_upstream(target):
     target = Path(target)
     changes = {}
-    for name, transform in [('kit/tools/build.py', build_source), ('deploy/mgu-app-install.sh', installer_source)]:
+    for name, transform in [('kit/tools/build.py', build_source), ('deploy/mgu-app-install.sh', installer_source),
+                            ('kit/tools/make_kit.py', kit_source)]:
         path = target / name
         if not path.is_file():
             raise ValueError('Missing upstream integration file: ' + str(path))

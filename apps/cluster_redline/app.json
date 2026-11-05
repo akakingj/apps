@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Auto-start sport-only cluster RPM and shift lights with petrol, diesel and hybrid profiles",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
@@ -13,6 +13,11 @@
     },
     "de.bmw.infotainment.drivingexcitement.FES": {
       "statusFESVehicleDynamicSwitchHMI": "rs"
+    },
+    "de.bmw.infrastructure.VehicleInformation": {
+      "_optional": "current gear display; RPM and shift alerts still work without it",
+      "statusGearboxDrive": "s",
+      "DataPowerTrain2": "s"
     }
   },
   "screens": [

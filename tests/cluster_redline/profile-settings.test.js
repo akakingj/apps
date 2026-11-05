@@ -24,6 +24,8 @@ function effective() {
         assert.strictEqual(effective().engineProfile, 'petrol');
         assert.strictEqual(effective().shiftRpm, 6200);
         assert.strictEqual(effective().redlineRpm, 6800);
+        hu.settings.set('shiftRpm', 2000);
+        assert.strictEqual(effective().shiftRpm, 2000, 'real settings UI must preserve a selected 2000 rpm threshold');
         hu.settings.set('engineProfile', 'diesel');
         for (const k of ['shiftRpm', 'redlineRpm', 'maxRpm']) assert.strictEqual(hu.settings.get(k), 0);
         assert.strictEqual(effective().shiftRpm, 4200); assert.strictEqual(effective().maxRpm, 6000);

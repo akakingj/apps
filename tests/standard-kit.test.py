@@ -38,6 +38,8 @@ for row in (folder / 'KIT_SUMS').read_text().splitlines():
 assert {str(p.relative_to(folder)).replace('\\', '/') for p in (folder / 'apps').glob('*.mgu')} <= set(sums)
 installer = (folder / 'mgu-app-install.sh').read_text()
 assert 'Jam package start type v1' in installer and 'custom_list add "$id" "$start_type"' in installer
+assert 'cluster-redline-renderer.js' in sums
+assert (folder / 'cluster-redline-renderer.js').read_bytes() == (PROJECT / 'apps/cluster_redline/renderer.js').read_bytes()
 with tarfile.open(PROJECT / 'dist/mgu-custom-apps-ko.tar.gz') as archive:
     names = set(archive.getnames())
     assert {'mgu-custom-apps/' + name for name in sums} <= names

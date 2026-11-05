@@ -21,6 +21,7 @@ with tempfile.TemporaryDirectory(prefix='jam-overlay-test-') as temporary:
     (target / 'apps').mkdir()
     (target / 'kit/tools').mkdir(parents=True)
     shutil.copy2(UPSTREAM / 'kit/tools/build.py', target / 'kit/tools/build.py')
+    shutil.copy2(UPSTREAM / 'kit/tools/make_kit.py', target / 'kit/tools/make_kit.py')
     (target / 'deploy').mkdir()
     shutil.copy2(UPSTREAM / 'deploy/mgu-app-install.sh', target / 'deploy/mgu-app-install.sh')
     # Missing Korean support must be detected before even the first app is copied.
