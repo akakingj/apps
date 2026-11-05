@@ -2,6 +2,37 @@
 
 [English](README.md) | 한국어
 
+## 계기판 레드라인 통합 앱 추가
+
+가솔린·디젤·하이브리드를 선택하는 [계기판 레드라인 소스와 설명서](cluster-redline/README.ko.md)를
+`cluster-redline/`에 함께 넣었습니다. 앱 ID는 `cluster_redline`이며 회로 퍼즐과 별도로 빌드합니다.
+
+자동 시작 후 평소에는 표시하지 않고, 스포츠 모드에서만 계기판 중앙에 RPM과 변속 알림을 표시합니다.
+하이브리드는 가솔린 기반 플러그인 하이브리드의 엔진 RPM용이며, 엔진이 꺼지면 숨깁니다.
+전기 출력·회생·SOC 표시는 포함하지 않습니다.
+
+**실차 검증 전 시험판입니다.** `cluster-render 0.3.10+`, `mgu-deploy 0.7.17+`,
+한국어 지원이 적용된 원본 프로젝트와 본인 차량의 OAP SDK가 필요합니다.
+SDK와 설치 바이너리는 이 저장소에 포함하지 않습니다.
+
+두 저장소가 나란히 있을 때, 이 저장소 최상위 폴더에서 PC 미리보기:
+
+```powershell
+python cluster-redline/tools/build.py --project "../idrive7-apps" --preview-only
+node cluster-redline/tools/preview.js
+```
+
+생성된 `cluster-redline/preview/index.html`을 여세요. 설치용 빌드:
+
+```powershell
+python cluster-redline/tools/build.py --project "../idrive7-apps" --sdk "../idrive7-apps/oap-sdk"
+```
+
+결과는 `cluster-redline/dist/`에 생성됩니다.
+자동 시작을 적용하려면 [전용 설치 안내](cluster-redline/README.ko.md#차량에서-사전-점검과-설치)를 따르세요.
+아래의 `install-overlay.py`와 회로 퍼즐 설치 명령은 기존 게임 앱에만 해당합니다.
+
+
 BMW MGU / iDrive 7 커스텀 앱 환경에서 실행되는 주차 전용 회로 퍼즐입니다. 회로 타일을 회전해 배터리의 전력을 모든 차량 모듈에 연결하면 됩니다.
 
 ![iDrive Circuit 한국어 프리뷰](screenshots/preview-ko.png)

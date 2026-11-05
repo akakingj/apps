@@ -1,0 +1,31 @@
+'use strict';
+// Host-only previews never connect to a renderer or a vehicle.
+const fs = require('fs');
+const path = require('path');
+const stage = path.resolve(process.argv[2] || path.join(__dirname, '../dist/cluster_redline'));
+const out = path.resolve(process.argv[3] || path.join(__dirname, '../preview'));
+const { draw } = require(path.join(stage, 'source/javascript/draw'));
+const { Policy, settings } = require(path.join(stage, 'source/javascript/policy'));
+fs.mkdirSync(out, { recursive: true });
+function scene(name, rpm, engineProfile) {
+    const p = new Policy(); p.modeSample('SPORT_DYNAMIC', 0); p.rpmSample(rpm, 1000);
+    const state = p.evaluate(1000, true, settings({ engineProfile: engineProfile || 'petrol' }));
+    fs.writeFileSync(path.join(out, name + '.png'), draw(state).png());
+}
+scene('sport-rpm', 4200);
+scene('sport-shift', 6500);
+scene('diesel-rpm', 3000, 'diesel');
+scene('diesel-shift', 4200, 'diesel');
+scene('hybrid-rpm', 3500, 'hybrid');
+const html = `<!doctype html><meta charset="utf-8"><title>계기판 레드라인 미리보기</title>
+<style>body{background:#10151d;color:#ecf2fa;font:18px system-ui;max-width:1088px;margin:32px auto;padding:16px}img{max-width:100%}section{border:1px solid #34465b;padding:20px;margin:20px 0;border-radius:12px}.off{height:140px;display:grid;place-items:center;color:#a5b7cb;background:#0b0e12}p{line-height:1.6}</style>
+<h1>계기판 레드라인</h1><p>실제 앱 렌더링 미리보기 · 데모 수치 · 계기판 중앙 영역 1088 × 480</p>
+<section><h2>부팅 · Comfort · Eco · 신호 없음</h2><div class="off">표시 OFF — 이 앱은 레이어를 만들지 않으며 순정 화면을 유지합니다.</div></section>
+<section><h2>가솔린 · 스포츠 모드</h2><img src="sport-rpm.png" alt="가솔린 4200 rpm"><p>확인된 스포츠 모드와 최신 회전수 신호가 있을 때만 표시합니다.</p></section>
+<section><h2>가솔린 · 변속 알림</h2><img src="sport-shift.png" alt="가솔린 6500 rpm 변속 알림"><p>기본 설정: 알림 6500 · 레드라인 7000 · 눈금 8000 rpm.</p></section>
+<section><h2>디젤 · 스포츠 모드</h2><img src="diesel-rpm.png" alt="디젤 3000 rpm"><p>디젤 기본 설정: 알림 4200 · 레드라인 5000 · 눈금 6000 rpm. 차량별 조정이 필요합니다.</p></section>
+<section><h2>디젤 · 변속 알림</h2><img src="diesel-shift.png" alt="디젤 4200 rpm 변속 알림"></section>
+<section><h2>하이브리드 · 엔진 작동</h2><img src="hybrid-rpm.png" alt="하이브리드 3500 rpm"><p>엔진이 작동하고 스포츠 모드일 때 RPM을 표시합니다. 엔진이 정지하면 표시를 해제합니다. RPM만으로 전기 구동·회생 여부를 판정하지 않습니다.</p></section>
+<p>스포츠 모드를 벗어나면 레이어를 해제합니다. 실제 표시는 차량·펌웨어·계기판 모드에 따라 검증해야 합니다.</p>`;
+fs.writeFileSync(path.join(out, 'index.html'), html);
+console.log('Preview:', path.join(out, 'index.html'));

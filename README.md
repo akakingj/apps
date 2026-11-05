@@ -2,6 +2,36 @@
 
 English | [한국어](reame_kor.md)
 
+## Cluster Redline — petrol, diesel and hybrid
+
+The [Cluster Redline source](cluster-redline/README.ko.md) is also included in
+`cluster-redline/` as a separate app (`cluster_redline`). It starts in the
+background and requests a central cluster RPM/shift-light display only in Sport.
+Choose petrol, diesel or gasoline-based plug-in hybrid in its settings.
+
+This is a **prototype without real-vehicle validation**. It requires
+`cluster-render >= 0.3.10`, `mgu-deploy >= 0.7.17`, a Korean-enabled upstream
+checkout and your own OAP SDK. SDK files and installation binaries are not included.
+
+From this repository's root, with the upstream checkout beside it:
+
+```powershell
+python cluster-redline/tools/build.py --project "../idrive7-apps" --preview-only
+node cluster-redline/tools/preview.js
+```
+
+For a vehicle build:
+
+```powershell
+python cluster-redline/tools/build.py --project "../idrive7-apps" --sdk "../idrive7-apps/oap-sdk"
+```
+
+Output: `cluster-redline/dist/`. Follow the app's
+[installation guide](cluster-redline/README.ko.md#차량에서-사전-점검과-설치)
+for the autostart-aware installation path. The Circuit overlay installer and
+Circuit installation commands below apply to the puzzle app only.
+
+
 iDrive Circuit is a parked-only wiring puzzle for the BMW MGU / iDrive 7 custom-app environment. Rotate the circuit tiles until battery power reaches every vehicle module without leaving an open connection.
 
 ![iDrive Circuit Korean preview](screenshots/complete.png)

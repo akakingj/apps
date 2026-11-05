@@ -1,0 +1,70 @@
+{
+  "source_commit": "ab0c02824737162512357498a37baec184e6432f",
+  "app_id": "cluster_redline",
+  "app_version": "0.2.0-ko.1",
+  "status": "prototype; real vehicle not tested",
+  "user_vehicle": {
+    "model": "BMW G20 330i",
+    "year": 2019,
+    "engine": "petrol",
+    "cluster_render_installed": true
+  },
+  "profiles": {
+    "selection": "manual; one app and same app ID",
+    "petrol": {
+      "shift_rpm": 6500,
+      "redline_rpm": 7000,
+      "max_rpm": 8000
+    },
+    "diesel": {
+      "shift_rpm": 4200,
+      "redline_rpm": 5000,
+      "max_rpm": 6000
+    },
+    "hybrid": {
+      "shift_rpm": 6500,
+      "redline_rpm": 7000,
+      "max_rpm": 8000
+    }
+  },
+  "preset_limits": "initial display presets, not vehicle-certified engine limits or optimal shift points",
+  "behavior": {
+    "autostart": true,
+    "boot_visible": false,
+    "sport_only": true,
+    "display_target": "map:1088x480",
+    "hybrid_engine_off": "hide; resume after fresh engine RPM returns",
+    "hybrid_power_regen_soc": false,
+    "normal_eco_unknown_stale_display": false,
+    "live_demo_fallback": false,
+    "hud_or_panel_output": false
+  },
+  "migration": {
+    "existing_petrol_custom_rpm_settings": "preserved on upgrade",
+    "profile_change": "reset three RPM settings to profile default; release layer and await fresh signals"
+  },
+  "dependencies": {
+    "cluster-render": ">=0.3.10",
+    "mgu-deploy": ">=0.7.17 with autostart support"
+  },
+  "verification": {
+    "policy": "passed",
+    "three_profile_presets_and_switching": "passed",
+    "worker_live_field_adapters_and_background_behavior": "passed",
+    "actual_settings_UI_migration_and_persistence": "passed",
+    "renderer_wire_protocol_on_local_socket": "passed",
+    "partial_rgba_reconstruction": "passed",
+    "Korean_glyph_coverage": "passed",
+    "dependency_preflight": "passed",
+    "release_bundle_selection_and_tamper_rejection": "passed",
+    "vehicle_js_Node_8_17_syntax": "passed",
+    "profile_and_worker_tests_on_Node_8_17": "passed",
+    "mgu_and_npm_source_and_autostart_metadata": "passed",
+    "actual_png_previews": "passed",
+    "shell_syntax": "passed",
+    "git_diff_check": "passed"
+  },
+  "vehicle_boot_live_signals_display_and_stock_screen_restoration": "NOT TESTED",
+  "install_sha256": "5f511d5536384ac6c23f087abd5431088de24072464acd3240ef10debf275eff",
+  "sdk_distribution": "private install bundle only; omitted from source zip"
+}
