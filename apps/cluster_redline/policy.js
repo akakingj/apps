@@ -1,11 +1,11 @@
 'use strict';
 // This module never talks to the vehicle or renderer; its inputs must be live.
 const PROFILES = {
-    petrol: { label: '가솔린', shiftRpm: 6500, redlineRpm: 7000, maxRpm: 8000,
+    petrol: { label: 'Petrol', shiftRpm: 6500, redlineRpm: 7000, maxRpm: 8000,
         ranges: { shiftRpm: [2500, 7500], redlineRpm: [3000, 8500], maxRpm: [4000, 10000] } },
-    diesel: { label: '디젤', shiftRpm: 4200, redlineRpm: 5000, maxRpm: 6000,
+    diesel: { label: 'Diesel', shiftRpm: 4200, redlineRpm: 5000, maxRpm: 6000,
         ranges: { shiftRpm: [2000, 5000], redlineRpm: [3000, 5500], maxRpm: [4000, 7000] } },
-    hybrid: { label: '하이브리드', shiftRpm: 6500, redlineRpm: 7000, maxRpm: 8000,
+    hybrid: { label: 'Hybrid', shiftRpm: 6500, redlineRpm: 7000, maxRpm: 8000,
         ranges: { shiftRpm: [2500, 7500], redlineRpm: [3000, 8500], maxRpm: [4000, 10000] } },
 };
 // Zero RPM settings mean the selected profile's defaults, rather than engine-off.

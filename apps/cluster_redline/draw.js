@@ -1,5 +1,6 @@
 'use strict';
 const { Canvas } = require('./kit/canvas');
+const { t: translate } = require('./kit/i18n');
 const { PROFILES } = require('./policy');
 const W = 1088, H = 480;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -28,9 +29,13 @@ function draw(state) {
     }
     if (state.shift) {
         cv.roundRect(110, 402, W - 220, 57, 10, '#5e3b0b');
-        cv.text('↑  변속 시점', W / 2, 443, 34, '#ffdc79', { align: 'center', font: 'bold' });
+        const labelWidth = cv.text(translate('SHIFT NOW'), W / 2 + 14, 443, 34, '#ffdc79', { align: 'center', font: 'bold' });
+        const arrowX = W / 2 + 14 - labelWidth / 2 - 29;
+        cv.line(arrowX, 437, arrowX, 415, 3, '#ffdc79');
+        cv.line(arrowX - 8, 423, arrowX, 415, 3, '#ffdc79');
+        cv.line(arrowX, 415, arrowX + 8, 423, 3, '#ffdc79');
     } else {
-        cv.text('SPORT  ·  변속 알림 ' + cfg.shiftRpm + ' rpm', W / 2, 441, 24, '#9eafc7', { align: 'center' });
+        cv.text(translate('SPORT') + '  ·  ' + translate('Shift alert') + ' ' + cfg.shiftRpm + ' rpm', W / 2, 441, 24, '#9eafc7', { align: 'center' });
     }
     return cv;
 }

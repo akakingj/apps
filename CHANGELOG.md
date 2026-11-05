@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0
+
+- Use the normal upstream build, --language ko, make-car-kit and push-to-car workflow.
+- Make Cluster Redline 0.3.0 English by default, with Korean in the shared catalog.
+- Preserve explicit autostart metadata through the standard builder and installer.
+- Check cluster-render requirements before the cluster app is installed.
+- Retain the normal backup/restore flow and manual startup for existing apps.
+- Test the standard installer functions on a temporary OAP tree and build all 17 apps together.
+- Retire the separate private-ZIP installer path.
+
 ## 1.1.0
 
 - Place Cluster Redline 0.2.1 directly in apps/cluster_redline alongside Circuit.

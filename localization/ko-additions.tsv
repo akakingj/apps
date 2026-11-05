@@ -38,4 +38,54 @@ Standard	표준
 Renderer	렌더러
 Software	소프트웨어
 GPU 60 fps (default)	GPU 60 fps (기본값)
+Cluster Redline	계기판 레드라인
+Show automatically in Sport	스포츠 모드 자동 표시
+Engine profile	엔진 프로필
+Petrol	가솔린
+Diesel	디젤
+Hybrid	하이브리드
+Shift alert RPM	변속 알림 회전수
+Redline RPM	레드라인 회전수
+RPM scale maximum	회전수 눈금 최댓값
+Profile default	프로필 기본값
+Cluster refresh rate	계기판 갱신 속도
+Autostart · Sport mode only	자동 시작 · 스포츠 모드 전용
+Automatic display off	자동 표시 꺼짐
+Waiting for cluster renderer	계기판 렌더러 연결 대기
+Check engine profile	엔진 프로필 확인 필요
+Hybrid engine stopped · hidden	하이브리드 엔진 정지 · 표시 안 함
+Renderer refused display	렌더러가 표시를 허용하지 않음
+Waiting for drive mode	주행 모드 신호 대기
+Normal mode · hidden	일반 모드 · 표시 안 함
+Waiting for engine RPM	엔진 회전수 신호 대기
+Check engine RPM	회전수 값 확인 필요
+Engine stopped · hidden	엔진 정지 · 표시 안 함
+Confirming Sport mode	스포츠 모드 확인 중
+Sport mode · display requested	스포츠 모드 · 표시 요청
+Background app stopped	백그라운드 앱 중지
+Waiting for status	상태 확인 대기
+Waiting for background app	백그라운드 앱 연결 대기
+Sport	스포츠
+Sport Plus	스포츠 플러스
+Sport Individual	스포츠 개별 설정
+Comfort	컴포트
+Comfort Plus	컴포트 플러스
+Comfort Individual	컴포트 개별 설정
+Eco Pro	에코 프로
+Eco Pro Plus	에코 프로 플러스
+Eco Pro Individual	에코 프로 개별 설정
+Adaptive	어댑티브
+Hidden	표시 안 함
+Waiting	표시 대기
+Shown	표시 중
+Suspended	표시 일시 중지
+Drive mode	주행 모드
+Cluster status	계기판 상태
+Checking	확인 중
+Check required	확인 필요
+Shift alert	변속 알림
+Redline / scale	레드라인 / 눈금
+Normal modes and stale signals release the central display.	일반 모드·신호 끊김에서는 중앙 화면을 점유하지 않습니다.
+The background app checks display conditions even when this screen is closed.	앱 화면을 열지 않아도 백그라운드에서 표시 조건을 확인합니다.
+SHIFT NOW	변속 시점
 

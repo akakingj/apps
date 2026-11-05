@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Ensure selected-app copying and conflict checks do not partly change a target."""
 import json
+import shutil
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
+UPSTREAM = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else ROOT
 
 
 def run(target, *args):
@@ -18,7 +20,9 @@ with tempfile.TemporaryDirectory(prefix='jam-overlay-test-') as temporary:
     target = Path(temporary)
     (target / 'apps').mkdir()
     (target / 'kit/tools').mkdir(parents=True)
-    (target / 'kit/tools/build.py').write_text('# fixture')
+    shutil.copy2(UPSTREAM / 'kit/tools/build.py', target / 'kit/tools/build.py')
+    (target / 'deploy').mkdir()
+    shutil.copy2(UPSTREAM / 'deploy/mgu-app-install.sh', target / 'deploy/mgu-app-install.sh')
     # Missing Korean support must be detected before even the first app is copied.
     assert run(target).returncode != 0
     assert not (target / 'apps/idrive_circuit').exists()

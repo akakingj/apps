@@ -7,7 +7,9 @@
   The original runtime license is retained in `LICENSE` and the built app.
 - Korean font: Noto Sans CJK KR, OFL-1.1, supplied by the Korean-enabled kit.
 - `mguAppStartType: autostart`: `robertnisipeanu/mgu-store` deploy documentation,
-  version 0.7.17 observed on 2026-11-05. The app requires this supported install path.
+  version 0.7.17 observed on 2026-11-05, used by the earlier standalone prototype.
+  Version 0.3.0 carries explicit start-type metadata through the normal idrive7-apps
+  builder and installer; that workflow does not require mgu-deploy.
 - Drive mode field and mappings: `cauliflowermossgrape/idrive7-apps`
   `apps/live_data/signals.js` at `990c105870edb21bd8f23796fcf95182530790e8`.
 

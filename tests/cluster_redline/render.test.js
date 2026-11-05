@@ -21,6 +21,6 @@ assert(copy.equals(b)); assert.strictEqual(off, d.pixels.length);
 // Every UI glyph actually used by the new app must be present in the atlas.
 const fs = require('fs');
 const atlas = JSON.parse(fs.readFileSync(path.join(stage, 'source/javascript/kit/fonts/korean.json'))).sizes[0].glyphs;
-const src = ['app.js', 'draw.js', 'policy.js', 'kit/app-spec.json'].map((f) => fs.readFileSync(path.join(stage, 'source/javascript', f), 'utf8')).join('\n');
+const src = ['app.js', 'draw.js', 'policy.js', 'kit/app-spec.json', 'kit/locale.json'].map((f) => fs.readFileSync(path.join(stage, 'source/javascript', f), 'utf8')).join('\n');
 for (const ch of src) if (/[가-힣]/.test(ch)) assert(atlas[ch.charCodeAt(0)], 'Missing Korean glyph: ' + ch);
 console.log('PASS: real 1088x480 drawing, exact partial-frame reconstruction and all Korean display glyphs');

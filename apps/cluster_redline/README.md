@@ -2,69 +2,45 @@
 
 English | [한국어](README.ko.md)
 
-A Korean UI app for the BMW MGU / iDrive 7 central cluster map area.
-The installed app ID is `cluster_redline`; it is independent of iDrive Circuit.
-This version, **0.2.1**, is a prototype without real-vehicle validation.
+An ordinary `idrive7-apps` app for the central cluster map area. ID: `cluster_redline`, version **0.3.0**. Auto-starts in the background; remains hidden until confirmed Sport mode and fresh engine RPM are available. Large RPM, bar and shift lights are released on normal mode, engine-off, stale data or renderer disconnect.
 
-## Behavior
+**Prototype: no real-vehicle validation.** Read-only vehicle signals; no engine/transmission/coding writes. Only the ID7 `map:1088x480` target is used, not the entire panel or HUD.
 
-- Auto-start in the background using mgu-deploy's supported app start type.
-- No cluster layer at boot, in normal modes, or with missing/stale signals.
-- Show large RPM, a bar and shift lights only after Sport/Sport+/Sport Individual
-  and fresh engine RPM have been confirmed for at least one second.
-- Release the layer when the mode changes, engine stops or signals become stale.
-- Read RPM and drive mode only; no engine, transmission or coding writes.
-- The settings UI, mode/status labels and profile names are Korean.
+## Engine profiles
 
-Choose **엔진 프로필** in settings: petrol, diesel or gasoline-based plug-in hybrid.
-Defaults are display presets, not vehicle-certified limits or optimum shift points:
+Select Petrol, Diesel or gasoline-based plug-in Hybrid in settings. Defaults are display presets, not certified engine limits or optimum shift points.
 
-| Profile | Shift alert | Redline | Scale maximum |
+| Profile | Shift alert | Redline | Scale |
 |---|---:|---:|---:|
-| Petrol | 6500 rpm | 7000 rpm | 8000 rpm |
-| Diesel | 4200 rpm | 5000 rpm | 6000 rpm |
-| Hybrid | 6500 rpm | 7000 rpm | 8000 rpm |
+| Petrol | 6500 | 7000 | 8000 rpm |
+| Diesel | 4200 | 5000 | 6000 rpm |
+| Hybrid | 6500 | 7000 | 8000 rpm |
 
-Hybrid hides when its combustion engine stops and resumes with fresh engine RPM.
-It does not infer EV drive, regeneration, power or battery SOC from zero RPM.
-Engine type selection is manual; pure EVs are not supported by this RPM widget.
+Hybrid hides when the engine stops and resumes with fresh engine RPM. No EV power, regeneration or SOC inference is made. Profile selection is manual. Existing settings keys and app identity are retained.
 
-## Requirements and preview
+## Standard build and language selection
 
-Requires `cluster-render >= 0.3.10` with backend `id7`, target `map:1088x480`,
-and `mgu-deploy >= 0.7.17` to preserve autostart. Required read-only vehicle fields:
-`CDS.statusEngineSpeed2` and `FES.statusFESVehicleDynamicSwitchHMI`.
-
-From the repository root, with a Korean-enabled upstream checkout beside it:
+Use a complete upstream project with these sources merged; see [integration guide](../../docs/JAM-INTEGRATION.ko.md). Run from the project root:
 
 ```powershell
-python tools/build-apps.py --project "../idrive7-apps" --apps cluster_redline --preview-only
+python kit/tools/build.py --preview-only cluster_redline
+python kit/tools/build.py --language ko --preview-only cluster_redline
+node kit/tools/preview.js dist/cluster_redline preview/cluster_redline-ui frames=3
 node tools/cluster-redline-preview.js
 ```
 
-Open `preview/cluster_redline/index.html`. These are actual compiled-app drawings
-with demo values, without a vehicle or renderer connection.
-
-## Build and install
+The first build is English; the second is Korean. A preview reads the most recently built stage. The custom preview tool generates the RPM widget gallery without connecting to a vehicle.
 
 ```powershell
-python tools/build-apps.py --project "../idrive7-apps" --apps cluster_redline
+python kit/tools/make_kit.py --language ko
 ```
 
-This requires your own upstream `oap-sdk`. Result: `dist/cluster_redline-ko-kit.zip`.
-Follow the included `INSTALL.ko.md`; use its `check` command before `install`.
-Omit `--apps` to include Circuit in one kit, with separate installed identities.
+This includes **every app**, including Circuit and Cluster Redline, in the usual `dist/mgu-custom-apps-ko.tar.gz`. Use normal `push-to-car` check/install/restore commands. No separate mgu-deploy is required. The guarded integration preserves the app's explicit autostart flag in package metadata, the OAP registry and custom provisioning list.
 
-To copy sources into upstream, use
-`python tools/install-overlay.py ../idrive7-apps --apps cluster_redline`, then
-build there with `python tools/build-apps.py --project . --apps cluster_redline`.
-Using only upstream's builder omits the autostart marker. No root background
-service is created by this project.
+## Requirements and limits
 
-The app requests the central map area with `contend=1`, low content priority,
-non-exclusive output and `guide_hold=0`. The stock map may be replaced while
-Sport is active. Warning/navigation priority, stock-screen restoration, startup
-and vehicle sleep behavior still need real-car verification.
+Requires cluster-render 0.3.10+ and the ID7 map target. The normal installer refuses this app when the required component metadata is missing or old; other accepted apps follow upstream's normal skip/install behavior. RPM and drive-mode getters must also exist. The app independently checks renderer backend, geometry and signal freshness at runtime.
 
-The vendored cluster render client is unmodified and MPL-2.0 licensed; its notice
-and source blob are recorded in the repository's `NOTICE.cluster-redline.md`.
+Content is low priority and non-exclusive with `guide_hold=0`; `contend=1` can replace the central stock map while active. Warning/navigation priority, startup, vehicle sleep and stock-screen restoration still require real-car verification.
+
+`cluster_render_client.js` is unmodified MPL-2.0 source. Its license and attribution are included as `LICENSE` and `NOTICE` in both source and standard-built packages.
