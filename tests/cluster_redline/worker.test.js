@@ -74,7 +74,8 @@ async function scenario(live, version, backend) {
             assert.strictEqual(status().config.shiftRpm, 2000); assert.strictEqual(status().shift, true); assert.strictEqual(status().gear, '4');
             config.shiftRpm = 3000; tick(2000);
             assert.strictEqual(status().shift, false); assert.strictEqual(status().gear, '4', 'change-only gear stays known while provider is live');
-            assert.deepStrictEqual(calls.filter((c) => Array.isArray(c)).map((c) => c[1].target), ['map']);
+            assert.deepStrictEqual(calls.filter((c) => Array.isArray(c)).map((c) => c[1].target), ['panel']);
+            assert.strictEqual(status().targetName, 'panel');
             // The settings UI is never opened in this test. Its visibility is irrelevant.
             mode({ actualValueModeDrivingExperience: 4 }); tick(2500);
             assert.strictEqual(status().requested, false); assert(calls.includes('drop'));

@@ -23,7 +23,12 @@ function checkPackage(file, id, version, start, language) {
     assert.strictEqual(json(file, 'javascript/kit/locale.json').language, language);
     const title = json(file, 'rhmiData/variantGroups/Common/texts/en_GB.json')['SID_' + id.toUpperCase() + '_TITLE'];
     assert.strictEqual(/[가-힣]/.test(title), language === 'ko', 'RHMI title must use the chosen language');
-    assert.strictEqual(json(file, 'javascript/kit/app-spec.json').id, id);
+    const spec = json(file, 'javascript/kit/app-spec.json');
+    assert.strictEqual(spec.id, id);
+    if (id.indexOf('cluster_redline') === 0) {
+        assert.strictEqual(spec.settings.find((s) => s.key === 'displayTarget').default, 'panel');
+        assert.deepStrictEqual(spec.settings.find((s) => s.key === 'frameRate').steps.slice(-3), [12, 30, 60]);
+    }
     const app = json(file, 'rhmiData/application.json').application;
     assert.strictEqual(app.name, id); assert.strictEqual(app.version, version);
     const icon = 'package/rhmiData/variantGroups/Common/images/' + app.entryPoints[0].icon;

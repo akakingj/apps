@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Auto-start sport-only cluster RPM and shift lights with petrol, diesel and hybrid profiles",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
@@ -39,6 +39,22 @@
       "label": "Show automatically in Sport",
       "type": "bool",
       "default": true
+    },
+    {
+      "key": "displayTarget",
+      "label": "Display layer",
+      "type": "choice",
+      "default": "panel",
+      "options": [
+        [
+          "panel",
+          "Front center (test)"
+        ],
+        [
+          "map",
+          "Map area (legacy)"
+        ]
+      ]
     },
     {
       "key": "engineProfile",
@@ -140,13 +156,15 @@
       "label": "Cluster refresh rate",
       "type": "number",
       "unit": "fps",
-      "default": 8,
+      "default": 12,
       "steps": [
         4,
         6,
         8,
         10,
-        12
+        12,
+        30,
+        60
       ]
     },
     {

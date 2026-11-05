@@ -9,7 +9,7 @@ const PROFILES = {
         ranges: { shiftRpm: [2000, 7500], redlineRpm: [3000, 8500], maxRpm: [4000, 10000] } },
 };
 // Zero RPM settings mean the selected profile's defaults, rather than engine-off.
-const DEFAULTS = { autoSport: true, engineProfile: 'petrol', shiftRpm: 0, redlineRpm: 0, maxRpm: 0, frameRate: 8 };
+const DEFAULTS = { autoSport: true, engineProfile: 'petrol', shiftRpm: 0, redlineRpm: 0, maxRpm: 0, frameRate: 12, displayTarget: 'panel' };
 const MODES = { 1: 'SPORT', 2: 'SPORT_PLUS', 3: 'SPORT_INDIVIDUAL', 4: 'COMFORT', 5: 'COMFORT_PLUS',
     6: 'COMFORT_INDIVIDUAL', 7: 'ECO_PRO', 8: 'ECO_PRO_PLUS', 9: 'ECO_PRO_INDIVIDUAL', 10: 'ADAPTIVE',
     SPORT_DYNAMIC: 'SPORT', SPORT_EXPERT: 'SPORT_PLUS', SPORT_INDIVIDUAL: 'SPORT_INDIVIDUAL',
@@ -28,7 +28,8 @@ function settings(raw) {
         const value = raw[key], range = profile.ranges[key];
         out[key] = typeof value === 'number' && isFinite(value) && value >= range[0] && value <= range[1] ? value : profile[key];
     });
-    if (typeof raw.frameRate === 'number' && isFinite(raw.frameRate) && raw.frameRate >= 2 && raw.frameRate <= 12) out.frameRate = raw.frameRate;
+    if (typeof raw.frameRate === 'number' && isFinite(raw.frameRate) && Math.floor(raw.frameRate) === raw.frameRate && raw.frameRate >= 2 && raw.frameRate <= 60) out.frameRate = raw.frameRate;
+    if (Object.prototype.hasOwnProperty.call(raw, 'displayTarget')) out.displayTarget = ['map', 'panel'].indexOf(raw.displayTarget) >= 0 ? raw.displayTarget : 'unknown';
     // Red-zone start and shift alert are independent display settings.
     out.maxRpm = Math.max(out.maxRpm, out.redlineRpm);
     return out;

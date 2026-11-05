@@ -92,3 +92,8 @@ Map slot	지도 영역
 Renderer version	렌더러 버전
 Map takeover	지도 우선 표시
 
+Display layer	표시 레이어
+Front center (test)	전면 중앙 (시험)
+Map area (legacy)	지도 영역 (기존)
+Display target	표시 영역
+Selected display target unavailable	선택한 표시 영역을 사용할 수 없음

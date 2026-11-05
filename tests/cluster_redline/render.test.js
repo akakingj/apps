@@ -12,6 +12,15 @@ const alert = draw({ rpm: 2000, gear: '4', shift: true, config: settings({ shift
 Canvas.prototype.text = text;
 assert(labels.includes('4')); assert(labels.includes('rpm'));
 assert(!labels.some((s) => /REDLINE|SHIFT|SPORT|변속|레드라인|가솔린/.test(s)), 'cluster face must omit the app title and shift footer');
+const unlit = draw({ rpm: 3000, shift: false, config: settings() });
+for (let y = 20; y <= 64; y++) for (let x = 140; x < 950; x++) {
+    const i = (y * W + x) * 4;
+    assert.deepStrictEqual(Array.from(unlit.d.slice(i, i + 3)), [0, 0, 0], 'unlit shift LEDs must leave no faint colors or glow');
+}
+const partial = draw({ rpm: 5000, shift: false, config: settings() });
+const litPixel = (40 * W + 170) * 4, darkPixel = (40 * W + 870) * 4;
+assert(partial.d[litPixel + 1] > 100, 'active green LED is visible');
+assert.deepStrictEqual(Array.from(partial.d.slice(darkPixel, darkPixel + 3)), [0, 0, 0], 'inactive cells stay black while earlier cells are lit');
 function redPixels(cv) {
     let count = 0;
     for (let y = 100; y < 210; y++) for (let x = 280; x < 815; x++) {

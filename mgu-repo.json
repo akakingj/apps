@@ -40,7 +40,7 @@
       "kind": "app",
       "path": "apps/cluster_redline",
       "title": "계기판 레드라인 (한국어)",
-      "description": "한국어 스포츠 모드 계기판 · RPM·변속 알림·단수 · G20 가솔린 눈금 7000 / 적색 구간 6000 rpm",
+      "description": "한국어 스포츠 계기판 · 전면 중앙 표시 시험 · 12/30/60fps 요청 · G20 눈금 7000 / 적색 구간 6000 rpm",
       "mguHmi": [
         "ID7"
       ],
@@ -112,7 +112,7 @@
       "kind": "app",
       "path": "store/apps/cluster_redline_en",
       "title": "Cluster Redline (English)",
-      "description": "English Sport-mode cluster RPM, shift lights and gear display",
+      "description": "English Sport cluster · front-center display test · 12/30/60fps requests · RPM and shift lights",
       "mguHmi": [
         "ID7"
       ],

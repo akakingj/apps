@@ -4,6 +4,11 @@ English | [한국어](README.ko.md)
 
 Two ordinary apps for the existing [idrive7-apps](https://github.com/cauliflowermossgrape/idrive7-apps) build and deployment workflow.
 
+Cluster Redline 0.5.0 adds a **Front center (test)** display option and 30/60fps requests.
+It places only the central image in the panel scene to test stock-map/Assist view occlusion;
+real-vehicle priority and sustained frame rate remain unverified. The torque/power design
+mockup is not implemented in this release. [Update instructions](docs/CLUSTER-REDLINE-0.5.0.ko.md).
+
 | App | English guide | 한국어 설명서 |
 |---|---|---|
 | iDrive Circuit — parked-only puzzle | [Circuit](apps/idrive_circuit/README.md) | [회로 퍼즐](apps/idrive_circuit/README.ko.md) |

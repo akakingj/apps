@@ -4,6 +4,10 @@
 
 기존 `idrive7-apps`의 **빌드·언어 선택·전체 앱 배포 방식**에 맞춘 추가 앱입니다.
 
+계기판 레드라인 0.5.0에 **전면 중앙 (시험)** 표시와 30·60fps 요청을 추가했습니다.
+지도·Assist 화면에 가리는 현상을 확인하기 위한 변경이며 실차 우선순위와 지속 FPS는 미검증입니다.
+토크·마력 UI 시안은 이번 버전에 구현하지 않았습니다. [업데이트 확인 방법](docs/CLUSTER-REDLINE-0.5.0.ko.md).
+
 | 앱 | 한국어 설명서 | 영문 설명서 |
 |---|---|---|
 | 아이드라이브 회로 | [회로 퍼즐](apps/idrive_circuit/README.ko.md) | [Circuit](apps/idrive_circuit/README.md) |

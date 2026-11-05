@@ -41,13 +41,21 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         controller.policy.modeSample('SPORT_DYNAMIC', 0); controller.policy.rpmSample(6500, 1000);
         controller.tick(1000); await sleep(30);
         assert.deepStrictEqual(commands.map((x) => x.op), ['hello', 'layer', 'frame', 'set']);
-        const layer = commands[1]; assert.strictEqual(layer.target, 'map'); assert.strictEqual(layer.visible, 0);
+        const layer = commands[1]; assert.strictEqual(layer.target, 'panel'); assert.strictEqual(layer.visible, 0);
         assert.strictEqual(layer.guide_hold, 0); assert.strictEqual(layer.prewarm, 0);
-        assert.strictEqual(layer.contend, 1); assert.strictEqual(layer.exclusive, 1); assert.strictEqual(layer.z, 100);
+        assert.strictEqual(layer.contend, 0); assert.strictEqual(layer.exclusive, 0); assert.strictEqual(layer.z, 100);
+        assert.strictEqual(layer.x, 958); assert.strictEqual(layer.y, 358); // centered 4x4 fixture
         assert.strictEqual(commands[2].type, 0x46); assert.strictEqual(commands[2].bytes, 14 + 64);
         assert.strictEqual(commands[3].visible, 1);
+        for (const rate of [30, 60]) {
+            const from = commands.length;
+            controller.tick(1000, { frameRate: rate }); await sleep(30);
+            assert.deepStrictEqual(commands.slice(from).map((c) => c.op), ['drop', 'layer', 'frame', 'set']);
+            assert.strictEqual(commands[from + 1].fps, rate);
+        }
+        const beforeHide = commands.length;
         controller.policy.modeSample(4, 1100); controller.tick(1100); await sleep(20);
-        assert.strictEqual(commands[4].op, 'drop');
+        assert.strictEqual(commands[beforeHide].op, 'drop');
         controller.policy.modeSample(1, 2000); controller.policy.rpmSample(4200, 3000); controller.tick(3000); await sleep(20);
         peer.destroy(); await sleep(30);
         assert.strictEqual(client.layers.size, 0, 'disconnect cannot leave cached visible content');

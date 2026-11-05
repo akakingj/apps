@@ -30,10 +30,11 @@ function start(ctx) {
     const live = signals && typeof signals.hasNative === 'function' && signals.hasNative();
     if (!live) reportError('someip', 'live native binding unavailable; cluster output disabled');
     client.on('ready', () => {
-        // ID7 map geometry only: never fall back to panel, HUD, or another slot.
-        if (client.backend !== 'id7' || String(client.targets).split(',').indexOf('map:1088x480') < 0 || !supportedRenderer()) {
+        // Controller validates the selected target's exact ID7 geometry. It
+        // never falls back to another target when the selected one is missing.
+        if (client.backend !== 'id7' || !supportedRenderer()) {
             controller.hide(); controller.refused = true;
-            reportError('cluster-render', 'unsupported backend, map geometry or version; display disabled');
+            reportError('cluster-render', 'unsupported backend or version; display disabled');
         }
     });
     if (live) {
@@ -84,7 +85,7 @@ function start(ctx) {
                 atomic(path.join(ctx.dataDir, 'cluster-redline-status.json'), {
                     at: new Date().toISOString(), requested: !!state.requested, layerState: state.layerState || 'hidden',
                     reason: state.reason, mode: state.mode, rpm: state.rpm, shift: state.shift,
-                    gear: state.gear, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
+                    gear: state.gear, targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     renderer: rendererInfo, requestedSettings: raw,
                     profile: config.engineProfile, config: config,
                     errors: errors.slice(-8), source: live ? 'live-someip' : 'offline-disabled',

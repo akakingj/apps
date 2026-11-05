@@ -40,7 +40,7 @@ const unknown = new Policy(); unknown.modeSample(1, 0); unknown.rpmSample(4200, 
 assert.strictEqual(unknown.evaluate(1000, true, { engineProfile: 'typo' }).reason, 'profile_unknown');
 
 class Client extends EventEmitter {
-    constructor() { super(); this.ready = true; this.made = []; this.dropped = []; this.next = 0; }
+    constructor() { super(); this.ready = true; this.targets = 'map:1088x480,panel:1920x720'; this.made = []; this.dropped = []; this.next = 0; }
     image(o) { this.made.push(o); return ++this.next; }
     pixels() {} set() {} close() {}
     drop(id) { this.dropped.push(id); }

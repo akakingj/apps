@@ -33,7 +33,7 @@ const stale = new Policy(); stale.modeSample(1, 0); stale.rpmSample(4200, 4000);
 stale.modeSample(1, 4000); assert.strictEqual(stale.evaluate(4000, true).show, false, 'resuming a stale mode needs confirmation again');
 
 class FakeClient extends EventEmitter {
-    constructor() { super(); this.ready = true; this.calls = []; this.layers = new Map(); this.next = 0; }
+    constructor() { super(); this.ready = true; this.targets = 'map:1088x480,panel:1920x720'; this.calls = []; this.layers = new Map(); this.next = 0; }
     image(opts) { const id = ++this.next; this.layers.set(id, opts); this.calls.push(['image', id, opts]); return id; }
     pixels(ref, rects, data) { this.calls.push(['pixels', ref, rects, data.length]); }
     set(ref, values) { this.calls.push(['set', ref, values]); }
@@ -45,10 +45,10 @@ const client = new FakeClient(), c = new Controller(client, paint);
 c.tick(0); assert.strictEqual(client.calls.length, 0, 'boot must not create a hidden slot reservation');
 c.policy.modeSample(1, 0); c.policy.rpmSample(4200, 1000); c.tick(1000);
 const layer = client.calls[0][2];
-assert.strictEqual(layer.target, 'map'); assert.strictEqual(layer.visible, false);
-assert.strictEqual(layer.prewarm, false); assert.strictEqual(layer.exclusive, true);
-assert.strictEqual(layer.z, 100); assert.strictEqual(layer.contend, true);
-assert.strictEqual(layer.guide_hold, false); assert.strictEqual(layer.klass, 'content');
+assert.strictEqual(layer.target, 'panel'); assert.strictEqual(layer.visible, false);
+assert.strictEqual(layer.prewarm, false); assert.strictEqual(layer.exclusive, false);
+assert.strictEqual(layer.z, 100); assert.strictEqual(layer.contend, false);
+assert.strictEqual(layer.guide_hold, false); assert.strictEqual(layer.klass, 'overlay');
 assert.deepStrictEqual(client.calls.map((x) => x[0]), ['image', 'pixels', 'set']);
 c.policy.modeSample(7, 1100); c.tick(1100);
 assert.strictEqual(client.layers.size, 0); assert.strictEqual(client.calls[3][0], 'drop');

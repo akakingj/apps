@@ -2,7 +2,7 @@
 const { Canvas, ramp, withAlpha } = require('./kit/canvas');
 const W = 1088, H = 480;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-const C = { bg: '#04060a', track: '#1b212b', tick: '#4c5666', text: '#f4f7fb', red: '#ff2a2a' };
+const C = { bg: '#000000', track: '#1b212b', tick: '#4c5666', text: '#f4f7fb', red: '#ff2a2a' };
 function draw(state) {
     const cv = new Canvas(W, H), cfg = state.config, rpm = state.rpm;
     cv.clear(C.bg);
@@ -17,9 +17,10 @@ function draw(state) {
     const lit = state.shift ? colors.length : Math.floor(clamp((rpm - start) / (cfg.shiftRpm - start), 0, 1) * colors.length);
     const ledW = 50, gap = 14, left = (W - colors.length * ledW - (colors.length - 1) * gap) / 2;
     colors.forEach((color, i) => {
+        if (i >= lit) return; // Unlit LEDs stay completely black, without tint or glow.
         const x = left + i * (ledW + gap);
-        cv.roundRect(x - 3, 25, ledW + 6, 35, 7, withAlpha(color, i < lit ? 0.11 : 0.02));
-        cv.roundRect(x, 28, ledW, 29, 5, i < lit ? color : withAlpha(color, 0.13));
+        cv.roundRect(x - 3, 25, ledW + 6, 35, 7, withAlpha(color, 0.11));
+        cv.roundRect(x, 28, ledW, 29, 5, color);
     });
     const rw = cv.text(String(Math.round(rpm / 10) * 10), W / 2, 205, 112,
         state.shift ? C.red : C.text, { align: 'center', font: 'num' });
