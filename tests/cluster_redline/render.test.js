@@ -1,9 +1,9 @@
 'use strict';
 const assert = require('assert');
 const path = require('path');
-const stage = path.resolve(process.argv[2] || path.join(__dirname, '../dist/cluster_redline'));
+const stage = path.resolve(process.argv[2] || path.join(__dirname, '../../dist/cluster_redline'));
 const { draw, difference, W, H } = require(path.join(stage, 'source/javascript/draw'));
-const { settings } = require('../apps/cluster_redline/policy');
+const { settings } = require('../../apps/cluster_redline/policy');
 const a = Buffer.from(draw({ rpm: 4200, shift: false, config: settings() }).d);
 const b = Buffer.from(draw({ rpm: 6500, shift: true, config: settings() }).d);
 assert.strictEqual(a.length, W * H * 4);

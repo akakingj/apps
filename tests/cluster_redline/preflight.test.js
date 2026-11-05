@@ -4,7 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
-const { check, versionAtLeast, selectBundle } = require('../tools/preflight');
+const { check, versionAtLeast, selectBundle } = require('../../tools/cluster-redline-preflight');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cluster-redline-check-'));
 function put(name, obj) { const f = path.join(root, name); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(obj)); }
 try {

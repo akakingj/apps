@@ -4,9 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const { EventEmitter } = require('events');
-const { settings } = require('../apps/cluster_redline/policy');
-const { Controller } = require('../apps/cluster_redline/controller');
-const source = fs.readFileSync(path.join(__dirname, '../apps/cluster_redline/worker.js'), 'utf8');
+const { settings } = require('../../apps/cluster_redline/policy');
+const { Controller } = require('../../apps/cluster_redline/controller');
+const source = fs.readFileSync(path.join(__dirname, '../../apps/cluster_redline/worker.js'), 'utf8');
 
 async function scenario(live, version, backend) {
     backend = backend || 'id7';
@@ -34,7 +34,7 @@ async function scenario(live, version, backend) {
         if (name === './cluster_render_client') return { ClusterRender: FakeClient };
         if (name === './controller') return { Controller };
         if (name === './draw') return painter;
-        if (name === './policy') return require('../apps/cluster_redline/policy');
+        if (name === './policy') return require('../../apps/cluster_redline/policy');
         throw new Error('Unexpected dependency ' + name);
     }, process: { hrtime: () => [Math.floor(time / 1000), Math.floor((time % 1000) * 1000000)], once() {} },
     setTimeout: (fn) => { timer = fn; return 1; }, clearTimeout: () => { timer = null; }, console };

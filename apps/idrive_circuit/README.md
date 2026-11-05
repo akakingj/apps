@@ -1,39 +1,51 @@
 # iDrive Circuit
 
-A parked-only wiring puzzle for the BMW MGU / iDrive 7 custom-app kit.
+English | [한국어](README.ko.md)
 
-Rotate the circuit tiles until power reaches every vehicle module with no open connection. The app includes 30 deterministic levels, undo, one-step hints, par scores, one-to-three-star results, automatic progress saving, and a software-renderer fallback.
+A parked-only circuit puzzle for BMW MGU / iDrive 7. Rotate wiring tiles until
+battery power reaches every simulated vehicle module without an open connection.
+Includes 30 levels, touch and iDrive-controller input, Undo, Hint, Restart,
+PAR scores, stars, saved progress, four themes and software/GPU rendering paths.
+
+The default **Parked only** guard disables puzzle actions above 3 km/h.
+The puzzle is simulated; the app sends no SOME/IP or UDS vehicle-control writes.
 
 ## Controls
 
-- Full-screen GPU renderer: turn the iDrive controller to move through tiles, push it towards a neighbouring tile, and press to rotate clockwise. A touchscreen tap rotates a tile directly.
-- Standard/software renderer: use **Next tile** and **Rotate** in the HMI button bar.
-- **Undo**, **Hint**, **Restart**, **Previous level** and **Next level** are available on both paths.
-- With **Parked only** enabled (the default), every puzzle action is disabled above 3 km/h.
+- GPU: turn the controller to select a tile, tilt towards a neighbouring tile,
+  press to rotate clockwise, or touch a tile directly.
+- Software: use **Next tile** and **Rotate** in the button bar.
+- Undo, Hint, Restart, Previous level and Next level work on both paths.
 
-The game simulates its own circuit. It does not send vehicle, SOME/IP or UDS write commands.
+## Korean preview and build
 
-## Files
-
-- `app.json` — manifest, vehicle-speed permission, screens and settings.
-- `main.js` — HMI integration, rendering, input, progress and parked-only guard.
-- `puzzle.js` — pure rotation, connectivity, power, undo, hints and scoring rules.
-- `levels.js` — three tutorial boards plus 27 deterministic generated boards.
-- `icon.png` — 140 × 140 app tile; source artwork is `kit/icons/idrive_circuit.svg`.
-
-## Develop and test
+Run from the source repository root with a Korean-enabled upstream checkout beside it:
 
 ```powershell
-node kit\tools\test_idrive_circuit.js
-python kit\tools\build.py --preview-only idrive_circuit
-node kit\tools\preview.js dist\idrive_circuit preview\idrive_circuit frames=3
+node kit/tools/test_idrive_circuit.js
+python tools/build-apps.py --project "../idrive7-apps" --apps idrive_circuit --preview-only
+node ../idrive7-apps/kit/tools/preview.js dist/idrive_circuit preview/idrive_circuit frames=3
 ```
 
-For a Korean offline preview:
+Without `--preview-only`, your own upstream `oap-sdk` is required and the result
+is `dist/idrive_circuit-ko-kit.zip`. Circuit stays **manually started**.
 
 ```powershell
-python kit\tools\build.py --language ko --preview-only idrive_circuit
+python tools/build-apps.py --project "../idrive7-apps" --apps idrive_circuit
 ```
 
-An installable `.mgu` requires `oap-sdk/` extracted from the owner's head unit, as described in the repository's main README. The offline preview does not require that SDK.
+Omit `--apps` to build the shared two-app kit. Follow its included `INSTALL.ko.md`.
+The combined kit does not make this puzzle auto-start or display in the cluster.
 
+To use upstream tools directly, copy the app and Korean additions with
+`python tools/install-overlay.py ../idrive7-apps --apps idrive_circuit`.
+Then use upstream's `--language ko` build option. English builds remain available
+through the upstream builder's default language.
+
+## Files and license
+
+`app.json` defines the UI and read-only vehicle-speed subscription; `main.js`
+contains HMI integration; `puzzle.js` implements rules; `levels.js` provides the
+30 deterministic boards; `icon.png` is the app tile. The source artwork and pure
+puzzle tests are in `kit/icons/idrive_circuit.svg` and `kit/tools/test_idrive_circuit.js`.
+The game retains its MIT license and upstream runtime attribution.

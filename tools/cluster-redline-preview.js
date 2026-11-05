@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const stage = path.resolve(process.argv[2] || path.join(__dirname, '../dist/cluster_redline'));
-const out = path.resolve(process.argv[3] || path.join(__dirname, '../preview'));
+const out = path.resolve(process.argv[3] || path.join(__dirname, '../preview/cluster_redline'));
 const { draw } = require(path.join(stage, 'source/javascript/draw'));
 const { Policy, settings } = require(path.join(stage, 'source/javascript/policy'));
 fs.mkdirSync(out, { recursive: true });

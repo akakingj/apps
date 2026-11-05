@@ -1,7 +1,0 @@
-dist/
-preview/
-__pycache__/
-*.pyc
-oap-sdk/
-*.mgu
-*.tgz

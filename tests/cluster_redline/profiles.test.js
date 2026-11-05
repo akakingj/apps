@@ -1,8 +1,8 @@
 'use strict';
 const assert = require('assert');
 const { EventEmitter } = require('events');
-const { Policy, PROFILES, settings } = require('../apps/cluster_redline/policy');
-const { Controller } = require('../apps/cluster_redline/controller');
+const { Policy, PROFILES, settings } = require('../../apps/cluster_redline/policy');
+const { Controller } = require('../../apps/cluster_redline/controller');
 const expected = { petrol: [6500, 7000, 8000], diesel: [4200, 5000, 6000], hybrid: [6500, 7000, 8000] };
 Object.keys(expected).forEach((profile) => {
     const cfg = settings({ engineProfile: profile, shiftRpm: 0, redlineRpm: 0, maxRpm: 0 });

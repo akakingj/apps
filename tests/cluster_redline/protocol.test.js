@@ -4,8 +4,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const net = require('net');
-const { ClusterRender } = require('../apps/cluster_redline/cluster_render_client');
-const { Controller } = require('../apps/cluster_redline/controller');
+const { ClusterRender } = require('../../apps/cluster_redline/cluster_render_client');
+const { Controller } = require('../../apps/cluster_redline/controller');
 function message(o) {
     const body = Buffer.from(JSON.stringify(o)), b = Buffer.alloc(body.length + 5);
     b.writeUInt32LE(body.length + 1, 0); b[4] = 0x4a; body.copy(b, 5); return b;

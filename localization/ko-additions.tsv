@@ -1,4 +1,4 @@
-iDrive Circuit	iDrive Circuit
+iDrive Circuit	아이드라이브 회로
 Next tile	다음 타일
 Previous level	이전 레벨
 Next level	다음 레벨
@@ -25,4 +25,17 @@ First Light	첫 점등
 Rotate the centre wire to power the headlight	가운데 배선을 회전하여 전조등을 켜세요
 LEVEL	레벨
 PAR	최소
+Rotate	회전
+Parked only (pauses while driving)	주차 중에만 실행 (주행 중 일시 중지)
+Colour theme	화면 색상
+M Red	M 레드
+M Tricolour	M 삼색
+Ice White	아이스 화이트
+Night Amber	야간 앰버
+Screen layout	화면 배치
+Full screen	전체 화면
+Standard	표준
+Renderer	렌더러
+Software	소프트웨어
+GPU 60 fps (default)	GPU 60 fps (기본값)
 

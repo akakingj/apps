@@ -1,8 +1,8 @@
 'use strict';
 const assert = require('assert');
 const { EventEmitter } = require('events');
-const { Policy, settings, modeOf } = require('../apps/cluster_redline/policy');
-const { Controller } = require('../apps/cluster_redline/controller');
+const { Policy, settings, modeOf } = require('../../apps/cluster_redline/policy');
+const { Controller } = require('../../apps/cluster_redline/controller');
 
 // The policy must stay hidden before any signal, including renderer reconnects.
 for (const ready of [false, true]) assert.strictEqual(new Policy().evaluate(10000, ready).show, false);

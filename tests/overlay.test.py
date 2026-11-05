@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+"""Ensure selected-app copying and conflict checks do not partly change a target."""
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def run(target, *args):
+    return subprocess.run([sys.executable, str(ROOT / 'tools/install-overlay.py'), str(target)] + list(args),
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+
+with tempfile.TemporaryDirectory(prefix='jam-overlay-test-') as temporary:
+    target = Path(temporary)
+    (target / 'apps').mkdir()
+    (target / 'kit/tools').mkdir(parents=True)
+    (target / 'kit/tools/build.py').write_text('# fixture')
+    # Missing Korean support must be detected before even the first app is copied.
+    assert run(target).returncode != 0
+    assert not (target / 'apps/idrive_circuit').exists()
+    (target / 'kit/runtime/locales').mkdir(parents=True)
+    locale = target / 'kit/runtime/locales/ko.json'
+    locale.write_text('{"Existing":"기존"}', encoding='utf-8')
+    assert run(target, '--apps', 'cluster_redline').returncode == 0
+    assert (target / 'apps/cluster_redline/app.json').is_file()
+    assert not (target / 'apps/idrive_circuit').exists()
+    assert json.loads(locale.read_text(encoding='utf-8'))['Existing'] == '기존'
+    # An unchanged overlay may be applied twice without requiring --force.
+    assert run(target, '--apps', 'cluster_redline').returncode == 0
+    source = target / 'apps/cluster_redline/main.js'
+    source.write_text('// owner changes')
+    assert run(target).returncode != 0
+    assert not (target / 'apps/idrive_circuit').exists(), 'No partial copy on conflict'
+    assert source.read_text() == '// owner changes'
+    assert run(target, '--force').returncode == 0
+    assert source.read_bytes() == (ROOT / 'apps/cluster_redline/main.js').read_bytes()
+    assert (target / 'apps/idrive_circuit/app.json').is_file()
+    before = locale.read_bytes()
+    assert run(target, '--no-ko').returncode == 0
+    assert locale.read_bytes() == before
+print('PASS: selected overlay, Korean prerequisites before writes, idempotency, no partial conflict copy, explicit replacement and --no-ko')
