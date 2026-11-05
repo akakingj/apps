@@ -44,7 +44,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         const layer = commands[1]; assert.strictEqual(layer.target, 'panel'); assert.strictEqual(layer.visible, 0);
         assert.strictEqual(layer.guide_hold, 0); assert.strictEqual(layer.prewarm, 0);
         assert.strictEqual(layer.contend, 0); assert.strictEqual(layer.exclusive, 0); assert.strictEqual(layer.z, 100);
-        assert.strictEqual(layer.x, 958); assert.strictEqual(layer.y, 358); // centered 4x4 fixture
+        assert.strictEqual(layer.x, 958.5); assert.strictEqual(layer.y, 358.5); // centered 3x3 display of 4x4 fixture
         assert.strictEqual(commands[2].type, 0x46); assert.strictEqual(commands[2].bytes, 14 + 64);
         assert.strictEqual(commands[3].visible, 1);
         for (const rate of [30, 60]) {

@@ -21,4 +21,27 @@ function selection(value) {
     if (typeof raw === 'string' && /^_[1-9]$/.test(raw)) return raw.slice(1);
     return '--';
 }
-module.exports = { gearbox, selection };
+function programme(value) {
+    // Only selector fields; Sport driving mode alone does not mean S gearbox mode.
+    for (const key of Object.keys(value || {})) {
+        if (key === 'statusActualGearDrive' || !/program|mode|selector|manual|sport|tip/i.test(key)) continue;
+        const raw = value[key];
+        if (raw === true || raw === 1) {
+            if (/manual|tip/i.test(key)) return 'M';
+            if (/sport/i.test(key)) return 'S';
+        }
+        if (typeof raw !== 'string' || /NOT|INVALID|UNKNOWN|INACTIVE|OFF|NO_/i.test(raw)) continue;
+        if (/^(M|MANUAL|M_MINUS_PROGRAMM|TIPP|TIPTRONIC)$/.test(raw)) return 'M';
+        if (/^(S|DS|SPORT|S_MINUS_PROGRAMM)$/.test(raw)) return 'S';
+        if (/^(D|DRIVE|AUTOMATIC)$/.test(raw)) return 'D';
+    }
+    return null;
+}
+function display(gear, mode, override) {
+    if (/^(P|R|N|--)$/.test(gear)) return gear;
+    const match = /^(?:[DSM])?([1-9]|10)$/.exec(String(gear));
+    if (!match) return gear === 'D' ? 'D' : '--';
+    const prefix = ['D', 'S', 'M'].indexOf(override) >= 0 ? override : ['D', 'S', 'M'].indexOf(mode) >= 0 ? mode : /^[DSM]/.test(gear) ? gear[0] : '';
+    return prefix + match[1];
+}
+module.exports = { gearbox, selection, programme, display };

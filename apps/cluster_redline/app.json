@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Auto-start sport-only cluster RPM and shift lights with petrol, diesel and hybrid profiles",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
@@ -12,7 +12,8 @@
       "statusEngineSpeed2": "rs"
     },
     "de.bmw.infotainment.drivingexcitement.FES": {
-      "statusFESVehicleDynamicSwitchHMI": "rs"
+      "statusFESVehicleDynamicSwitchHMI": "rs",
+      "statusActualValueTorque2": "rs"
     },
     "de.bmw.infrastructure.VehicleInformation": {
       "_optional": "current gear display; RPM and shift alerts still work without it",
@@ -53,6 +54,47 @@
         [
           "map",
           "Map area (legacy)"
+        ]
+      ]
+    },
+    {
+      "key": "widgetScale",
+      "label": "Widget size",
+      "type": "number",
+      "unit": "%",
+      "default": 75,
+      "steps": [
+        60,
+        65,
+        70,
+        75,
+        80,
+        85,
+        90,
+        100
+      ]
+    },
+    {
+      "key": "gearPrefix",
+      "label": "Gear prefix",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "Automatic"
+        ],
+        [
+          "D",
+          "D"
+        ],
+        [
+          "S",
+          "S"
+        ],
+        [
+          "M",
+          "M"
         ]
       ]
     },
@@ -165,6 +207,44 @@
         12,
         30,
         60
+      ]
+    },
+    {
+      "key": "torqueScale",
+      "label": "Torque scale maximum",
+      "type": "number",
+      "unit": "Nm",
+      "default": 500,
+      "steps": [
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900,
+        1000,
+        1200,
+        1500
+      ]
+    },
+    {
+      "key": "powerScale",
+      "label": "Power scale maximum",
+      "type": "number",
+      "unit": "PS",
+      "default": 300,
+      "steps": [
+        200,
+        250,
+        300,
+        350,
+        400,
+        450,
+        500,
+        600,
+        800,
+        1000
       ]
     },
     {

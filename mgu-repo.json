@@ -40,7 +40,7 @@
       "kind": "app",
       "path": "apps/cluster_redline",
       "title": "계기판 레드라인 (한국어)",
-      "description": "한국어 스포츠 계기판 · 전면 중앙 표시 시험 · 12/30/60fps 요청 · G20 눈금 7000 / 적색 구간 6000 rpm",
+      "description": "한국어 스포츠 계기판 · 투명한 소형 M UI · D4/S4 · 토크/계산 마력 · 12/30/60fps 요청",
       "mguHmi": [
         "ID7"
       ],
@@ -112,7 +112,7 @@
       "kind": "app",
       "path": "store/apps/cluster_redline_en",
       "title": "Cluster Redline (English)",
-      "description": "English Sport cluster · front-center display test · 12/30/60fps requests · RPM and shift lights",
+      "description": "Compact transparent M-style Sport cluster · D4/S4 · torque and estimated PS · 12/30/60fps requests",
       "mguHmi": [
         "ID7"
       ],

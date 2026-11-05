@@ -71,9 +71,11 @@ async function scenario(live, version, backend) {
             const gear = feeds['de.bmw.infrastructure.VehicleInformation'];
             gear.statusGearboxDrive({ statusActualGearDrive: 'G4', statusActualStageDrive: 'D' });
             config.shiftRpm = 2000; rpm({ actualValueRPMEngineCrankshaft: 8400 }); tick(1500);
-            assert.strictEqual(status().config.shiftRpm, 2000); assert.strictEqual(status().shift, true); assert.strictEqual(status().gear, '4');
+            assert.strictEqual(status().config.shiftRpm, 2000); assert.strictEqual(status().shift, true); assert.strictEqual(status().gear, 'D4');
+            feeds['de.bmw.infotainment.drivingexcitement.FES'].statusActualValueTorque2({ actualValueTorqueCrankshaft: 2807 });
             config.shiftRpm = 3000; tick(2000);
-            assert.strictEqual(status().shift, false); assert.strictEqual(status().gear, '4', 'change-only gear stays known while provider is live');
+            assert.strictEqual(status().shift, false); assert.strictEqual(status().gear, 'D4', 'change-only gear stays known while provider is live');
+            assert.strictEqual(status().torqueNm, 380); assert(status().powerPS > 100);
             assert.deepStrictEqual(calls.filter((c) => Array.isArray(c)).map((c) => c[1].target), ['panel']);
             assert.strictEqual(status().targetName, 'panel');
             // The settings UI is never opened in this test. Its visibility is irrelevant.

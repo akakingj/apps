@@ -2,8 +2,8 @@
   "schema": 1,
   "id": "cluster_redline",
   "language": "ko",
-  "source_version": "0.5.0",
-  "ui_sha256": "e0aac68311ebef0acd64b605308b7829ddc9dfb56aa7518dbf3b29c37deebe39",
-  "size": 1076204,
-  "sha256": "ee0a97396b92d686eebc6bdad02f83b78fcbdf421df21bcd157e683e48e1b7b7"
+  "source_version": "0.6.0",
+  "ui_sha256": "d52ee94ec549075bc44c23d225fecf34492ef3345931d231d8569abd59949c6d",
+  "size": 1077467,
+  "sha256": "e2a6b73c39aab499d1eae3658f20fd57e61096f8128116f966afcbc747a801af"
 }

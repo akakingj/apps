@@ -2,7 +2,7 @@
 
 English | [한국어](README.ko.md)
 
-An ordinary `idrive7-apps` app for the central cluster area. ID: `cluster_redline`, version **0.5.0**. Auto-starts in the background; remains hidden until confirmed Sport mode and fresh engine RPM are available. Large RPM, bar and shift lights are released on normal mode, engine-off, stale data or renderer disconnect.
+An ordinary `idrive7-apps` app for the central cluster area. ID: `cluster_redline`, version **0.6.0**. Auto-starts in the background; remains hidden until confirmed Sport mode and fresh engine RPM are available. Large RPM, bar and shift lights are released on normal mode, engine-off, stale data or renderer disconnect.
 
 
 ## Engine profiles
@@ -40,11 +40,13 @@ This includes **every app**, including Circuit and Cluster Redline, in the usual
 
 Requires cluster-render 0.3.10+ and the selected exact ID7 target: panel 1920x720 or map 1088x480. The normal installer refuses this app when the required component metadata is missing or old; other accepted apps follow upstream's normal skip/install behavior. RPM and drive-mode getters must also exist. The app independently checks renderer backend, geometry and signal freshness at runtime.
 
-Version 0.5.0 adds **Display layer → Front center (test)**, the new default. It places only a 1088x480 image at (416,120) inside the 1920x720 `panel` target. The rest of that scene stays transparent. It uses an overlay with `exclusive=false`, `contend=false`: it does not hide other renderer layers or take the panel from a stock speech dialog. This is a test candidate for stock map/Assisted Driving View covering the old map image; its real-vehicle priority is not yet verified. The old map target's `z` only orders that scene's layers, not BMW scenes in other display slots.
+Version 0.6.0 keeps **Display layer → Front center (test)**, removes the opaque rectangle, and defaults to a 75% footprint: 816x360 at (552,180) in the 1920x720 panel scene. Empty pixels inside the image are transparent too. Widget size is adjustable from 60 to 100%. The image is nonexclusive and does not contend with stock panel content. Real-car fit still needs checking.
+
+The compact M-style layout is now implemented: RPM bar above smaller digits, 500rpm cells, tight shift lights with black unlit cells, M marks on both borders, a smaller central gear and short torque/power bars. D4/S4/M4 uses a received gearbox programme or the explicit Gear prefix setting; chassis Sport alone never implies S. ECU torque is freshness-checked. Power* is estimated PS from torque x rpm, not measured wheel power; unavailable signals show --. See [0.6.0 details](../../docs/CLUSTER-REDLINE-0.6.0.ko.md).
 
 **Map area (legacy)** retains the original exclusive content layer, `contend=1`, `guide_hold=0` and `map_take_over_stock=1` requirement. The selected target must advertise its exact geometry; missing targets stay hidden, with no automatic fallback to another target or HUD. Leaving Sport, stale signals or disconnect releases the requested layer. No MGU preferences or coding are changed. The renderer may fade/release the scene after the layer is dropped.
 
-**Cluster refresh rate** now offers 12, 30 and 60 fps alongside the lower rates. Default: 12; saved values are retained. These are requested upper rates, not measured sustained output or new sensor samples. Unchanged input values skip canvas redraw; changed images still use dirty rectangles and the renderer's shared upload budget. Real-vehicle timing and display priority must be tested. See [0.5.0 instructions](../../docs/CLUSTER-REDLINE-0.5.0.ko.md).
+**Cluster refresh rate** now offers 12, 30 and 60 fps alongside the lower rates. Default: 12; saved values are retained. These are requested upper rates, not measured sustained output or new sensor samples. Unchanged input values skip canvas redraw; changed images still use dirty rectangles and the renderer's shared upload budget. Real-vehicle timing and display priority must be tested. See [0.6.0 instructions](../../docs/CLUSTER-REDLINE-0.6.0.ko.md).
 
 `cluster_render_client.js` is unmodified MPL-2.0 source. Its license and attribution are included as `LICENSE` and `NOTICE` in both source and standard-built packages.
 

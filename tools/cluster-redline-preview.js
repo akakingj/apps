@@ -5,13 +5,20 @@ const path = require('path');
 const stage = path.resolve(process.argv[2] || path.join(__dirname, '../dist/cluster_redline'));
 const out = path.resolve(process.argv[3] || path.join(__dirname, '../preview/cluster_redline'));
 const { draw } = require(path.join(stage, 'source/javascript/draw'));
+const { Canvas } = require(path.join(stage, 'source/javascript/kit/canvas'));
 const { Policy, settings } = require(path.join(stage, 'source/javascript/policy'));
 fs.mkdirSync(out, { recursive: true });
 function scene(name, rpm, engineProfile, options) {
     const p = new Policy(); p.modeSample('SPORT_DYNAMIC', 0); p.rpmSample(rpm, 1000);
     const state = p.evaluate(1000, true, settings(Object.assign({ engineProfile: engineProfile || 'petrol' }, options || {})));
-    state.gear = '4';
-    fs.writeFileSync(path.join(out, name + '.png'), draw(state).png());
+    state.gear = state.shift ? 'S4' : 'D4';
+    state.torqueNm = state.shift ? 265 : 380;
+    state.powerPS = state.torqueNm * rpm / 9549.2966 * 1.3596216;
+    state.torquePeak = state.torqueNm; state.powerPeak = state.powerPS;
+    const face = draw(state);
+    fs.writeFileSync(path.join(out, name + '.png'), face.png());
+    const preview = new Canvas(face.w, face.h); preview.clear('#05070b'); preview.blit(face, 0, 0);
+    fs.writeFileSync(path.join(out, name + '-on-black.png'), preview.png());
 }
 scene('sport-rpm', 4200);
 scene('sport-shift', 6500);
@@ -23,7 +30,7 @@ scene('threshold-2000-before', 1990, 'petrol', { shiftRpm: 2000 });
 scene('threshold-2000-alert', 2000, 'petrol', { shiftRpm: 2000 });
 const html = `<!doctype html><meta charset="utf-8"><title>계기판 레드라인 미리보기</title>
 <style>body{background:#10151d;color:#ecf2fa;font:18px system-ui;max-width:1088px;margin:32px auto;padding:16px}img{max-width:100%}section{border:1px solid #34465b;padding:20px;margin:20px 0;border-radius:12px}.off{height:140px;display:grid;place-items:center;color:#a5b7cb;background:#0b0e12}p{line-height:1.6}</style>
-<h1>계기판 레드라인</h1><p>실제 앱 렌더링 미리보기 · 데모 수치 · 계기판 중앙 영역 1088 × 480</p>
+<h1>계기판 레드라인</h1><p>실제 앱 렌더링 미리보기 · 데모 수치 · 내부 1088 × 480 / 기본 실차 표시 816 × 360 · 마력*은 토크와 RPM으로 계산한 PS입니다. 빈 배경은 투명합니다.</p>
 <section><h2>부팅 · Comfort · Eco · 신호 없음</h2><div class="off">표시 OFF — 이 앱은 레이어를 만들지 않으며 순정 화면을 유지합니다.</div></section>
 <section><h2>가솔린 · 스포츠 모드</h2><img src="sport-rpm.png" alt="가솔린 4200 rpm"><p>확인된 스포츠 모드와 최신 회전수 신호가 있을 때만 표시합니다.</p></section>
 <section><h2>가솔린 · 변속 알림</h2><img src="sport-shift.png" alt="가솔린 6500 rpm 변속 알림"><p>기본 설정: 알림은 별도 설정 · G20 가솔린 레드라인 시작 6000 · 눈금 최대 7000 rpm.</p></section>

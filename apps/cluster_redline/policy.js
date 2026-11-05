@@ -9,7 +9,7 @@ const PROFILES = {
         ranges: { shiftRpm: [2000, 7500], redlineRpm: [3000, 8500], maxRpm: [4000, 10000] } },
 };
 // Zero RPM settings mean the selected profile's defaults, rather than engine-off.
-const DEFAULTS = { autoSport: true, engineProfile: 'petrol', shiftRpm: 0, redlineRpm: 0, maxRpm: 0, frameRate: 12, displayTarget: 'panel' };
+const DEFAULTS = { autoSport: true, engineProfile: 'petrol', shiftRpm: 0, redlineRpm: 0, maxRpm: 0, frameRate: 12, displayTarget: 'panel', widgetScale: 75, gearPrefix: 'auto', torqueScale: 500, powerScale: 300 };
 const MODES = { 1: 'SPORT', 2: 'SPORT_PLUS', 3: 'SPORT_INDIVIDUAL', 4: 'COMFORT', 5: 'COMFORT_PLUS',
     6: 'COMFORT_INDIVIDUAL', 7: 'ECO_PRO', 8: 'ECO_PRO_PLUS', 9: 'ECO_PRO_INDIVIDUAL', 10: 'ADAPTIVE',
     SPORT_DYNAMIC: 'SPORT', SPORT_EXPERT: 'SPORT_PLUS', SPORT_INDIVIDUAL: 'SPORT_INDIVIDUAL',
@@ -30,6 +30,10 @@ function settings(raw) {
     });
     if (typeof raw.frameRate === 'number' && isFinite(raw.frameRate) && Math.floor(raw.frameRate) === raw.frameRate && raw.frameRate >= 2 && raw.frameRate <= 60) out.frameRate = raw.frameRate;
     if (Object.prototype.hasOwnProperty.call(raw, 'displayTarget')) out.displayTarget = ['map', 'panel'].indexOf(raw.displayTarget) >= 0 ? raw.displayTarget : 'unknown';
+    if ([60, 65, 70, 75, 80, 85, 90, 100].indexOf(raw.widgetScale) >= 0) out.widgetScale = raw.widgetScale;
+    if (['auto', 'D', 'S', 'M'].indexOf(raw.gearPrefix) >= 0) out.gearPrefix = raw.gearPrefix;
+    if (typeof raw.torqueScale === 'number' && isFinite(raw.torqueScale) && raw.torqueScale >= 300 && raw.torqueScale <= 1500) out.torqueScale = raw.torqueScale;
+    if (typeof raw.powerScale === 'number' && isFinite(raw.powerScale) && raw.powerScale >= 200 && raw.powerScale <= 1000) out.powerScale = raw.powerScale;
     // Red-zone start and shift alert are independent display settings.
     out.maxRpm = Math.max(out.maxRpm, out.redlineRpm);
     return out;

@@ -14,7 +14,7 @@ fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ shiftRpm: 620
 const hu = headUnit(stage, { dataDir: dir, image: async () => {}, log: { info() {}, warn() {}, error() {} } });
 function effective() {
     const raw = {};
-    ['autoSport', 'engineProfile', 'shiftRpm', 'redlineRpm', 'maxRpm', 'frameRate', 'displayTarget'].forEach((k) => { raw[k] = hu.settings.get(k); });
+    ['autoSport', 'engineProfile', 'shiftRpm', 'redlineRpm', 'maxRpm', 'frameRate', 'displayTarget', 'widgetScale', 'gearPrefix', 'torqueScale', 'powerScale'].forEach((k) => { raw[k] = hu.settings.get(k); });
     return settings(raw);
 }
 (async () => {
@@ -25,6 +25,9 @@ function effective() {
         assert.strictEqual(effective().shiftRpm, 6200);
         assert.strictEqual(effective().redlineRpm, 6800);
         assert.strictEqual(effective().displayTarget, 'panel');
+        assert.strictEqual(effective().widgetScale, 75);
+        hu.settings.set('widgetScale', 65); assert.strictEqual(effective().widgetScale, 65);
+        hu.settings.set('gearPrefix', 'S'); assert.strictEqual(effective().gearPrefix, 'S');
         for (const rate of [12, 30, 60]) {
             hu.settings.set('frameRate', rate); assert.strictEqual(effective().frameRate, rate);
         }

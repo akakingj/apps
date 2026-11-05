@@ -24,7 +24,7 @@ function start(ctx) {
     const log = ctx.log, signals = ctx.signals;
     const client = new ClusterRender('cluster-redline'), controller = new Controller(client, painter);
     let config = settings(), lastStatus = -Infinity, stopped = false, timer;
-    let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub;
+    let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub, fesSub;
     const subs = [], errors = [];
     const reportError = (name, e) => { const s = name + ': ' + e; if (errors.indexOf(s) < 0) { errors.push(s); log.warn(s); } };
     const live = signals && typeof signals.hasNative === 'function' && signals.hasNative();
@@ -47,10 +47,14 @@ function start(ctx) {
         }, log, { pollMs: 1000 }).then((s) => { subs.push(s); if (s.error) reportError(CDS, s.error); }).catch((e) => reportError(CDS, e));
         const handlers = {};
         handlers[MODE_FIELD] = (v) => controller.policy.modeSample(v && v.actualValueModeDrivingExperience, mono());
-        signals.watch(FES, '1', handlers, log, { pollMs: 1000 }).then((s) => { subs.push(s); if (s.error) reportError(FES, s.error); }).catch((e) => reportError(FES, e));
+        handlers.statusActualValueTorque2 = (v) => controller.telemetry.sample(v && v.actualValueTorqueCrankshaft, mono());
+        signals.watch(FES, '1', handlers, log, { pollMs: 1000 }).then((s) => { fesSub = s; subs.push(s); if (s.error) reportError(FES, s.error); }).catch((e) => reportError(FES, e));
         signals.watch(VEHICLE_INFO, '1', {
-            statusGearboxDrive: (v) => { controller.gear = gear.gearbox(v); },
-            DataPowerTrain2: (v) => { controller.gear = gear.selection(v); },
+            statusGearboxDrive: (v) => { controller.gear = gear.gearbox(v); controller.gearMode = gear.programme(v) || ((v && (v.statusActualStageDrive === 'D' || v.statusActualStageDrive === 4)) ? 'D' : null); },
+            DataPowerTrain2: (v) => {
+                controller.gear = gear.selection(v);
+                controller.gearMode = gear.programme(v) || controller.gearMode;
+            },
         }, log, { pollMs: 1000 }).then((s) => {
             gearSub = s; subs.push(s);
             if (s.error) { controller.gear = '--'; reportError('optional gear', s.error); }
@@ -75,7 +79,8 @@ function start(ctx) {
             }
             // Gear fields may notify only on changes. Keep a known gear while its
             // provider remains available, and clear it on provider loss/error.
-            if (gearSub && (gearSub.available === false || gearSub.error)) controller.gear = '--';
+            if (gearSub && (gearSub.available === false || gearSub.error)) { controller.gear = '--'; controller.gearMode = null; }
+            if (fesSub && (fesSub.available === false || fesSub.error)) controller.telemetry.clear();
             const raw = {};
             Object.keys(DEFAULTS).forEach((k) => { raw[k] = ctx.settings.get(k); });
             config = settings(raw);
@@ -85,7 +90,8 @@ function start(ctx) {
                 atomic(path.join(ctx.dataDir, 'cluster-redline-status.json'), {
                     at: new Date().toISOString(), requested: !!state.requested, layerState: state.layerState || 'hidden',
                     reason: state.reason, mode: state.mode, rpm: state.rpm, shift: state.shift,
-                    gear: state.gear, targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
+                    gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
+                    targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     renderer: rendererInfo, requestedSettings: raw,
                     profile: config.engineProfile, config: config,
                     errors: errors.slice(-8), source: live ? 'live-someip' : 'offline-disabled',

@@ -27,6 +27,8 @@ function checkPackage(file, id, version, start, language) {
     assert.strictEqual(spec.id, id);
     if (id.indexOf('cluster_redline') === 0) {
         assert.strictEqual(spec.settings.find((s) => s.key === 'displayTarget').default, 'panel');
+        assert.strictEqual(spec.settings.find((s) => s.key === 'widgetScale').default, 75);
+        assert.strictEqual(spec.settings.find((s) => s.key === 'gearPrefix').default, 'auto');
         assert.deepStrictEqual(spec.settings.find((s) => s.key === 'frameRate').steps.slice(-3), [12, 30, 60]);
     }
     const app = json(file, 'rhmiData/application.json').application;

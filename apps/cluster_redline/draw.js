@@ -1,66 +1,104 @@
 'use strict';
-const { Canvas, ramp, withAlpha } = require('./kit/canvas');
+const { Canvas, ramp } = require('./kit/canvas');
 const W = 1088, H = 480;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-const C = { bg: '#000000', track: '#1b212b', tick: '#4c5666', text: '#f4f7fb', red: '#ff2a2a' };
+const C = { track: '#1b212b', text: '#f4f7fb', red: '#ff2a2a' };
+const L = { left: 220, right: 868, slant: 14, top: 112, bottom: 153 };
+function mark(cv, cx, y) {
+    ['#38c9ff', '#1653ad', '#ed253c'].forEach((c, i) => {
+        const x = cx - 37 + i * 11;
+        cv.quad([[x + 8, y], [x + 17, y], [x + 9, y + 22], [x, y + 22]], c);
+    });
+    cv.polyline([[cx + 1, y + 22], [cx + 7, y + 1], [cx + 13, y + 14], [cx + 25, y + 1], [cx + 19, y + 22]], 5, C.text);
+}
+function frame(cv, y, lower) {
+    const side = lower ? -12 : 12;
+    cv.polyline([[98, y + side], [124, y], [499, y]], 1.5, '#8993a0');
+    cv.polyline([[589, y], [964, y], [990, y + side]], 1.5, '#8993a0');
+    mark(cv, W / 2, y - 11);
+}
+function mini(cv, x, label, value, unit, maximum, peak) {
+    const w = 170, y = 368, h = 9, slant = 7;
+    const valid = typeof value === 'number' && isFinite(value) && value >= 0;
+    cv.text(label, x, 344, 15, '#b8c2d1', { font: 'bold' });
+    const number = valid ? String(Math.round(value)) : '--';
+    const uw = cv.textWidth(unit, 13, { font: 'label' });
+    cv.text(number, x + w - uw - 5, 345, 26, C.text, { align: 'right', font: 'num' });
+    cv.text(unit, x + w, 345, 13, '#b8c2d1', { align: 'right' });
+    const q = (right, color) => {
+        if (right <= 0) return;
+        cv.quad([[x + slant, y], [x + slant + right, y], [x + right, y + h], [x, y + h]], color);
+    };
+    const span = w - slant;
+    q(span, C.track);
+    if (valid) {
+        const fill = span * clamp(value / maximum, 0, 1);
+        q(fill, '#1caeff');
+        cv.line(x + slant, y - 2, x + slant + span * clamp((peak || value) / maximum, 0, 1), y - 2, 2, C.red);
+        cv.line(x + slant + fill, y - 1, x + fill, y + h + 1, 2, C.text);
+    }
+    [0, 0.5, 1].forEach((f) => {
+        const px = x + span * f;
+        cv.line(px, y + h + 3, px, y + h + 6, 1, '#a0a9b7');
+        cv.text(String(Math.round(maximum * f)), px, 403, 13, '#c5cdd8', { align: 'center', font: 'num' });
+    });
+}
 function draw(state) {
     const cv = new Canvas(W, H), cfg = state.config, rpm = state.rpm;
-    cv.clear(C.bg);
-    // Match the original M Tricolour Redline: angular chrome and no title/footer.
-    cv.polyline([[16, 77], [113, 77], [150, 103], [938, 103], [975, 77], [1072, 77]], 2, '#394452');
-    cv.polyline([[150, 103], [938, 103]], 2, '#707b8b');
-    cv.polyline([[16, 464], [113, 464], [150, 441], [426, 441]], 2, '#394452');
-    cv.polyline([[662, 441], [938, 441], [975, 464], [1072, 464]], 2, '#394452');
-    const colors = ['#19ee67', '#19ee67', '#19ee67', '#19ee67', '#19ee67',
-        '#ffd522', '#ffd522', '#ffd522', '#ffd522', '#f32d4c', '#f32d4c', '#f32d4c'];
+    cv.clear([0, 0, 0, 0]); // Preserve the factory cluster through every empty pixel.
+    frame(cv, 68, false); frame(cv, 450, true);
+    const colors = ['#19ee67', '#19ee67', '#19ee67', '#19ee67', '#19ee67', '#19ee67',
+        '#ffd522', '#ffd522', '#ffd522', '#f32d4c', '#f32d4c', '#f32d4c'];
     const start = Math.max(0, cfg.shiftRpm - Math.min(2000, cfg.shiftRpm * 0.7));
-    const lit = state.shift ? colors.length : Math.floor(clamp((rpm - start) / (cfg.shiftRpm - start), 0, 1) * colors.length);
-    const ledW = 50, gap = 14, left = (W - colors.length * ledW - (colors.length - 1) * gap) / 2;
+    const lit = state.shift ? 12 : Math.floor(clamp((rpm - start) / (cfg.shiftRpm - start), 0, 1) * 12);
+    const span = L.right - L.left - L.slant;
     colors.forEach((color, i) => {
-        if (i >= lit) return; // Unlit LEDs stay completely black, without tint or glow.
-        const x = left + i * (ledW + gap);
-        cv.roundRect(x - 3, 25, ledW + 6, 35, 7, withAlpha(color, 0.11));
-        cv.roundRect(x, 28, ledW, 29, 5, color);
+        const a = L.left + span * i / 12, b = L.left + span * (i + 1) / 12 - 0.5;
+        cv.quad([[a + L.slant, 22], [b + L.slant, 22], [b, 40], [a, 40]], i < lit ? color : '#000000');
     });
-    const rw = cv.text(String(Math.round(rpm / 10) * 10), W / 2, 205, 112,
-        state.shift ? C.red : C.text, { align: 'center', font: 'num' });
-    cv.text('rpm', W / 2 + rw / 2 + 12, 205, 24, state.shift ? C.red : '#a3afc0', { font: 'bold' });
-    const x0 = 60, width = W - 120, y0 = 229, y1 = 290, slant = 20;
     const polygon = (a, b, color) => {
-        const xa = x0 + width * a / cfg.maxRpm, xb = x0 + width * b / cfg.maxRpm;
-        cv.quad([[xa + slant, y0], [xb + slant, y0], [xb, y1], [xa, y1]], color);
+        if (b <= a) return;
+        const xa = L.left + span * a / cfg.maxRpm, xb = L.left + span * b / cfg.maxRpm;
+        cv.quad([[xa + L.slant, L.top], [xb + L.slant, L.top], [xb, L.bottom], [xa, L.bottom]], color);
     };
     polygon(0, cfg.maxRpm, C.track);
     polygon(cfg.redlineRpm, cfg.maxRpm, '#4c1621');
-    const hot = ['#1f5fd0', '#159cff', '#20c9ff', '#c04cdc', '#f12c65'];
-    const top = Math.min(rpm, cfg.maxRpm);
-    for (let r = 0; r < top; r += 500) polygon(r, Math.min(r + 500, top), (state.shift || r >= cfg.redlineRpm) ? C.red : ramp(hot, clamp(r / cfg.shiftRpm, 0, 1)));
+    const top = clamp(rpm, 0, cfg.maxRpm);
+    for (let r = 0; r < top; r += 500) {
+        const end = Math.min(r + 500, top);
+        if (r < cfg.redlineRpm) polygon(r, Math.min(end, cfg.redlineRpm), ramp(['#1455df', '#1dc8f9', '#be4ee2', '#ed3fa7'], r / cfg.maxRpm));
+        if (end > cfg.redlineRpm) polygon(Math.max(r, cfg.redlineRpm), end, C.red);
+    }
     for (let r = 500; r < cfg.maxRpm; r += 500) {
-        const x = x0 + width * r / cfg.maxRpm;
-        cv.quad([[x + slant - 1, y0], [x + slant + 1, y0], [x + 1, y1], [x - 1, y1]], C.bg);
+        const x = L.left + span * r / cfg.maxRpm;
+        cv.line(x + L.slant, L.top, x, L.bottom, 0.7, '#05060a');
     }
     if (top > 0) {
-        const x = x0 + width * top / cfg.maxRpm;
-        cv.line(x + slant, y0 - 3, x, y1 + 3, 5, state.shift ? C.red : '#f4f7fb');
+        const x = L.left + span * top / cfg.maxRpm;
+        cv.line(x + L.slant, L.top - 2, x, L.bottom + 2, 3, C.text);
     }
     for (let r = 0; r <= cfg.maxRpm; r += 500) {
-        const x = x0 + width * r / cfg.maxRpm, major = r % 1000 === 0, color = r >= cfg.redlineRpm ? '#f32d4c' : '#b8c2d1';
-        cv.line(x, y1 + 6, x, y1 + (major ? 18 : 13), major ? 2 : 1, color);
-        if (major) cv.text(String(r / 1000), x, y1 + 41, 24, color, { align: 'center', font: 'bold' });
+        const x = L.left + span * r / cfg.maxRpm, major = r % 1000 === 0;
+        const color = r >= cfg.redlineRpm ? C.red : '#b8c2d1';
+        cv.line(x, L.bottom + 5, x, L.bottom + (major ? 13 : 9), 1, color);
+        if (major) cv.text(String(r / 1000), x, 187, 22, color, { align: 'center', font: 'num' });
     }
-    [[cfg.shiftRpm, '#ffd522'], [cfg.redlineRpm, '#f32d4c']].forEach((mark) => {
-        const x = x0 + width * mark[0] / cfg.maxRpm + slant;
-        cv.line(x, y0 - 12, x, y0 - 4, 4, mark[1]);
-    });
-    const gear = typeof state.gear === 'string' && /^(?:[1-9]|10|P|R|N|D|--)$/.test(state.gear) ? state.gear : '--';
-    cv.text(gear, W / 2, 453, gear.length > 1 ? 118 : 148, C.text, { align: 'center', font: 'gear' });
+    const num = String(Math.round(rpm / 10) * 10), size = 78, suffix = 'RPM';
+    const nw = cv.textWidth(num, size, { font: 'num' }), sw = cv.textWidth(suffix, 22, { font: 'bold', literal: true });
+    const nx = (W - nw - 10 - sw) / 2, tint = state.shift ? C.red : C.text;
+    cv.text(num, nx, 270, size, tint, { font: 'num' });
+    cv.text(suffix, nx + nw + 10, 270, 22, tint, { font: 'bold', literal: true });
+    const gear = typeof state.gear === 'string' && /^(?:[DSM]?(?:[1-9]|10)|P|R|N|D|--)$/.test(state.gear) ? state.gear : '--';
+    cv.text(gear, W / 2, 400, 74, C.text, { align: 'center', font: 'bold' });
+    mini(cv, 285, 'Torque', state.torqueNm, 'Nm', cfg.torqueScale || 500, state.torquePeak);
+    mini(cv, 633, 'Power*', state.powerPS, 'PS', cfg.powerScale || 300, state.powerPeak);
     return cv;
 }
 // Four independent horizontal regions keep updates below the link budget.
 function difference(previous, next) {
     const stride = W * 4, rects = [], parts = [];
-    [0, 94, 282, 392].forEach((top, band) => {
-        const bottom = [94, 282, 392, H][band];
+    [0, 90, 205, 308].forEach((top, band) => {
+        const bottom = [90, 205, 308, H][band];
         let left = W, right = -1, first = H, last = -1;
         for (let y = top; y < bottom; y++) {
             const off = y * stride;
@@ -77,4 +115,4 @@ function difference(previous, next) {
     });
     return { rects: rects, pixels: Buffer.concat(parts) };
 }
-module.exports = { draw, difference, W, H };
+module.exports = { draw, difference, W, H, layout: L };
