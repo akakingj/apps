@@ -15,7 +15,7 @@ If this checkout contains the complete upstream kit (`kit/tools/build.py`), skip
 For the source-overlay checkout, place upstream beside it and run:
 
 ```powershell
-python tools/install-overlay.py ../idrive7-apps
+python tools/install-overlay.py ../idrive7-apps-main
 ```
 
 Then run all commands below **from the merged upstream folder**:
