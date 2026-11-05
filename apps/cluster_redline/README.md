@@ -4,7 +4,6 @@ English | [한국어](README.ko.md)
 
 An ordinary `idrive7-apps` app for the central cluster map area. ID: `cluster_redline`, version **0.4.1**. Auto-starts in the background; remains hidden until confirmed Sport mode and fresh engine RPM are available. Large RPM, bar and shift lights are released on normal mode, engine-off, stale data or renderer disconnect.
 
-**Prototype: no real-vehicle validation.** Read-only vehicle signals; no engine/transmission/coding writes. Only the ID7 `map:1088x480` target is used, not the entire panel or HUD.
 
 ## Engine profiles
 
