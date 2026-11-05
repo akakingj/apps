@@ -9,6 +9,17 @@
 | 아이드라이브 회로 | [회로 퍼즐](apps/idrive_circuit/README.ko.md) | [Circuit](apps/idrive_circuit/README.md) |
 | 계기판 레드라인 | [계기판 레드라인](apps/cluster_redline/README.ko.md) | [Cluster Redline](apps/cluster_redline/README.md) |
 
+## MGU Store에서 바로 설치
+
+이 저장소는 **Repo tree 방식**을 지원합니다.
+차량 Store에서 **Settings → Add source**를 열고
+`jaimeen77-cmyk/idrive7-apps-jam`을 입력한 뒤 **main → Check now**를 선택하세요.
+두 앱을 한국어로 빌드하며, SDK는 차량에 있는 것을 Store가 연결합니다.
+
+[Store 등록·기존 설치판 처리 안내](docs/MGU-STORE.ko.md)를 확인하세요.
+공개 저장소라 이 소스를 읽기 위한 GitHub 토큰은 필요하지 않습니다.
+`store/runtime/*.tgz`는 SDK가 없는 준비용 템플릿이며 일반 PC 설치 키트와 구분됩니다.
+
 ## 한 번 합친 뒤 기존 명령 사용
 
 전체 원본이 포함된 통합 소스를 받았다면 아래 합치기 단계는 생략합니다.

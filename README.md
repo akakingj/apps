@@ -9,6 +9,17 @@ Two ordinary apps for the existing [idrive7-apps](https://github.com/cauliflower
 | iDrive Circuit — parked-only puzzle | [Circuit](apps/idrive_circuit/README.md) | [회로 퍼즐](apps/idrive_circuit/README.ko.md) |
 | Cluster Redline — Sport-only cluster RPM and shift lights | [Cluster Redline](apps/cluster_redline/README.md) | [계기판 레드라인](apps/cluster_redline/README.ko.md) |
 
+## Install through MGU Store
+
+This repository now supports the **Repo tree** layout. In MGU Store, open
+**Settings → Add source**, enter `jaimeen77-cmyk/idrive7-apps-jam`, choose
+**main**, then **Check now**. Both apps build with Korean UI on the head unit.
+No GitHub token or publicly redistributed SDK is needed for this public source.
+
+[Store registration and migration guide](docs/MGU-STORE.ko.md).
+The committed `store/runtime/*.tgz` files are SDK-free runtime/UI templates,
+not the SDK-containing packages produced by an ordinary PC car-kit build.
+
 ## Merge once, then use the normal commands
 
 If this checkout contains the complete upstream kit (`kit/tools/build.py`), skip the merge step.

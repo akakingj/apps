@@ -10,5 +10,8 @@ id_rsa
 *.zip
 __pycache__/
 *.pyc
+.store-test-*/
+# Only these SDK-free, reviewed runtime templates are public artifacts.
+!store/runtime/*.tgz
 
 

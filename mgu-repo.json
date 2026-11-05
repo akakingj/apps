@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "components": [
+    {
+      "id": "idrive_circuit",
+      "kind": "app",
+      "path": "apps/idrive_circuit",
+      "title": "아이드라이브 회로",
+      "description": "한국어 주차 전용 회로 퍼즐 · 30개 레벨",
+      "mguHmi": ["ID7"],
+      "requires": { "mgu-deploy": "0.7.17" },
+      "build": {
+        "node": "tools/store-build.js",
+        "args": ["--template", "idrive_circuit", "--id", "{id}", "--version", "{version}", "--dir", "{dir}"],
+        "network": false,
+        "shared": ["store/runtime", "tools/store-build.js", "localization/ko-additions.tsv"]
+      }
+    },
+    {
+      "id": "cluster_redline",
+      "kind": "app",
+      "path": "apps/cluster_redline",
+      "title": "계기판 레드라인",
+      "description": "한국어 스포츠 모드 계기판 · RPM·변속 알림·단수 · G20 가솔린 눈금 7000 / 적색 구간 6000 rpm",
+      "mguHmi": ["ID7"],
+      "requires": { "mgu-deploy": "0.7.17", "cluster-render": "0.3.10" },
+      "build": {
+        "node": "tools/store-build.js",
+        "args": ["--template", "cluster_redline", "--id", "{id}", "--version", "{version}", "--dir", "{dir}"],
+        "network": false,
+        "shared": ["store/runtime", "tools/store-build.js", "localization/ko-additions.tsv"]
+      }
+    }
+  ]
+}
