@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Auto-start sport-only cluster RPM and shift lights with petrol, diesel and hybrid profiles",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",

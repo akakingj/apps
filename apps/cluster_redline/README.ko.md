@@ -2,7 +2,7 @@
 
 [English](README.md) | 한국어
 
-기존 `idrive7-apps`에 함께 넣어 빌드·설치하는 앱입니다. ID는 `cluster_redline`, 버전은 **0.4.0**입니다.
+기존 `idrive7-apps`에 함께 넣어 빌드·설치하는 앱입니다. ID는 `cluster_redline`, 버전은 **0.4.1**입니다.
 **실차 검증 전 시험판**이며 차량 값은 읽기만 합니다.
 
 ![한글 변속 알림](../../screenshots/cluster_redline/sport-shift.png)
@@ -16,7 +16,7 @@ MGU 시작 시 앱만 백그라운드에서 자동 시작합니다. 계기판 �
 
 | 엔진 프로필 | 변속 알림 | 레드라인 | 눈금 최대 |
 |---|---:|---:|---:|
-| 가솔린 | 6500 rpm | 7000 rpm | 8000 rpm |
+| 가솔린 (G20 330i 기준) | 6500 rpm | 6000 rpm | 7000 rpm |
 | 디젤 | 4200 rpm | 5000 rpm | 6000 rpm |
 | 하이브리드 | 6500 rpm | 7000 rpm | 8000 rpm |
 
@@ -87,3 +87,5 @@ RPM은 `actualValueRPMEngineCrankshaft × 0.25`, 모드는 `actualValueModeDrivi
 
 [지도 우선 표시·버전 오류 확인 안내](../../docs/CLUSTER-REDLINE-0.4.0.ko.md)를 확인하세요.
 순정 지도를 넘겨받으려면 렌더러의 `map_take_over_stock=1` 설정도 필요합니다.
+
+0.4.1의 가솔린 기본값은 사용자 G20 330i 기준으로 눈금 최대 7000 rpm, 적색 구간 시작 6000 rpm입니다. 변속 알림은 별도 설정이며 적색 구간을 강제로 올리지 않습니다. 이전 수동값을 저장한 경우 설정에서 직접 변경하세요. 디젤·하이브리드 기본값은 유지합니다.

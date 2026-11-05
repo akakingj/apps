@@ -3,7 +3,7 @@ const assert = require('assert');
 const { EventEmitter } = require('events');
 const { Policy, PROFILES, settings } = require('../../apps/cluster_redline/policy');
 const { Controller } = require('../../apps/cluster_redline/controller');
-const expected = { petrol: [6500, 7000, 8000], diesel: [4200, 5000, 6000], hybrid: [6500, 7000, 8000] };
+const expected = { petrol: [6500, 6000, 7000], diesel: [4200, 5000, 6000], hybrid: [6500, 7000, 8000] };
 Object.keys(expected).forEach((profile) => {
     const low = settings({ engineProfile: profile, shiftRpm: 2000 });
     assert.strictEqual(low.shiftRpm, 2000, '2000 rpm offered by the UI must not silently become a profile default');
@@ -26,6 +26,10 @@ Object.keys(expected).forEach((profile) => {
 });
 assert.strictEqual(settings({ engineProfile: 'diesel', shiftRpm: 6500 }).shiftRpm, 4200);
 assert.strictEqual(settings({ engineProfile: 'diesel', shiftRpm: 4500 }).shiftRpm, 4500);
+const g20 = settings({ engineProfile: 'petrol', shiftRpm: 6500, redlineRpm: 6000, maxRpm: 7000 });
+assert.strictEqual(g20.redlineRpm, 6000, 'shift alert must not raise the requested red-zone start');
+assert.strictEqual(g20.maxRpm, 7000);
+assert.strictEqual(settings({ engineProfile: 'petrol', shiftRpm: 2000 }).shiftRpm, 2000);
 const hybrid = new Policy(); hybrid.modeSample(1, 0); hybrid.rpmSample(0, 1000);
 assert.strictEqual(hybrid.evaluate(1000, true, { engineProfile: 'hybrid' }).reason, 'hybrid_engine_stopped');
 hybrid.rpmSample(3500, 1200);

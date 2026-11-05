@@ -2,7 +2,7 @@
 
 English | [한국어](README.ko.md)
 
-An ordinary `idrive7-apps` app for the central cluster map area. ID: `cluster_redline`, version **0.4.0**. Auto-starts in the background; remains hidden until confirmed Sport mode and fresh engine RPM are available. Large RPM, bar and shift lights are released on normal mode, engine-off, stale data or renderer disconnect.
+An ordinary `idrive7-apps` app for the central cluster map area. ID: `cluster_redline`, version **0.4.1**. Auto-starts in the background; remains hidden until confirmed Sport mode and fresh engine RPM are available. Large RPM, bar and shift lights are released on normal mode, engine-off, stale data or renderer disconnect.
 
 **Prototype: no real-vehicle validation.** Read-only vehicle signals; no engine/transmission/coding writes. Only the ID7 `map:1088x480` target is used, not the entire panel or HUD.
 
@@ -12,7 +12,7 @@ Select Petrol, Diesel or gasoline-based plug-in Hybrid in settings. Defaults are
 
 | Profile | Shift alert | Redline | Scale |
 |---|---:|---:|---:|
-| Petrol | 6500 | 7000 | 8000 rpm |
+| Petrol (G20 330i preset) | 6500 | 6000 | 7000 rpm |
 | Diesel | 4200 | 5000 | 6000 rpm |
 | Hybrid | 6500 | 7000 | 8000 rpm |
 
@@ -50,3 +50,5 @@ While Sport is active, content uses z=100 and exclusive output inside the map ta
 The 2000 rpm option now applies to petrol and hybrid profiles as well as diesel. The RPM digits turn red at the selected threshold. The cluster face matches the original M Tricolour Redline style, has no app title or shift footer, and displays the real gear below the bar. Missing gear data is shown as `--`; it is not guessed.
 
 The normal car kit includes `cluster-redline-renderer.js`. On the MGU, `node cluster-redline-renderer.js --check` reports installed version and map takeover configuration. `--enable-map` explicitly enables compositor takeover with a backup; `--restore-map` restores that backup. MGU preferences/coding are not written. See [Korean troubleshooting](../../docs/CLUSTER-REDLINE-0.4.0.ko.md).
+
+In 0.4.1 the petrol preset follows the owner's G20 330i: scale maximum 7000 rpm and red zone from 6000 rpm. The shift alert is independent. Saved custom values are retained; adjust them explicitly if needed. Diesel and hybrid presets are unchanged.

@@ -1,7 +1,7 @@
 'use strict';
 // This module never talks to the vehicle or renderer; its inputs must be live.
 const PROFILES = {
-    petrol: { label: 'Petrol', shiftRpm: 6500, redlineRpm: 7000, maxRpm: 8000,
+    petrol: { label: 'Petrol', shiftRpm: 6500, redlineRpm: 6000, maxRpm: 7000,
         ranges: { shiftRpm: [2000, 7500], redlineRpm: [3000, 8500], maxRpm: [4000, 10000] } },
     diesel: { label: 'Diesel', shiftRpm: 4200, redlineRpm: 5000, maxRpm: 6000,
         ranges: { shiftRpm: [2000, 5000], redlineRpm: [3000, 5500], maxRpm: [4000, 7000] } },
@@ -29,7 +29,7 @@ function settings(raw) {
         out[key] = typeof value === 'number' && isFinite(value) && value >= range[0] && value <= range[1] ? value : profile[key];
     });
     if (typeof raw.frameRate === 'number' && isFinite(raw.frameRate) && raw.frameRate >= 2 && raw.frameRate <= 12) out.frameRate = raw.frameRate;
-    out.redlineRpm = Math.max(out.redlineRpm, out.shiftRpm);
+    // Red-zone start and shift alert are independent display settings.
     out.maxRpm = Math.max(out.maxRpm, out.redlineRpm);
     return out;
 }

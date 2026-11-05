@@ -33,7 +33,7 @@ function draw(state) {
     polygon(cfg.redlineRpm, cfg.maxRpm, '#4c1621');
     const hot = ['#1f5fd0', '#159cff', '#20c9ff', '#c04cdc', '#f12c65'];
     const top = Math.min(rpm, cfg.maxRpm);
-    for (let r = 0; r < top; r += 500) polygon(r, Math.min(r + 500, top), state.shift ? C.red : ramp(hot, clamp(r / cfg.shiftRpm, 0, 1)));
+    for (let r = 0; r < top; r += 500) polygon(r, Math.min(r + 500, top), (state.shift || r >= cfg.redlineRpm) ? C.red : ramp(hot, clamp(r / cfg.shiftRpm, 0, 1)));
     for (let r = 500; r < cfg.maxRpm; r += 500) {
         const x = x0 + width * r / cfg.maxRpm;
         cv.quad([[x + slant - 1, y0], [x + slant + 1, y0], [x + 1, y1], [x - 1, y1]], C.bg);

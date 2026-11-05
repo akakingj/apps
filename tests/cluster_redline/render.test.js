@@ -21,6 +21,10 @@ function redPixels(cv) {
     return count;
 }
 assert(redPixels(alert) > 300 && redPixels(ordinary) === 0, '2000 rpm threshold must turn the actual RPM glyph pixels red');
+const redzone = draw({ rpm: 6200, gear: '4', shift: false, config: settings({ engineProfile: 'petrol' }) });
+const redIndex = (260 * W + Math.round(60 + (W - 120) * 6100 / 7000 + 10)) * 4;
+assert.deepStrictEqual(Array.from(redzone.d.slice(redIndex, redIndex + 3)), [255, 42, 42], 'filled G20 red zone must be red from 6000 rpm even before the shift alert');
+assert.strictEqual(redPixels(redzone), 0, 'a 6000 rpm red zone must not force a separate 6500 rpm shift alert');
 const a = Buffer.from(draw({ rpm: 4200, shift: false, config: settings() }).d);
 const b = Buffer.from(draw({ rpm: 6500, shift: true, config: settings() }).d);
 assert.strictEqual(a.length, W * H * 4);

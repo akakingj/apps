@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.1
+
+- Cluster Redline 0.4.1: G20 330i petrol scale maximum 7000 rpm and red zone from 6000 rpm.
+- Keep the shift alert independent of the red-zone start, and color filled red-zone segments red.
+- Preserve saved custom settings and the diesel/hybrid presets.
+
 ## 1.3.0
 
 - Cluster Redline 0.4.0 fixes the ignored 2000 rpm setting for petrol/hybrid profiles.
