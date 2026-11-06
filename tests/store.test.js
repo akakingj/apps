@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const cp = require('child_process');
+const vm = require('vm');
 const { build } = require('../tools/store-build');
 const ROOT = path.resolve(__dirname, '..');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'jam-store-test-'));
@@ -43,6 +44,49 @@ function optionsFor(args) {
     for (let i = 0; i < args.length; i += 2) result[args[i].slice(2)] = args[i + 1];
     return result;
 }
+async function checkSettingsEntry(file, id, version) {
+    // Run the installed package's entry point and real painter, not the source
+    // preview. Stub only the vehicle bridge and background worker.
+    const stage = path.join(temp, id + '-entry'); fs.mkdirSync(stage);
+    cp.execFileSync('tar', ['-xzf', file, '-C', stage]);
+    const js = path.join(stage, 'package/javascript');
+    const spec = JSON.parse(fs.readFileSync(path.join(js, 'kit/app-spec.json')));
+    const { Canvas } = require(path.join(js, 'kit/canvas'));
+    const { t } = require(path.join(js, 'kit/i18n'));
+    const values = { frameRate: 60 }, handlers = {}, listeners = [], labels = [];
+    spec.settings.forEach((s) => { values[s.key] = s.default; });
+    const settings = { schema: spec.settings, get: (k) => values[k],
+        set(k, v) { values[k] = v; listeners.forEach((fn) => fn(k)); },
+        onChange(fn) { listeners.push(fn); } };
+    const original = Canvas.prototype.text;
+    Canvas.prototype.text = function (value) { labels.push(t(value)); return original.apply(this, arguments); };
+    let start, frames = 0;
+    const ctx = {
+        spec, settings, dataDir: stage, log: { error(e) { throw e; } },
+        canvas: (w, h) => new Canvas(w, h),
+        ui: { text: async () => {}, image: async (name) => { assert.strictEqual(name, 'MAIN_GFX'); frames++; },
+            onClick: (name, fn) => { handlers[name] = fn; } },
+        onTap() {}, onTab() {}, onLayout() {}, loop() {},
+    };
+    try {
+        const box = { require(name) {
+            if (name === './kit/mgu') return { run(impl) { start = impl.start(ctx); } };
+            if (name === './worker') return { start() { return { stop() {} }; } };
+            return name[0] === '.' ? require(path.join(js, name)) : require(name);
+        } };
+        vm.runInNewContext(fs.readFileSync(path.join(js, 'app.js'), 'utf8'), box, { filename: 'installed-app.js' });
+        await start;
+        assert(frames > 0, 'installed entry must show the new settings immediately');
+        assert.strictEqual(spec.version, version);
+        for (const text of ['Basic settings', 'Advanced settings', 'App auto start', 'Vehicle preset']) assert(labels.some((label) => label.toLowerCase() === t(text).toLowerCase()), text);
+        assert(labels.includes('v' + version), 'visible version must match the installed package');
+        assert(!handlers.BTN_SETTINGS, 'entry must not show the old status page and Settings button');
+        labels.length = 0; handlers.BTN_ADVANCED();
+        await new Promise((resolve) => setImmediate(resolve));
+        assert(labels.includes(t('Shift alert RPM')), 'installed Advanced tab must be wired');
+        assert(!spec.settings.some((s) => s.key === 'frameRate'), 'saved 60fps must not recreate the old menu');
+    } finally { Canvas.prototype.text = original; }
+}
 (async () => {
     const doc = JSON.parse(fs.readFileSync(path.join(ROOT, 'mgu-repo.json')));
     let sourceParser;
@@ -70,6 +114,7 @@ function optionsFor(args) {
         try { file = build(options); } finally { if (hasFullTemplate) fs.renameSync(heldFile, runtimeFile); }
         const start = options.template === 'cluster_redline' ? 'autostart' : 'manually';
         const originalUuid = checkPackage(file, id, spec.version, start, options.language);
+        if (options.template === 'cluster_redline') await checkSettingsEntry(file, id, spec.version);
         assert(!identities.has(originalUuid), 'language variants need separate RHMI identities'); identities.add(originalUuid);
         assert(read(file, 'package/javascript/app.js').equals(fs.readFileSync(path.join(ROOT, source, 'main.js'))));
         const runtime = options.template + (options.language === 'en' ? '.en' : '');
@@ -132,7 +177,7 @@ function optionsFor(args) {
             checkPackage(renamedFile, id + '3', spec.version, start, options.language);
         }
     }
-    console.log('PASS: four English/Korean Store listings and SDK-free builds, current shared source, distinct language identities, real Store collision-id builds, autostart and stale-UI rejection');
+    console.log('PASS: four English/Korean Store listings and SDK-free builds, actual packaged settings entry and version, distinct language identities, real Store collision-id builds, autostart and stale-UI rejection');
 })().catch((e) => { console.error(e); process.exitCode = 1; }).then(() => {
     fs.rmSync(temp, { recursive: true, force: true }); fs.rmSync(sourceCopy, { recursive: true, force: true });
 });

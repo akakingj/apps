@@ -2,14 +2,14 @@
 
 한국어: [README.ko.md](README.ko.md)
 
-A background MGU app for cluster RPM and shift lights. Version **0.8.3** replaces the status-only page with **Basic settings / Advanced settings** tabs beside the app title.
+A background MGU app for cluster RPM and shift lights. Version **0.8.4** opens directly to **Basic settings / Advanced settings** and shows its running version in the header.
 
 For stock-map takeover, choose **Advanced settings > Display layer > Map area (legacy)**
 and set **Instrument cluster > Central display area > Map view or Off**.
 Install **Cluster renderer (cluster-render)** from MGU Store first; the orange text says so.
 Front-center retains its Off recommendation. The orange instruction follows the selected layer; the app does not change the BMW menu.
 
-0.8.3 defers initial image visibility until queued pixels have been written to the socket,
+Since 0.8.2, initial image visibility is deferred until queued pixels have been written to the socket,
 following the phone-map app's show-when-sent ordering. This is not an acknowledgement that
 the cluster has displayed the frame; native DCSM acquisition races remain unverified on the car.
 
@@ -52,3 +52,5 @@ Map takeover can race BMW's own scene. Front-center visibility above every stock
 The refresh-rate selector is removed. Old saved rates cannot override the fixed 20fps request ceiling. Actual throughput depends on the car; 20fps is not a stated hardware limit.
 
 [0.8.3 update guide](../../docs/CLUSTER-REDLINE-0.8.3.ko.md)
+
+[0.8.4: 실행 버전 확인 / Verify the running version](../../docs/CLUSTER-REDLINE-0.8.4.ko.md)

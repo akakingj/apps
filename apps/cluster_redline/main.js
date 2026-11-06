@@ -22,7 +22,7 @@ mgu.run({ async start(ctx) {
         if (old.renderer === 'software') ctx.settings.set('renderer', 'auto');
     } catch (e) {}
     let background = null, drawing = false, again = false;
-    const page = new SettingsPage(ctx.settings, () => render().catch(report));
+    const page = new SettingsPage(ctx.settings, () => render().catch(report), ctx.spec.version);
     function report(e) { ctx.log.error('settings', e.message || e); }
     function syncWorker() {
         if (ctx.settings.get('appEnabled') === true && !background) background = worker.start(ctx);

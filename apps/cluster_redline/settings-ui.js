@@ -19,7 +19,7 @@ function options(item, cfg) {
         .map((v) => [v, v === 0 ? 'Preset default' : String(v) + ' ' + (item.unit || '')]);
 }
 class SettingsPage {
-    constructor(settings, changed) { this.settings = settings; this.changed = changed || (() => {}); this.tab = 0; this.focus = 0; this.open = null; this.choice = 0; }
+    constructor(settings, changed, version) { this.settings = settings; this.changed = changed || (() => {}); this.version = version; this.tab = 0; this.focus = 0; this.open = null; this.choice = 0; }
     config() {
         const raw = {}; this.settings.schema.forEach((s) => { raw[s.key] = this.settings.get(s.key); });
         return effective(raw);
@@ -63,9 +63,10 @@ class SettingsPage {
         // Use the same kit header as Live Data. Full-screen renderers place the
         // title/tabs in the real HMI strip; software draws them together here.
         const offset = cv.chrome ? 0 : 66;
-        if (cv.chrome) G.frame(cv, theme, TABS, this.tab, []);
+        const badges = this.version ? [{ text: 'v' + this.version, color: '#8d97a4' }] : [];
+        if (cv.chrome) G.frame(cv, theme, TABS, this.tab, badges);
         else {
-            G.header(cv, theme, 0, 0, W, 62, 'Cluster Redline', TABS, this.tab, [], true, false);
+            G.header(cv, theme, 0, 0, W, 62, 'Cluster Redline', TABS, this.tab, badges, true, false);
             (cv.tabRects || []).forEach((r) => targets.push(Object.assign({}, r, { act: () => this.selectTab(r.i) })));
         }
         ['#39bffa', '#1757ad', '#f32d45'].forEach((color, i) => cv.fillRect(64 + i * 23, offset + 18, 21, 4, color));

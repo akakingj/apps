@@ -40,7 +40,7 @@
       "kind": "app",
       "path": "apps/cluster_redline",
       "title": "계기판 레드라인 (한국어)",
-      "description": "한국어 스포츠 계기판 · 필요한 렌더러 자동 선행 설치 · 20fps 요청 상한 고정",
+      "description": "한국어 스포츠 계기판 · 기본/상세 설정 탭 · 실행 버전 표시 · 렌더러 선행 설치",
       "mguHmi": [
         "ID7"
       ],
@@ -112,7 +112,7 @@
       "kind": "app",
       "path": "store/apps/cluster_redline_en",
       "title": "Cluster Redline (English)",
-      "description": "Sport cluster · installs required renderer first · fixed 20fps request limit",
+      "description": "Sport cluster · Basic/Advanced settings · visible running version · renderer installed first",
       "mguHmi": [
         "ID7"
       ],

@@ -10,7 +10,7 @@ const spec = JSON.parse(fs.readFileSync(path.join(js, 'kit/app-spec.json'), 'utf
 const values = {};
 spec.settings.forEach((s) => { values[s.key] = s.default; });
 const saved = { schema: spec.settings, get: (k) => values[k], set: (k, v) => { values[k] = v; } };
-const page = new SettingsPage(saved);
+const page = new SettingsPage(saved, null, spec.version);
 fs.mkdirSync(out, { recursive: true });
 function save(name) { fs.writeFileSync(path.join(out, name + '.png'), page.draw(new Canvas(1600, 520)).png()); }
 page.selectTab(0); save('settings-basic');

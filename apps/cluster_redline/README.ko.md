@@ -3,7 +3,7 @@
 English: [README.md](README.md)
 
 MGU에서 백그라운드로 동작하는 계기판 RPM·변속 알림 앱입니다.
-**0.8.3**은 앱 제목 옆 기본설정 / 상세설정 탭을 제공합니다.
+**0.8.4**는 앱을 열면 기본설정 / 상세설정 탭을 바로 표시하고, 상단에 실행 버전을 표시합니다.
 
 ![기본설정](../../screenshots/cluster_redline/settings-basic.png)
 ![상세설정](../../screenshots/cluster_redline/settings-advanced.png)
@@ -55,3 +55,5 @@ python kit/tools/build.py --language ko cluster_redline
 실제 20fps 지속 출력과 S/M 신호 수신 여부는 차량·펌웨어에 따라 확인해야 합니다.
 
 0.8.2부터 첫 픽셀 프레임을 소켓에 쓴 뒤 표시를 켭니다. 초기 슬롯 선점 경쟁의 해결은 실차 검증 전입니다.
+
+[0.8.4: 실행 버전 확인 / Verify the running version](../../docs/CLUSTER-REDLINE-0.8.4.ko.md)
