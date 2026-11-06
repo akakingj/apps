@@ -4,10 +4,11 @@ English | [한국어](README.ko.md)
 
 Two ordinary apps for the existing [idrive7-apps](https://github.com/cauliflowermossgrape/idrive7-apps) build and deployment workflow.
 
-Cluster Redline 0.8.1 adds Basic/Advanced settings tabs, four vehicle presets,
+Cluster Redline 0.8.2 adds Basic/Advanced settings tabs, four vehicle presets,
 Sport/all-mode display and actual power/torque unit conversion. An orange instruction
-asks for Central display area Off. Rendering above every stock map/Assist view remains
-unverified. [Update instructions](docs/CLUSTER-REDLINE-0.8.0.ko.md).
+allows Map view/Off for the map target, with deferred first-image visibility.
+Rendering above every stock map/Assist view remains
+unverified. [Update instructions](docs/CLUSTER-REDLINE-0.8.2.ko.md).
 
 | App | English guide | 한국어 설명서 |
 |---|---|---|

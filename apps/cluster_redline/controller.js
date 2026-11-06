@@ -87,7 +87,11 @@ class Controller {
         if (!this.previous) {
             this.upload.allow(pixels.length, now, true);
             this.client.pixels(this.ref, null, pixels);
-            this.client.set(this.ref, { visible: true });
+            // The production client waits if pixels are still queued behind
+            // socket backpressure. Simple synchronous test/legacy clients can
+            // keep the original frame -> visible calls.
+            if (typeof this.client.showWhenSent === 'function') this.client.showWhenSent(this.ref);
+            else this.client.set(this.ref, { visible: true });
         } else {
             const delta = this.painter.difference(this.previous, pixels);
             if (delta.rects.length && !this.upload.allow(delta.pixels.length, now, false)) return Object.assign(d, { requested: true, layerState: this.layerState });

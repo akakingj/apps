@@ -1,8 +1,10 @@
 # Sources and licenses
 
 - `apps/cluster_redline/cluster_render_client.js`: Robert Nisipeanu, MPL-2.0,
-  unmodified from `robertnisipeanu/idrive-apps`, source blob
+  based on `robertnisipeanu/idrive-apps`, source blob
   `edfa4773d04f667e4179cf2f92a591ca9457fd4e`. License: `LICENSES/MPL-2.0.txt`.
+  Locally modified to defer an image's initial visibility until queued pixels
+  have been written to the socket, and cancel that visibility when hidden/dropped.
 - Build/runtime dependency: `cauliflowermossgrape/idrive7-apps`, MIT.
   The original runtime license is retained in `LICENSE` and the built app.
 - Korean font: Noto Sans CJK KR, OFL-1.1, supplied by the Korean-enabled kit.

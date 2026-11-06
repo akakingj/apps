@@ -2,10 +2,15 @@
 
 한국어: [README.ko.md](README.ko.md)
 
-A background MGU app for cluster RPM and shift lights. Version **0.8.1** replaces the status-only page with **Basic settings / Advanced settings** tabs beside the app title.
+A background MGU app for cluster RPM and shift lights. Version **0.8.2** replaces the status-only page with **Basic settings / Advanced settings** tabs beside the app title.
 
-Set **Instrument cluster > Central display area > Off** for correct operation.
-An orange instruction appears immediately below App auto start. This does not change the BMW menu automatically.
+For stock-map takeover, choose **Advanced settings > Display layer > Map area (legacy)**
+and set **Instrument cluster > Central display area > Map view or Off**.
+Front-center retains its Off recommendation. The orange instruction follows the selected layer; the app does not change the BMW menu.
+
+0.8.2 defers initial image visibility until queued pixels have been written to the socket,
+following the phone-map app's show-when-sent ordering. This is not an acknowledgement that
+the cluster has displayed the frame; native DCSM acquisition races remain unverified on the car.
 
 Basic settings: App auto start; vehicle preset (Petrol, Diesel, eDrive PHEV, M); display mode (Sport modes only, All drive modes); power unit (PS/kW); torque unit (Nm/kgf·m).
 

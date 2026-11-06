@@ -38,4 +38,5 @@ tail -n 160 /var/opt/cluster-render/log/cluster-render.log
 
 새로운 슬롯·content class 조합이나 native compositor 경로가 실제로 지원되는지 확인되기 전에는
 자동 복구를 약속하거나 임의의 슬롯/경고 콘텐츠를 해제하지 않습니다.
-현재 동작에 필요한 수동 설정은 중심 표시 영역 Off이며, 앱 설정에 주황색으로 안내합니다.
+0.8.2의 지도 영역 모드는 중심 표시 영역 Map view/Off를 안내합니다. 전면 중앙은 Off 안내를 유지합니다.
+첫 프레임 전송 순서 보완과 범위는 [0.8.2 안내](CLUSTER-REDLINE-0.8.2.ko.md)를 참고하세요.

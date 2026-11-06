@@ -9,6 +9,7 @@ const GROUPS = [
     ['shiftRpm', 'frameRate', 'displayTarget', 'widgetScale'],
 ];
 const WARNING = 'Set Instrument cluster > Central display area to Off for correct operation.';
+const MAP_WARNING = 'Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
 function options(item, cfg) {
     if (item.type === 'bool') return [[false, 'Off'], [true, 'On']];
     if (item.type === 'choice') return item.options;
@@ -83,7 +84,7 @@ class SettingsPage {
                 cv.text(item.label, 100, y + 34, 25, '#f1f4fa');
                 cv.text(this.value(item, cfg), 1482, y + 34, 25, '#c1cddd', { align: 'right' });
                 if (item.type !== 'bool') cv.polyline([[1518, y + 20], [1526, y + 28], [1518, y + 36]], 2, '#909cac');
-                if (key === 'appEnabled') cv.text(WARNING, 100, y + 65, 21, '#ff9e36');
+                if (key === 'appEnabled') cv.text(cfg.displayTarget === 'map' ? MAP_WARNING : WARNING, 100, y + 65, 21, '#ff9e36');
                 cv.line(84, y + h - 1, 1536, y + h - 1, 0.6, '#292d34');
                 targets.push({ x: 78, y, w: 1460, h: h - 1, act: () => this.activate(i) });
                 y += h;
@@ -119,4 +120,4 @@ class SettingsPage {
         targets.push({ x: 1300, y: 460, w: 250, h: 48, act: () => { this.open = null; this.changed(); } });
     }
 }
-module.exports = { SettingsPage, GROUPS, TABS, WARNING, options, W, H };
+module.exports = { SettingsPage, GROUPS, TABS, WARNING, MAP_WARNING, options, W, H };

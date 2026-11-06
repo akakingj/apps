@@ -2,7 +2,7 @@
 const assert = require('assert'), fs = require('fs'), path = require('path');
 const stage = path.resolve(process.argv[2]);
 const dir = path.join(stage, 'source/javascript');
-const { SettingsPage, WARNING, options } = require(path.join(dir, 'settings-ui'));
+const { SettingsPage, WARNING, MAP_WARNING, options } = require(path.join(dir, 'settings-ui'));
 const { Canvas } = require(path.join(dir, 'kit/canvas'));
 const { t } = require(path.join(dir, 'kit/i18n'));
 const spec = JSON.parse(fs.readFileSync(path.join(dir, 'kit/app-spec.json')));
@@ -16,6 +16,13 @@ Canvas.prototype.text=original;
 assert(labels.some(l=>l.value===t(WARNING)&&l.color==='#ff9e36'));
 assert(labels.find(l=>l.value===t(WARNING)).y > labels.find(l=>l.value===t('App auto start')).y);
 assert.strictEqual(cv.targets.length,7);
+const mapLabels = [];
+saved.set('displayTarget', 'map');
+Canvas.prototype.text = function(value) { mapLabels.push(t(value)); return original.apply(this, arguments); };
+page.draw(new Canvas(1600,520));
+Canvas.prototype.text = original;
+assert(mapLabels.includes(t(MAP_WARNING)), 'map takeover must allow Map view or Off in its instruction');
+saved.set('displayTarget', 'panel');
 assert.strictEqual(new Set(cv.targets.map(r=>r.key)).size,7);
 for(const r of cv.targets){assert.strictEqual(typeof r.run,'function');assert(r.y>=0&&r.y+r.h<=520)}
 const full = new Canvas(1600,520); full.chrome = {};

@@ -1,5 +1,12 @@
 # Changelog
 
+## Cluster Redline 0.8.2
+
+- Defer initial image visibility until queued pixels reach the ordered socket; cancel late visibility on hide/drop.
+- Keep map acquisition requests alive while parked; test backpressure, delayed acquisition and cancellation.
+- Tell map-target users to select Map view or Off; preserve front-center guidance.
+- Include a read-only Windows SSH log collector. Native DCSM retry timing and Assist priority remain unchanged.
+
 ## Cluster Redline 0.8.1
 
 - Match the Live Data header: title and Basic/Advanced tabs in one strip.

@@ -263,6 +263,27 @@ class ClusterRender extends EventEmitter {
             this.pendingFrames.delete(ref);
             if (!this.sock.write(m)) this.blocked = true;
         }
+        this._showSentImages();
+    }
+
+    /* Local extension, following MapFeed::show_when_sent: preserve frame ->
+     * visible ordering even if a prior socket write postponed the pixels.
+     * "Sent" means written to the ordered socket, not displayed by the KOMBI. */
+    _showSentImages() {
+        if (!this.sock || !this.connected || !this.ready) return;
+        this.layers.forEach((l, ref) => {
+            if (l.kind !== 'image' || !l.showDue || !l.have || l.whole || l.dirty.length) return;
+            l.showDue = false;
+            this.set(ref, { visible: true });
+        });
+    }
+
+    showWhenSent(ref) {
+        const l = this.layers.get(ref);
+        if (!l || l.kind !== 'image') return false;
+        l.showDue = true;
+        this._showSentImages();
+        return true;
     }
 
     _layerMsg(ref, l) {
@@ -348,6 +369,7 @@ class ClusterRender extends EventEmitter {
     set(ref, opts) {
         const l = this.layers.get(ref);
         if (!l || l.kind === 'asset') return;
+        if (opts.visible !== undefined) l.showDue = false;
         const keys = l.kind === 'mesh' ? SET_KEYS.concat(MESH_KEYS) : SET_KEYS;
         keys.forEach((k) => { if (opts[k] !== undefined) l.opts[k] = opts[k]; });
         const m = { op: 'set', ref: ref };
