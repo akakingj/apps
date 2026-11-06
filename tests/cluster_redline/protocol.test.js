@@ -44,14 +44,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         const layer = commands[1]; assert.strictEqual(layer.target, 'panel'); assert.strictEqual(layer.visible, 0);
         assert.strictEqual(layer.guide_hold, 0); assert.strictEqual(layer.prewarm, 0);
         assert.strictEqual(layer.contend, 0); assert.strictEqual(layer.exclusive, 1); assert.strictEqual(layer.z, 100);
+        assert.strictEqual(layer.fps, 20);
         assert.strictEqual(layer.x, 958.5); assert.strictEqual(layer.y, 358.5); // centered 3x3 display of 4x4 fixture
         assert.strictEqual(commands[2].type, 0x46); assert.strictEqual(commands[2].bytes, 14 + 64);
         assert.strictEqual(commands[3].visible, 1);
         for (const rate of [30, 60]) {
             const from = commands.length;
             controller.tick(1000, { frameRate: rate }); await sleep(30);
-            assert.deepStrictEqual(commands.slice(from).map((c) => c.op), ['drop', 'layer', 'frame', 'set']);
-            assert.strictEqual(commands[from + 1].fps, rate);
+            assert.deepStrictEqual(commands.slice(from).map((c) => c.op), [], 'saved rate cannot override 20fps or recreate a layer');
         }
         const beforeHide = commands.length;
         controller.policy.modeSample(4, 1100); controller.tick(1100); await sleep(20);

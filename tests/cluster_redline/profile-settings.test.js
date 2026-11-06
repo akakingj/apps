@@ -7,7 +7,7 @@ if (!process.argv[2]) throw new Error('Pass the original idrive7-apps project pa
 const { headUnit } = require(path.join(project, 'kit/tools/hu-stub'));
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cluster-profile-'));
 // Saved shift threshold survives; retired scales/prefixes must no longer override presets.
-fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ shiftRpm: 6200, redlineRpm: 6800, maxRpm: 8000, gearPrefix: 'S', torqueScale: 1500, autoSport: false }));
+fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ shiftRpm: 6200, redlineRpm: 6800, maxRpm: 8000, gearPrefix: 'S', torqueScale: 1500, autoSport: false, frameRate: 60 }));
 let frames = 0;
 const hu = headUnit(stage, { dataDir: dir, image: async () => { frames++; }, log: { info() {}, warn() {}, error() {} } });
 function effective() {
@@ -22,6 +22,7 @@ function effective() {
         hu.settings.set('appEnabled', true); assert.strictEqual(process.listenerCount('exit'), listeners + 1);
         hu.settings.set('appEnabled', false); assert.strictEqual(process.listenerCount('exit'), listeners, 'OFF must stop its worker and remove the shutdown listener');
         assert.strictEqual(effective().shiftRpm, 6200);
+        assert.strictEqual(effective().frameRate, 20, 'saved 60fps must not override the fixed ceiling');
         assert.strictEqual(effective().redlineRpm, 6000); assert.strictEqual(effective().maxRpm, 7000);
         assert.strictEqual(effective().gearPrefix, undefined); assert.strictEqual(effective().torqueScale, 500);
         assert.strictEqual(effective().displayTarget, 'panel'); assert.strictEqual(effective().widgetScale, 80);
@@ -32,14 +33,12 @@ function effective() {
         hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().powerUnit, 'kW');
         hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().torqueUnit, 'kgfm');
         hu.handlers.BTN_ADVANCED(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().shiftRpm, 2000);
-        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().frameRate, 30);
-        hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().frameRate, 60);
         hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().displayTarget, 'map');
         hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_DOWN(); assert.strictEqual(effective().widgetScale, 75);
         const saved = JSON.parse(fs.readFileSync(path.join(dir, 'settings.json')));
-        for (const key of ['appEnabled', 'engineProfile', 'displayMode', 'powerUnit', 'torqueUnit', 'shiftRpm', 'frameRate', 'displayTarget', 'widgetScale']) assert.strictEqual(saved[key], hu.settings.get(key), 'persisted setting '+key);
-        assert(!hu.spec.settings.some(s => ['gearPrefix','redlineRpm','maxRpm','torqueScale','powerScale','autoSport'].includes(s.key)));
-        console.log('PASS: actual bilingual-ready entry/UI, legacy OFF and shift migration, preset reset, both tabs, all nine native bar controls and persistence');
+        for (const key of ['appEnabled', 'engineProfile', 'displayMode', 'powerUnit', 'torqueUnit', 'shiftRpm', 'displayTarget', 'widgetScale']) assert.strictEqual(saved[key], hu.settings.get(key), 'persisted setting '+key);
+        assert(!hu.spec.settings.some(s => ['gearPrefix','redlineRpm','maxRpm','torqueScale','powerScale','autoSport','frameRate'].includes(s.key)));
+        console.log('PASS: actual bilingual-ready entry/UI, legacy OFF and fixed 20fps migration, preset reset, both tabs, all eight controls and persistence');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
     process.exit(0);
 })().catch((e) => { console.error(e); fs.rmSync(dir, { recursive: true, force: true }); process.exit(1); });

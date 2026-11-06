@@ -2,7 +2,7 @@
 const assert = require('assert'), fs = require('fs'), path = require('path');
 const stage = path.resolve(process.argv[2]);
 const dir = path.join(stage, 'source/javascript');
-const { SettingsPage, WARNING, MAP_WARNING, options } = require(path.join(dir, 'settings-ui'));
+const { SettingsPage, WARNING, MAP_WARNING, RENDERER_NOTICE, options } = require(path.join(dir, 'settings-ui'));
 const { Canvas } = require(path.join(dir, 'kit/canvas'));
 const { t } = require(path.join(dir, 'kit/i18n'));
 const spec = JSON.parse(fs.readFileSync(path.join(dir, 'kit/app-spec.json')));
@@ -14,6 +14,8 @@ Canvas.prototype.text=function(value,x,y,size,color){labels.push({value:t(value)
 const cv=page.draw(new Canvas(1600,520));
 Canvas.prototype.text=original;
 assert(labels.some(l=>l.value===t(WARNING)&&l.color==='#ff9e36'));
+assert(labels.some(l=>l.value===t(RENDERER_NOTICE)&&l.color==='#ff9e36'));
+assert(labels.find(l=>l.value===t(RENDERER_NOTICE)).y < labels.find(l=>l.value===t(WARNING)).y);
 assert(labels.find(l=>l.value===t(WARNING)).y > labels.find(l=>l.value===t('App auto start')).y);
 assert.strictEqual(cv.targets.length,7);
 const mapLabels = [];

@@ -1,5 +1,12 @@
 # Changelog
 
+## Cluster Redline 0.8.3
+
+- Add orange Cluster renderer installation guidance in English and Korean.
+- Fix the requested refresh ceiling at 20fps and remove its settings selector.
+- Ignore saved legacy frame rates and retain other settings and acquisition behavior.
+- Update screen layout and both SDK-free Store language templates. Actual sustained frame rate remains car-dependent.
+
 ## Cluster Redline 0.8.2
 
 - Defer initial image visibility until queued pixels reach the ordered socket; cancel late visibility on hide/drop.

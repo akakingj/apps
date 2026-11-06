@@ -29,14 +29,14 @@ assert.strictEqual(paints, before, 'unchanged live values do not need full canva
 client.emit('target', 'map', 'parked', 'stock', 'old map state');
 client.emit('target', 'panel', 'shown', 'us', '');
 assert.strictEqual(c.tick(1030).targetState, 'shown', 'status follows the selected target');
-for (const rate of [12, 30, 60]) {
-    assert.strictEqual(settings({ frameRate: rate }).frameRate, rate);
-    const count = paints;
+for (const rate of [4, 12, 20, 30, 60]) {
+    assert.strictEqual(settings({ frameRate: rate }).frameRate, 20);
+    const count = client.made.length;
     c.tick(1040, { frameRate: rate });
-    assert.strictEqual(client.made[client.made.length - 1].fps, rate);
-    if (rate !== 12) assert(paints > count, 'new layers must receive a complete image even when values did not change');
+    assert.strictEqual(client.made[client.made.length - 1].fps, 20);
+    assert.strictEqual(client.made.length, count, 'retired frame-rate settings cannot churn the acquisition layer');
 }
-for (const bad of [0, 61, Infinity, NaN, '60', 30.5]) assert.strictEqual(settings({ frameRate: bad }).frameRate, 12);
+for (const bad of [0, 61, Infinity, NaN, '60', 30.5]) assert.strictEqual(settings({ frameRate: bad }).frameRate, 20);
 c.tick(1100, { displayTarget: 'map', frameRate: 30 });
 const map = client.made[client.made.length - 1];
 assert.deepStrictEqual([map.target, map.x, map.y, map.klass, map.exclusive, map.contend], ['map', 109, 48, 'content', true, true]);
@@ -59,7 +59,7 @@ for (const targets of ['map:1088x480,hud:800x480', 'panel:2240x896', '']) {
     assert.strictEqual(missing.made.length, 0, 'missing panel never silently falls back to map, HUD or a guessed size');
 }
 const spec = JSON.parse(fs.readFileSync(path.join(__dirname, '../../apps/cluster_redline/app.json')));
-assert.deepStrictEqual(spec.settings.find((s) => s.key === 'frameRate').steps.slice(-3), [12, 30, 60]);
+assert(!spec.settings.some((s) => s.key === 'frameRate'));
 assert.strictEqual(spec.settings.find((s) => s.key === 'displayTarget').default, 'panel');
 assert.strictEqual(spec.settings.find((s) => s.key === 'widgetScale').default, 80);
-console.log('PASS: front-center placement, atomic image, no stock takeover/HUD fallback, legacy switch, 12/30/60 requests, cache and stale-signal release');
+console.log('PASS: front-center placement, atomic image, no stock takeover/HUD fallback, fixed 20fps despite legacy choices, cache and stale-signal release');

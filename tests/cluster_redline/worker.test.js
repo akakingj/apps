@@ -11,7 +11,7 @@ const source = fs.readFileSync(path.join(__dirname, '../../apps/cluster_redline/
 async function scenario(live, version, backend, withProgram, stopEarly) {
     withProgram = withProgram !== false;
     backend = backend || 'id7';
-    let time = 0, timer, client, watches = 0, shutdowns = 0;
+    let time = 0, timer, delay, client, watches = 0, shutdowns = 0;
     const files = {}, feeds = {}, subscriptions = {}, config = settings(), app = new EventEmitter();
     const calls = [];
     class FakeClient extends EventEmitter {
@@ -40,7 +40,7 @@ async function scenario(live, version, backend, withProgram, stopEarly) {
         if (name === './gear') return require('../../apps/cluster_redline/gear');
         throw new Error('Unexpected dependency ' + name);
     }, process: { hrtime: () => [Math.floor(time / 1000), Math.floor((time % 1000) * 1000000)], once() {}, removeListener() {} },
-    setTimeout: (fn) => { timer = fn; return 1; }, clearTimeout: () => { timer = null; }, console };
+    setTimeout: (fn, ms) => { timer = fn; delay = ms; return 1; }, clearTimeout: () => { timer = null; }, console };
     vm.runInNewContext(source, box, { filename: 'worker.js' });
     const worker = box.module.exports.start({
         dataDir: '/data', app: app,
@@ -61,6 +61,7 @@ async function scenario(live, version, backend, withProgram, stopEarly) {
     }
     await Promise.resolve();
     const status = () => JSON.parse(files[path.join('/data', 'cluster-redline-status.json')]);
+    assert.strictEqual(delay, 50, 'background loop must request a fixed 20fps period');
     const tick = (at) => { time = at; assert(timer); const fn = timer; timer = null; fn(); };
     assert.strictEqual(status().requested, false);
     if (!live) {
@@ -83,7 +84,8 @@ async function scenario(live, version, backend, withProgram, stopEarly) {
             assert.strictEqual(status().config.shiftRpm, 2000); assert.strictEqual(status().shift, true); assert.strictEqual(status().gear, 'D4');
             feeds['de.bmw.infotainment.drivingexcitement.FES'].statusActualValueTorque2({ actualValueTorqueCrankshaft: 2807 });
             if (withProgram) feeds['de.bmw.infotainment.misc.MDrive'].dataDisplayGearbox({ displayProgramGearbox: 1 });
-            config.shiftRpm = 3000; tick(2000);
+            config.shiftRpm = 3000; config.frameRate = 60; tick(2000);
+            assert.strictEqual(status().config.frameRate, 20); assert.strictEqual(delay, 50);
             assert.strictEqual(status().shift, false); assert.strictEqual(status().gear, withProgram ? 'S4' : 'D4', 'received programme and change-only gear are preserved');
             assert.strictEqual(status().torqueNm, 380); assert(status().powerPS > 100);
             assert.deepStrictEqual(calls.filter((c) => Array.isArray(c)).map((c) => c[1].target), ['panel']);

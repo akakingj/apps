@@ -30,7 +30,7 @@ function checkPackage(file, id, version, start, language) {
         assert.strictEqual(spec.settings.find((s) => s.key === 'widgetScale').default, 80);
         assert(!spec.settings.some((s) => ['gearPrefix', 'redlineRpm', 'maxRpm', 'torqueScale', 'powerScale'].includes(s.key)));
         assert.strictEqual(spec.settings.find((s) => s.key === 'appEnabled').default, true);
-        assert.deepStrictEqual(spec.settings.find((s) => s.key === 'frameRate').steps.slice(-3), [12, 30, 60]);
+        assert(!spec.settings.some((s) => s.key === 'frameRate'));
     }
     const app = json(file, 'rhmiData/application.json').application;
     assert.strictEqual(app.name, id); assert.strictEqual(app.version, version);

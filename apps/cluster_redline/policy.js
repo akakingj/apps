@@ -15,7 +15,8 @@ const PROFILES = {
         ranges: { shiftRpm: [2000, 7500], redlineRpm: [3000, 8500], maxRpm: [4000, 10000] } },
 };
 // Zero RPM settings mean the selected profile's defaults, rather than engine-off.
-const DEFAULTS = { appEnabled: true, engineProfile: 'petrol', displayMode: 'sport', powerUnit: 'PS', torqueUnit: 'Nm', shiftRpm: 0, frameRate: 12, displayTarget: 'panel', widgetScale: 80 };
+const FRAME_RATE = 20;
+const DEFAULTS = { appEnabled: true, engineProfile: 'petrol', displayMode: 'sport', powerUnit: 'PS', torqueUnit: 'Nm', shiftRpm: 0, frameRate: FRAME_RATE, displayTarget: 'panel', widgetScale: 80 };
 const MODES = { 1: 'SPORT', 2: 'SPORT_PLUS', 3: 'SPORT_INDIVIDUAL', 4: 'COMFORT', 5: 'COMFORT_PLUS',
     6: 'COMFORT_INDIVIDUAL', 7: 'ECO_PRO', 8: 'ECO_PRO_PLUS', 9: 'ECO_PRO_INDIVIDUAL', 10: 'ADAPTIVE',
     SPORT_DYNAMIC: 'SPORT', SPORT_EXPERT: 'SPORT_PLUS', SPORT_INDIVIDUAL: 'SPORT_INDIVIDUAL',
@@ -40,7 +41,7 @@ function settings(raw) {
         out[key] = typeof value === 'number' && isFinite(value) && value >= range[0] && value <= range[1] ? value : profile[key];
     });
     ['redlineRpm', 'maxRpm', 'torqueScale', 'powerScale'].forEach((key) => { out[key] = profile[key]; });
-    if (typeof raw.frameRate === 'number' && isFinite(raw.frameRate) && Math.floor(raw.frameRate) === raw.frameRate && raw.frameRate >= 2 && raw.frameRate <= 60) out.frameRate = raw.frameRate;
+    // Fixed request ceiling. Retired saved 12/30/60 fps choices never override it.
     if (Object.prototype.hasOwnProperty.call(raw, 'displayTarget')) out.displayTarget = ['map', 'panel'].indexOf(raw.displayTarget) >= 0 ? raw.displayTarget : 'unknown';
     if ([60, 65, 70, 75, 80, 85, 90, 100].indexOf(raw.widgetScale) >= 0) out.widgetScale = raw.widgetScale;
     // Red-zone start and shift alert are independent display settings.
@@ -79,4 +80,4 @@ class Policy {
             shift: show && this.rpm >= cfg.shiftRpm, config: cfg };
     }
 }
-module.exports = { Policy, DEFAULTS, PROFILES, settings, modeOf, SPORT };
+module.exports = { Policy, DEFAULTS, FRAME_RATE, PROFILES, settings, modeOf, SPORT };

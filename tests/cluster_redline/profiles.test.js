@@ -56,6 +56,6 @@ c.policy.modeSample(1, 1200); c.policy.rpmSample(4200, 2200);
 const diesel = c.tick(2200, { engineProfile: 'diesel' });
 assert.strictEqual(diesel.show, true); assert.strictEqual(diesel.shift, true); assert.strictEqual(diesel.config.maxRpm, 6000);
 c.tick(2300, { engineProfile: 'diesel', frameRate: 4 });
-assert.strictEqual(client.made[client.made.length - 1].fps, 4, 'frame-rate changes must reach the renderer');
+assert.strictEqual(client.made[client.made.length - 1].fps, 20, 'legacy frame-rate choices must not override the fixed ceiling');
 c.close();
 console.log('PASS: one app / four presets, per-profile presets, custom ranges, hybrid engine-off hide, unknown-profile hide and live profile-switch cleanup');

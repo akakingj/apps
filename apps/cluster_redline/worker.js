@@ -93,7 +93,7 @@ function start(ctx) {
             controller.gear = gearbox.gear; controller.gearMode = gearbox.programMode || gearbox.mode;
             if (fesSub && (fesSub.available === false || fesSub.error)) controller.telemetry.clear();
             const raw = {};
-            Object.keys(DEFAULTS).forEach((k) => { raw[k] = ctx.settings.get(k); });
+            Object.keys(DEFAULTS).forEach((k) => { if (k !== 'frameRate') raw[k] = ctx.settings.get(k); });
             config = settings(raw);
             const state = controller.tick(at, config);
             if (at - lastStatus >= 500) {

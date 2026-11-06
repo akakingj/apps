@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Tabbed cluster settings, vehicle presets, true power/torque unit conversion and Sport/all-mode display",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
@@ -165,22 +165,6 @@
         6800,
         7000,
         7500
-      ]
-    },
-    {
-      "key": "frameRate",
-      "label": "Cluster refresh rate",
-      "type": "number",
-      "unit": "fps",
-      "default": 12,
-      "steps": [
-        4,
-        6,
-        8,
-        10,
-        12,
-        30,
-        60
       ]
     },
     {

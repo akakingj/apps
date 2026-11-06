@@ -130,3 +130,5 @@ Status	상태
 Cancel	취소
 Select	선택
 Set Central display area to Map view or Off. Assist or route preview may cover the widget.	중심 표시 영역은 지도 보기 또는 꺼짐으로 설정하세요. Assist·경로 미리보기는 가릴 수 있습니다.
+Install Cluster renderer (cluster-render) from MGU Store first.	먼저 MGU Store에서 클러스터 렌더러(cluster-render)를 설치하세요.
+Fixed 20 fps request limit; actual output depends on the car.	갱신 속도는 20fps로 고정되며 실제 출력 속도는 차량에 따라 달라집니다.
