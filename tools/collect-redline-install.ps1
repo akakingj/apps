@@ -56,7 +56,7 @@ printf '%s\n' '=== INSTALLED REDLINE AND REQUESTED INTERFACES ==='
 if command -v node >/dev/null 2>&1; then
     node - "$task_root" <<'NODE'
 'use strict';
-const fs = require('fs'), path = require('path'), root = process.argv[2] || '';
+const fs = require('fs'), path = require('path'), crypto = require('crypto'), root = process.argv[2] || '';
 const at = (p) => root + p;
 function read(file) { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { return null; } }
 function text(file) { try { return fs.readFileSync(file, 'utf8'); } catch (e) { return ''; } }
@@ -70,13 +70,39 @@ list(home).filter((name) => /^oap_\d+$/.test(name)).forEach((name) => {
     const main = text(path.join(source, 'javascript/app.js'));
     const spec = read(path.join(source, 'javascript/kit/app-spec.json')) || {};
     const manifest = read(path.join(source, 'manifest.json')) || {};
+    const uid = Number(name.slice(4));
+    const processes = list(at('/proc')).filter((pid) => /^\d+$/.test(pid)).map((pid) => {
+        const status = text(at('/proc/' + pid + '/status'));
+        const ids = /^Uid:\s+(\d+)/m.exec(status);
+        if (!ids || Number(ids[1]) !== uid) return null;
+        const rss = /^VmRSS:\s+(\d+)/m.exec(status);
+        const stat = text(at('/proc/' + pid + '/stat'));
+        const fields = stat.slice(stat.lastIndexOf(')') + 2).trim().split(/\s+/);
+        return { pid: Number(pid), command: text(at('/proc/' + pid + '/comm')).trim(),
+            rssKB: rss ? Number(rss[1]) : null, startTicksSinceBoot: fields[19] || null };
+    }).filter(Boolean);
     console.log(JSON.stringify({ app: pkg.name, version: pkg.version, home: name,
+        mainSha256: crypto.createHash('sha256').update(main).digest('hex'), processes,
         specVersion: spec.version, hasTabbedEntry: /new SettingsPage\(/.test(main),
         hasLegacySettingsButton: main.indexOf('BTN_SETTINGS') >= 0,
         screens: (spec.screens || []).map((s) => ({ name: s.name, kind: s.kind })),
         settings: (spec.settings || []).map((s) => s.key), limits: pkg.oapAppSettings,
         requestedVehicleInterfaces: Object.keys(manifest.proxies || {}).filter((n) => /CDS$|FES$|VehicleInformation$|MDrive$/.test(n))
             .map((n) => ({ interface: n, request: manifest.proxies[n] })) }, null, 2));
+    // Only this app's bounded log tails, not unrelated apps or private data.
+    for (const suffix of ['.log.1', '.log']) {
+        const logFile = path.join(home, name, 'data', pkg.name + suffix);
+        if (!fs.existsSync(logFile)) continue;
+        console.log('=== REDLINE APP LOG: ' + name + '/' + pkg.name + suffix + ' ===');
+        let fd;
+        try {
+            fd = fs.openSync(logFile, 'r');
+            const size = fs.fstatSync(fd).size, n = Math.min(size, 65536), tail = Buffer.alloc(n);
+            fs.readSync(fd, tail, 0, n, Math.max(0, size - n));
+            console.log(tail.toString('utf8'));
+        } catch (e) { console.log('APP_LOG_UNREADABLE'); }
+        finally { if (fd !== undefined) fs.closeSync(fd); }
+    }
 });
 if (!found) console.log('INSTALLED_REDLINE_NOT_FOUND');
 // Report only presence of the app's requested fields, never the vehicle catalog.

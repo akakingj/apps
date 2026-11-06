@@ -44,6 +44,12 @@ with tempfile.TemporaryDirectory(prefix='redline-install-') as temp:
         write(root, base + 'package.json', {'name': name, 'version': version})
         write(root, base + 'javascript/app.js', entry)
         write(root, base + 'javascript/kit/app-spec.json', {'version': version, 'settings': [{'key': 'appEnabled'}]})
+    write(root, '/var/opt/public/oap/oap_12502/data/cluster_redline_en2.log', 'CURRENT_APP_LOG: initialized\n')
+    write(root, '/var/opt/public/oap/oap_12503/data/unrelated.log', 'DO_NOT_REPORT_OTHER_APP_LOG')
+    write(root, '/proc/101/status', 'Name:\tnode\nUid:\t12502\t12502\t12502\t12502\nVmRSS:\t65536 kB\n')
+    write(root, '/proc/101/comm', 'node\n')
+    write(root, '/proc/102/status', 'Name:\tother\nUid:\t12503\t12503\t12503\t12503\n')
+    write(root, '/proc/102/comm', 'DO_NOT_REPORT_OTHER_PROCESS\n')
     write(root, '/var/opt/public/oap/oap_12503/source/package.json', {'name': 'unrelated', 'private': 'DO_NOT_REPORT_OTHER_APP'})
     write(root, '/var/opt/mgu-updater/current/component.json', {'id': 'mgu-updater', 'version': '1.0.0'})
     write(root, '/etc/oap/someip/someip-interfaces.json', {'interfaces': {
@@ -56,9 +62,11 @@ with tempfile.TemporaryDirectory(prefix='redline-install-') as temp:
     assert snapshot(root) == before, 'Must not change files on the head unit'
     for text in ['UPDATE_FAILED', 'previous version was kept', 'older install attempt', '0.7.0', '0.8.4',
                  '"hasTabbedEntry": true', '"hasTabbedEntry": false', '"hasLegacySettingsButton": true',
+                 '"pid": 101', '"rssKB": 65536', 'CURRENT_APP_LOG: initialized', '"mainSha256":',
                  '"name":"statusEngineSpeed2","present":true', '"name":"dataDisplayGearbox","present":false']:
         assert text in report, text
     assert 'DO_NOT_REPORT_CATALOG' not in report and 'DO_NOT_REPORT_OTHER_APP' not in report
+    assert 'DO_NOT_REPORT_OTHER_PROCESS' not in report
 
 with tempfile.TemporaryDirectory(prefix='redline-install-empty-') as temp:
     root = Path(temp)
