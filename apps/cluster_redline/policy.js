@@ -9,7 +9,7 @@ const PROFILES = {
         ranges: { shiftRpm: [2000, 7500], redlineRpm: [3000, 8500], maxRpm: [4000, 10000] } },
 };
 // Zero RPM settings mean the selected profile's defaults, rather than engine-off.
-const DEFAULTS = { autoSport: true, engineProfile: 'petrol', shiftRpm: 0, redlineRpm: 0, maxRpm: 0, frameRate: 12, displayTarget: 'panel', widgetScale: 75, gearPrefix: 'auto', torqueScale: 500, powerScale: 300 };
+const DEFAULTS = { autoSport: true, engineProfile: 'petrol', shiftRpm: 0, redlineRpm: 0, maxRpm: 0, frameRate: 12, displayTarget: 'panel', widgetScale: 80, gearPrefix: 'auto', torqueScale: 500, powerScale: 300 };
 const MODES = { 1: 'SPORT', 2: 'SPORT_PLUS', 3: 'SPORT_INDIVIDUAL', 4: 'COMFORT', 5: 'COMFORT_PLUS',
     6: 'COMFORT_INDIVIDUAL', 7: 'ECO_PRO', 8: 'ECO_PRO_PLUS', 9: 'ECO_PRO_INDIVIDUAL', 10: 'ADAPTIVE',
     SPORT_DYNAMIC: 'SPORT', SPORT_EXPERT: 'SPORT_PLUS', SPORT_INDIVIDUAL: 'SPORT_INDIVIDUAL',

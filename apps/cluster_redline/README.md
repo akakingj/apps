@@ -2,7 +2,7 @@
 
 English | [한국어](README.ko.md)
 
-An ordinary `idrive7-apps` app for the central cluster area. ID: `cluster_redline`, version **0.6.0**. Auto-starts in the background; remains hidden until confirmed Sport mode and fresh engine RPM are available. Large RPM, bar and shift lights are released on normal mode, engine-off, stale data or renderer disconnect.
+An ordinary `idrive7-apps` app for the central cluster area. ID: `cluster_redline`, version **0.7.0**. Auto-starts in the background; remains hidden until confirmed Sport mode and fresh engine RPM are available. Large RPM, bar and shift lights are released on normal mode, engine-off, stale data or renderer disconnect.
 
 
 ## Engine profiles
@@ -40,9 +40,9 @@ This includes **every app**, including Circuit and Cluster Redline, in the usual
 
 Requires cluster-render 0.3.10+ and the selected exact ID7 target: panel 1920x720 or map 1088x480. The normal installer refuses this app when the required component metadata is missing or old; other accepted apps follow upstream's normal skip/install behavior. RPM and drive-mode getters must also exist. The app independently checks renderer backend, geometry and signal freshness at runtime.
 
-Version 0.6.0 keeps **Display layer → Front center (test)**, removes the opaque rectangle, and defaults to a 75% footprint: 816x360 at (552,180) in the 1920x720 panel scene. Empty pixels inside the image are transparent too. Widget size is adjustable from 60 to 100%. The image is nonexclusive and does not contend with stock panel content. Real-car fit still needs checking.
+Version 0.7.0 retains a transparent centered panel image and defaults to 80% size (870x384 at 525,168). Larger torque/power bars stay beside the gear. Existing saved sizes are retained. Gear inputs are fused so an empty event cannot erase the other source; direct M1/S1/D1 and optional MDrive S/M programme signals are supported. Without that programme, use Gear prefix manually. Standard forward-only enums default to D; chassis Sport never implies S.
 
-The compact M-style layout is now implemented: RPM bar above smaller digits, 500rpm cells, tight shift lights with black unlit cells, M marks on both borders, a smaller central gear and short torque/power bars. D4/S4/M4 uses a received gearbox programme or the explicit Gear prefix setting; chassis Sport alone never implies S. ECU torque is freshness-checked. Power* is estimated PS from torque x rpm, not measured wheel power; unavailable signals show --. See [0.6.0 details](../../docs/CLUSTER-REDLINE-0.6.0.ko.md).
+For flicker reduction the image is exclusive: its last complete frame is held during recovery, and lower custom layers in the same target are suspended. Factory pixel transparency and no stock-panel contention are retained. Normal pixel traffic is paced below the shared budget (first full frame excepted), with six spatial delta regions and delayed stable reacquisition after data expiry. This does not guarantee sustained 60fps or fix every stock-slot conflict. See [0.7.0 details](../../docs/CLUSTER-REDLINE-0.7.0.ko.md).
 
 **Map area (legacy)** retains the original exclusive content layer, `contend=1`, `guide_hold=0` and `map_take_over_stock=1` requirement. The selected target must advertise its exact geometry; missing targets stay hidden, with no automatic fallback to another target or HUD. Leaving Sport, stale signals or disconnect releases the requested layer. No MGU preferences or coding are changed. The renderer may fade/release the scene after the layer is dropped.
 

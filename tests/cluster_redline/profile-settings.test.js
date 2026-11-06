@@ -25,7 +25,7 @@ function effective() {
         assert.strictEqual(effective().shiftRpm, 6200);
         assert.strictEqual(effective().redlineRpm, 6800);
         assert.strictEqual(effective().displayTarget, 'panel');
-        assert.strictEqual(effective().widgetScale, 75);
+        assert.strictEqual(effective().widgetScale, 80);
         hu.settings.set('widgetScale', 65); assert.strictEqual(effective().widgetScale, 65);
         hu.settings.set('gearPrefix', 'S'); assert.strictEqual(effective().gearPrefix, 'S');
         for (const rate of [12, 30, 60]) {

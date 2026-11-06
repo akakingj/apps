@@ -86,6 +86,15 @@ def main():
             metadata = dict(schema=1, id=app_id, language=args.language, source_version=spec['version'],
                             ui_sha256=fingerprint(app_dir / 'app.json', app_id),
                             size=len(data), sha256=hashlib.sha256(data).hexdigest())
+            # Small committed parts avoid oversized connector uploads. The car
+            # joins them offline and verifies the complete archive checksum.
+            metadata['parts'] = []
+            for old_part in destination.glob(runtime + '.tgz.part-*'):
+                old_part.unlink()
+            for index, offset in enumerate(range(0, len(data), 192 * 1024)):
+                name = runtime + '.tgz.part-' + str(index).zfill(2)
+                (destination / name).write_bytes(data[offset:offset + 192 * 1024])
+                metadata['parts'].append(name)
             (destination / (runtime + '.json')).write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
             # Small Store manifests only; app logic remains in apps/<original-id>.
             variant = ROOT / 'store/apps' / (app_id + '_en')

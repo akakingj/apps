@@ -27,7 +27,7 @@ function checkPackage(file, id, version, start, language) {
     assert.strictEqual(spec.id, id);
     if (id.indexOf('cluster_redline') === 0) {
         assert.strictEqual(spec.settings.find((s) => s.key === 'displayTarget').default, 'panel');
-        assert.strictEqual(spec.settings.find((s) => s.key === 'widgetScale').default, 75);
+        assert.strictEqual(spec.settings.find((s) => s.key === 'widgetScale').default, 80);
         assert.strictEqual(spec.settings.find((s) => s.key === 'gearPrefix').default, 'auto');
         assert.deepStrictEqual(spec.settings.find((s) => s.key === 'frameRate').steps.slice(-3), [12, 30, 60]);
     }
@@ -59,12 +59,20 @@ function optionsFor(args) {
         const args = component.build.args.map((a) => a.replace('{id}', id).replace('{version}', spec.version).replace('{dir}', component.path));
         const options = Object.assign(optionsFor(args), { out: path.join(temp, id) });
         const source = options.source || component.path;
-        const file = build(options), start = options.template === 'cluster_redline' ? 'autostart' : 'manually';
+        const runtimeFile = path.join(ROOT, 'store/runtime', options.template + (options.language === 'en' ? '.en' : '') + '.tgz');
+        const heldFile = runtimeFile + '.test-held';
+        let file;
+        const hasFullTemplate = fs.existsSync(runtimeFile);
+        if (hasFullTemplate) fs.renameSync(runtimeFile, heldFile);
+        try { file = build(options); } finally { if (hasFullTemplate) fs.renameSync(heldFile, runtimeFile); }
+        const start = options.template === 'cluster_redline' ? 'autostart' : 'manually';
         const originalUuid = checkPackage(file, id, spec.version, start, options.language);
         assert(!identities.has(originalUuid), 'language variants need separate RHMI identities'); identities.add(originalUuid);
         assert(read(file, 'package/javascript/app.js').equals(fs.readFileSync(path.join(ROOT, source, 'main.js'))));
         const runtime = options.template + (options.language === 'en' ? '.en' : '');
-        const runtimeNames = entries(path.join(ROOT, 'store/runtime', runtime + '.tgz'));
+        const templateInfo = JSON.parse(fs.readFileSync(path.join(ROOT, 'store/runtime', runtime + '.json')));
+        const templateBytes = Buffer.concat(templateInfo.parts.map((name) => fs.readFileSync(path.join(ROOT, 'store/runtime', name))));
+        const runtimeNames = cp.execFileSync('tar', ['-tzf', '-'], { input: templateBytes, encoding: 'utf8' }).trim().split('\n');
         assert(!runtimeNames.includes('package/javascript/app.js'), 'template must not freeze the app source');
         if (sourceParser) {
             const tar = require(path.join(process.env.MGU_STORE_UPDATER_JS, 'tar'));
@@ -72,6 +80,18 @@ function optionsFor(args) {
             const entry = sourceParser.packageEntry(members, fs.readFileSync(file), {}, 'tgz');
             assert.strictEqual(entry.id, id); assert.strictEqual(entry.version, spec.version);
             assert.deepStrictEqual(entry.mguHmi, ['ID7']);
+        }
+        if (options.template === 'cluster_redline') {
+            const optional = 'de.bmw.infotainment.misc.MDrive';
+            const catalogFile = path.join(temp, id + '-catalog.json');
+            // Firmware with/without the optional programme must both build.
+            fs.writeFileSync(catalogFile, JSON.stringify({ interfaces: {} }));
+            const absent = build(Object.assign({}, options, { catalog: catalogFile, out: path.join(temp, id + '-no-program') }));
+            assert(!json(absent, 'manifest.json').proxies[optional]);
+            const interfaces = {}; interfaces[optional] = { fields: { dataDisplayGearbox: {} } };
+            fs.writeFileSync(catalogFile, JSON.stringify({ interfaces }));
+            const present = build(Object.assign({}, options, { catalog: catalogFile, out: path.join(temp, id + '-program') }));
+            assert(json(present, 'manifest.json').proxies[optional]);
         }
         const alias = id + '2', dir = path.join(sourceCopy, alias);
         copy(path.join(ROOT, component.path), dir);

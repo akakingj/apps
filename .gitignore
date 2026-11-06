@@ -12,6 +12,6 @@ __pycache__/
 *.pyc
 .store-test-*/
 # Only these SDK-free, reviewed runtime templates are public artifacts.
-!store/runtime/*.tgz
+!store/runtime/*.tgz.part-*
 
 

@@ -2,12 +2,16 @@
 const { Policy, settings } = require('./policy');
 const gear = require('./gear');
 const { Telemetry } = require('./telemetry');
+const { UploadPacer } = require('./upload');
 class Controller {
     constructor(client, painter) {
         this.client = client; this.painter = painter; this.policy = new Policy();
         this.ref = 0; this.previous = null; this.layerState = 'hidden'; this.refused = false;
         this.profile = null; this.layerRate = null;
         this.gear = '--'; this.gearMode = null; this.telemetry = new Telemetry(); this.layerScale = null;
+        this.upload = new UploadPacer(); this.retryAfter = 0; this.recoverySince = null; this.recovering = false;
+        this.transitions = []; this.lastReason = null;
+        client.on('budget', (cap) => this.upload.budget(cap));
         this.targetName = null; this.targetStates = {}; this.paintKey = null;
         client.on('disconnected', () => { this.hide(); this.policy.reset(); this.telemetry.clear(); this.gear = '--'; this.gearMode = null; });
         client.on('refused', () => { this.hide(); this.refused = true; });
@@ -21,6 +25,7 @@ class Controller {
     hide() {
         if (this.ref) this.client.drop(this.ref);
         this.ref = 0; this.previous = null; this.paintKey = null; this.layerState = 'hidden';
+        this.upload.reset();
         this.targetName = null; this.targetStates = {};
     }
     tick(now, config) {
@@ -41,6 +46,19 @@ class Controller {
         if (d.show && (cfg.displayTarget === 'unknown' || String(this.client.targets || '').split(',').indexOf(geometry) < 0)) {
             d.show = false; d.reason = 'target_unavailable';
         }
+        if (!d.show) {
+            if (this.ref && ['rpm_unknown', 'mode_unknown', 'rpm_invalid'].indexOf(d.reason) >= 0) { this.recovering = true; this.retryAfter = now + 2000; }
+            this.recoverySince = null;
+            if (['disabled', 'not_sport', 'engine_stopped', 'hybrid_engine_stopped'].indexOf(d.reason) >= 0) this.recovering = false;
+        } else if (this.recovering) {
+            if (this.recoverySince === null) this.recoverySince = now;
+            if (now < this.retryAfter || now - this.recoverySince < 1000) { d.show = false; d.reason = 'recovering'; }
+            else this.recovering = false;
+        }
+        if (this.lastReason !== d.reason) {
+            this.transitions.push({ at: now, reason: d.reason, target: d.targetState });
+            this.transitions = this.transitions.slice(-12); this.lastReason = d.reason;
+        }
         if (!d.show) { this.hide(); return Object.assign(d, { requested: false, layerState: this.layerState }); }
         if (!this.ref) {
             // Preserve alpha inside the image too; shrink its footprint so the
@@ -49,7 +67,11 @@ class Controller {
             this.ref = this.client.image({ target: cfg.displayTarget, klass: panel ? 'overlay' : 'content', z: 100,
                 x: ((panel ? 1920 : 1088) - width) / 2, y: ((panel ? 720 : 480) - height) / 2,
                 w: width, h: height, iw: this.painter.W, ih: this.painter.H, sampling: 'bilinear',
-                visible: false, prewarm: false, exclusive: !panel, contend: !panel, guide_hold: false, fps: d.config.frameRate });
+                // An exclusive image keeps its last complete frame if a write
+                // fails; a nonexclusive image is hidden during the rewrite.
+                // Alpha remains transparent over factory gauges. Other lower
+                // custom layers in this compositor target are suspended.
+                visible: false, prewarm: false, exclusive: true, contend: !panel, guide_hold: false, fps: d.config.frameRate });
             if (!this.ref) { this.refused = true; d.show = false; d.reason = 'renderer_refused'; return d; }
             this.layerState = 'waiting';
             this.layerRate = d.config.frameRate;
@@ -60,12 +82,15 @@ class Controller {
         // Keep freshness/mode checks above this cache so stale signals still hide.
         const paintKey = [d.rpm, d.shift, d.gear, d.torqueNm, d.powerPS, d.torquePeak, d.powerPeak, cfg.shiftRpm, cfg.redlineRpm, cfg.maxRpm, cfg.torqueScale, cfg.powerScale].join('|');
         if (this.previous && this.paintKey === paintKey) return Object.assign(d, { requested: true, layerState: this.layerState });
+        if (this.previous && !this.upload.ready(now)) return Object.assign(d, { requested: true, layerState: this.layerState });
         const canvas = this.painter.draw(d), pixels = Buffer.from(canvas.d);
         if (!this.previous) {
+            this.upload.allow(pixels.length, now, true);
             this.client.pixels(this.ref, null, pixels);
             this.client.set(this.ref, { visible: true });
         } else {
             const delta = this.painter.difference(this.previous, pixels);
+            if (delta.rects.length && !this.upload.allow(delta.pixels.length, now, false)) return Object.assign(d, { requested: true, layerState: this.layerState });
             if (delta.rects.length) this.client.pixels(this.ref, delta.rects, delta.pixels);
         }
         this.previous = pixels;

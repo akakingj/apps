@@ -2,8 +2,16 @@
   "schema": 1,
   "id": "cluster_redline",
   "language": "ko",
-  "source_version": "0.6.0",
-  "ui_sha256": "d52ee94ec549075bc44c23d225fecf34492ef3345931d231d8569abd59949c6d",
-  "size": 1077467,
-  "sha256": "e2a6b73c39aab499d1eae3658f20fd57e61096f8128116f966afcbc747a801af"
+  "source_version": "0.7.0",
+  "ui_sha256": "10bf8907c6e90880d1ea4eb9ab7f76f998e382a4e4273deacb53cd7bd5b25c44",
+  "size": 1077638,
+  "sha256": "dd7bc696d453a7f31b6b9cdd21585f4db4615495576b873797914967d2ba3500",
+  "parts": [
+    "cluster_redline.tgz.part-00",
+    "cluster_redline.tgz.part-01",
+    "cluster_redline.tgz.part-02",
+    "cluster_redline.tgz.part-03",
+    "cluster_redline.tgz.part-04",
+    "cluster_redline.tgz.part-05"
+  ]
 }

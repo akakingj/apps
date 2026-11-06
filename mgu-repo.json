@@ -40,7 +40,7 @@
       "kind": "app",
       "path": "apps/cluster_redline",
       "title": "계기판 레드라인 (한국어)",
-      "description": "한국어 스포츠 계기판 · 투명한 소형 M UI · D4/S4 · 토크/계산 마력 · 12/30/60fps 요청",
+      "description": "한국어 스포츠 계기판 · S/M 프로그램 수신 보완 · 전송량 제한 · 확대된 토크/계산 마력 게이지",
       "mguHmi": [
         "ID7"
       ],
@@ -112,7 +112,7 @@
       "kind": "app",
       "path": "store/apps/cluster_redline_en",
       "title": "Cluster Redline (English)",
-      "description": "Compact transparent M-style Sport cluster · D4/S4 · torque and estimated PS · 12/30/60fps requests",
+      "description": "Sport cluster · optional S/M programme · paced pixel uploads · larger torque/estimated PS bars",
       "mguHmi": [
         "ID7"
       ],

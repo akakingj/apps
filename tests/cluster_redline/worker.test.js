@@ -8,7 +8,8 @@ const { settings } = require('../../apps/cluster_redline/policy');
 const { Controller } = require('../../apps/cluster_redline/controller');
 const source = fs.readFileSync(path.join(__dirname, '../../apps/cluster_redline/worker.js'), 'utf8');
 
-async function scenario(live, version, backend) {
+async function scenario(live, version, backend, withProgram) {
+    withProgram = withProgram !== false;
     backend = backend || 'id7';
     let time = 0, timer, client, watches = 0, shutdowns = 0;
     const files = {}, feeds = {}, subscriptions = {}, config = settings(), app = new EventEmitter();
@@ -44,7 +45,7 @@ async function scenario(live, version, backend) {
     const worker = box.module.exports.start({
         dataDir: '/data', app: app,
         settings: { get: (k) => config[k] }, log: { warn() {} },
-        signals: { hasNative: () => live, watch: (iface, instance, handlers, log, options) => {
+        signals: { hasNative: () => live, loadConfig: () => { if (!withProgram) throw new Error('optional MDrive absent'); return { fields: { dataDisplayGearbox: {} } }; }, watch: (iface, instance, handlers, log, options) => {
             assert.strictEqual(instance, '1'); assert.strictEqual(options.pollMs, 1000);
             feeds[iface] = handlers; watches++;
             const sub = { available: true, shutdown() { shutdowns++; } }; subscriptions[iface] = sub;
@@ -59,7 +60,7 @@ async function scenario(live, version, backend) {
         assert.strictEqual(watches, 0); assert.strictEqual(calls.indexOf('connect'), -1);
         tick(1000); assert.strictEqual(status().source, 'offline-disabled');
     } else {
-        assert.strictEqual(watches, 3);
+        assert.strictEqual(watches, withProgram ? 4 : 3);
         const rpm = feeds['de.bmw.infotainment.vehicle.CDS'].statusEngineSpeed2;
         const mode = feeds['de.bmw.infotainment.drivingexcitement.FES'].statusFESVehicleDynamicSwitchHMI;
         assert.strictEqual(typeof rpm, 'function'); assert.strictEqual(typeof mode, 'function');
@@ -70,11 +71,13 @@ async function scenario(live, version, backend) {
             assert.strictEqual(status().shift, true);
             const gear = feeds['de.bmw.infrastructure.VehicleInformation'];
             gear.statusGearboxDrive({ statusActualGearDrive: 'G4', statusActualStageDrive: 'D' });
+            gear.DataPowerTrain2({});
             config.shiftRpm = 2000; rpm({ actualValueRPMEngineCrankshaft: 8400 }); tick(1500);
             assert.strictEqual(status().config.shiftRpm, 2000); assert.strictEqual(status().shift, true); assert.strictEqual(status().gear, 'D4');
             feeds['de.bmw.infotainment.drivingexcitement.FES'].statusActualValueTorque2({ actualValueTorqueCrankshaft: 2807 });
+            if (withProgram) feeds['de.bmw.infotainment.misc.MDrive'].dataDisplayGearbox({ displayProgramGearbox: 1 });
             config.shiftRpm = 3000; tick(2000);
-            assert.strictEqual(status().shift, false); assert.strictEqual(status().gear, 'D4', 'change-only gear stays known while provider is live');
+            assert.strictEqual(status().shift, false); assert.strictEqual(status().gear, withProgram ? 'S4' : 'D4', 'received programme and change-only gear are preserved');
             assert.strictEqual(status().torqueNm, 380); assert(status().powerPS > 100);
             assert.deepStrictEqual(calls.filter((c) => Array.isArray(c)).map((c) => c[1].target), ['panel']);
             assert.strictEqual(status().targetName, 'panel');
@@ -99,6 +102,7 @@ async function scenario(live, version, backend) {
     await scenario(true, '0.3.9');
     await scenario(true, '0.3.1');
     await scenario(true, '0.4.0');
+    await scenario(true, '0.3.10', 'id7', false);
     await scenario(true, '0.3.10', 'id8');
     await scenario(false, '0.3.10');
     console.log('PASS: real worker live-field adapters, raw RPM scale, background sport-only output, master OFF, old-renderer refusal, offline no-connect and platform shutdown');

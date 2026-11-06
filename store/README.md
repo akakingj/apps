@@ -5,6 +5,11 @@ These are **SDK-free UI/framework templates**, not installable app releases.
 head unit and writes one SDK-free `<id>@<version>.tgz` into `MGU_OUT`.
 MGU Store supplies the vehicle's stock SDK during installation.
 
+Public templates are stored as small `.tgz.part-00`, `.tgz.part-01`, … files.
+The JSON lists their order; the builder joins them offline and verifies the
+original archive size and SHA-256 before extraction. The preparer also keeps
+a local complete `.tgz` for checks; only its parts need to be published.
+
 Each template excludes all `node_modules` and the app's own JavaScript.
 The JSON beside it records size, SHA-256 and a fingerprint of the UI manifest
 and Korean additions. `*.en.tgz`/`*.en.json` are the English UI templates;

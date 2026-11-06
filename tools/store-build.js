@@ -60,7 +60,10 @@ function build(options) {
     if (metadata.id !== template || metadata.language !== language || metadata.ui_sha256 !== fingerprint(sourceSpec, template)) {
         throw new Error('Generated UI/locale is stale. Maintainer: rebuild this language and run tools/prepare-store.py.');
     }
-    const archive = path.join(ROOT, 'store/runtime', runtime + '.tgz'), data = fs.readFileSync(archive);
+    let archive = path.join(ROOT, 'store/runtime', runtime + '.tgz');
+    const parts = metadata.parts;
+    if (parts && (!Array.isArray(parts) || !parts.length || parts.length > 32 || parts.some((name) => typeof name !== 'string' || name.indexOf(runtime + '.tgz.part-') !== 0 || path.basename(name) !== name))) throw new Error('Invalid runtime part list');
+    const data = parts ? Buffer.concat(parts.map((name) => fs.readFileSync(path.join(ROOT, 'store/runtime', name)))) : fs.readFileSync(archive);
     if (data.length !== metadata.size || sha(data) !== metadata.sha256) throw new Error('Runtime template checksum mismatch');
     const out = path.resolve(options.out || process.env.MGU_OUT || '');
     if (!options.out && !process.env.MGU_OUT) throw new Error('MGU_OUT or --out is required');
@@ -68,6 +71,7 @@ function build(options) {
     if (fs.readdirSync(out).length) throw new Error('Output directory must be empty');
     const work = fs.mkdtempSync(path.join(os.tmpdir(), 'jam-store-build-'));
     try {
+        if (parts) { archive = path.join(work, 'runtime.tgz'); fs.writeFileSync(archive, data); }
         const names = cp.execFileSync('tar', ['-tzf', archive], { encoding: 'utf8' }).trim().split('\n');
         if (names.some((n) => n.indexOf('package/') !== 0 || n.split('/').some((p) => p === '..' || p === 'node_modules'))) throw new Error('Unsafe runtime template');
         cp.execFileSync('tar', ['-xzf', archive, '-C', work]);
@@ -109,6 +113,22 @@ function build(options) {
         const ready = JSON.parse(fs.readFileSync(packageFile, 'utf8'));
         ready.name = id; ready.version = version; ready.mguHmi = ['ID7']; ready.mguLocalOnly = true;
         fs.writeFileSync(packageFile, JSON.stringify(ready, null, 2) + '\n');
+        // MDrive is not present in every firmware. Only request its optional
+        // S/M field when the vehicle catalog actually contains it; never embed
+        // any catalog data in a public package. Host builds omit it by default.
+        const optionalProgram = 'de.bmw.infotainment.misc.MDrive';
+        let hasProgram = false;
+        try {
+            const catalog = JSON.parse(fs.readFileSync(options.catalog || '/etc/oap/someip/someip-interfaces.json', 'utf8'));
+            const iface = catalog.interfaces && catalog.interfaces[optionalProgram];
+            hasProgram = !!(iface && iface.fields && iface.fields.dataDisplayGearbox);
+        } catch (e) { if (options.catalog) throw e; }
+        if (!hasProgram) {
+            const manifestFile = path.join(stage, 'manifest.json');
+            const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
+            if (manifest.proxies) delete manifest.proxies[optionalProgram];
+            fs.writeFileSync(manifestFile, JSON.stringify(manifest, null, 2) + '\n');
+        }
         const target = path.join(out, id + '@' + version + '.tgz');
         cp.execFileSync('tar', ['-czf', target, '-C', work, 'package']);
         console.log('Built ' + language + ' Store app (SDK-free): ' + target);
@@ -118,7 +138,7 @@ function build(options) {
 function cli(args) {
     const options = {};
     for (let i = 0; i < args.length; i += 2) {
-        if (!/^--(?:template|id|version|dir|out|language|source)$/.test(args[i]) || args[i + 1] === undefined) throw new Error('Usage: --template <source-id> --id <id> --version <x.y.z> --dir <app-folder> [--language ko|en] [--source <source-folder>] [--out <empty-folder>]');
+        if (!/^--(?:template|id|version|dir|out|language|source|catalog)$/.test(args[i]) || args[i + 1] === undefined) throw new Error('Usage: --template <source-id> --id <id> --version <x.y.z> --dir <app-folder> [--language ko|en] [--source <source-folder>] [--catalog <vehicle-catalog>] [--out <empty-folder>]');
         options[args[i].slice(2)] = args[i + 1];
     }
     build(options);

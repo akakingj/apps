@@ -13,6 +13,7 @@ const CDS = 'de.bmw.infotainment.vehicle.CDS';
 const FES = 'de.bmw.infotainment.drivingexcitement.FES';
 const MODE_FIELD = 'statusFESVehicleDynamicSwitchHMI';
 const VEHICLE_INFO = 'de.bmw.infrastructure.VehicleInformation';
+const MDRIVE = 'de.bmw.infotainment.misc.MDrive';
 function mono() { const p = process.hrtime(); return p[0] * 1000 + p[1] / 1000000; }
 function atomic(file, value) {
     const temp = file + '.tmp';
@@ -23,8 +24,9 @@ function supportedRenderer() { return renderer.inspect(undefined, fs).compatible
 function start(ctx) {
     const log = ctx.log, signals = ctx.signals;
     const client = new ClusterRender('cluster-redline'), controller = new Controller(client, painter);
+    const gearbox = new gear.GearState();
     let config = settings(), lastStatus = -Infinity, stopped = false, timer;
-    let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub, fesSub;
+    let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub, fesSub, programSub;
     const subs = [], errors = [];
     const reportError = (name, e) => { const s = name + ': ' + e; if (errors.indexOf(s) < 0) { errors.push(s); log.warn(s); } };
     const live = signals && typeof signals.hasNative === 'function' && signals.hasNative();
@@ -50,15 +52,19 @@ function start(ctx) {
         handlers.statusActualValueTorque2 = (v) => controller.telemetry.sample(v && v.actualValueTorqueCrankshaft, mono());
         signals.watch(FES, '1', handlers, log, { pollMs: 1000 }).then((s) => { fesSub = s; subs.push(s); if (s.error) reportError(FES, s.error); }).catch((e) => reportError(FES, e));
         signals.watch(VEHICLE_INFO, '1', {
-            statusGearboxDrive: (v) => { controller.gear = gear.gearbox(v); controller.gearMode = gear.programme(v) || ((v && (v.statusActualStageDrive === 'D' || v.statusActualStageDrive === 4)) ? 'D' : null); },
-            DataPowerTrain2: (v) => {
-                controller.gear = gear.selection(v);
-                controller.gearMode = gear.programme(v) || controller.gearMode;
-            },
+            statusGearboxDrive: (v) => gearbox.sample('gearbox', v),
+            DataPowerTrain2: (v) => gearbox.sample('selection', v),
         }, log, { pollMs: 1000 }).then((s) => {
             gearSub = s; subs.push(s);
             if (s.error) { controller.gear = '--'; reportError('optional gear', s.error); }
         }).catch((e) => { controller.gear = '--'; reportError('optional gear', e); });
+        // Some cars publish S/M only through MDrive. The Store build omits
+        // this optional proxy when the car's catalog lacks the field.
+        let hasProgram = false;
+        try { const cfg = signals.loadConfig(MDRIVE); hasProgram = !!(cfg.fields && cfg.fields.dataDisplayGearbox); } catch (e) {}
+        if (hasProgram) signals.watch(MDRIVE, '1', {
+            dataDisplayGearbox: (v) => gearbox.sample('programme', v),
+        }, log, { pollMs: 1000 }).then((s) => { programSub = s; subs.push(s); if (s.error) reportError('optional gearbox programme', s.error); }).catch((e) => reportError('optional gearbox programme', e));
     }
     function stop() {
         if (stopped) return;
@@ -79,7 +85,9 @@ function start(ctx) {
             }
             // Gear fields may notify only on changes. Keep a known gear while its
             // provider remains available, and clear it on provider loss/error.
-            if (gearSub && (gearSub.available === false || gearSub.error)) { controller.gear = '--'; controller.gearMode = null; }
+            if (gearSub && (gearSub.available === false || gearSub.error)) gearbox.clear();
+            if (programSub && (programSub.available === false || programSub.error)) gearbox.programMode = null;
+            controller.gear = gearbox.gear; controller.gearMode = gearbox.programMode || gearbox.mode;
             if (fesSub && (fesSub.available === false || fesSub.error)) controller.telemetry.clear();
             const raw = {};
             Object.keys(DEFAULTS).forEach((k) => { raw[k] = ctx.settings.get(k); });
@@ -95,6 +103,10 @@ function start(ctx) {
                     renderer: rendererInfo, requestedSettings: raw,
                     profile: config.engineProfile, config: config,
                     errors: errors.slice(-8), source: live ? 'live-someip' : 'offline-disabled',
+                    gearSignals: gearbox.samples, transitions: controller.transitions,
+                    modeAgeMs: controller.policy.modeAt === null ? null : at - controller.policy.modeAt,
+                    rpmAgeMs: controller.policy.rpmAt === null ? null : at - controller.policy.rpmAt,
+                    uploadBytes: controller.upload.sent, skippedUploads: controller.upload.skipped,
                 });
             }
         } catch (e) { controller.hide(); reportError('worker', e.message || e); }

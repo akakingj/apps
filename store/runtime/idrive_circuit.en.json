@@ -3,7 +3,14 @@
   "id": "idrive_circuit",
   "language": "en",
   "source_version": "1.0.0",
-  "ui_sha256": "dee8024320b91ffa05bc9a61b948b8fa1b71dea544a7380b21fd3a3ce16b8000",
-  "size": 874103,
-  "sha256": "59a55bfe80e132e1328d769ac0111fd694221c583541c4abda0a27abf7d7d689"
+  "ui_sha256": "e7a95a80217902eb3e8ebff0fdc4b8de9c5d2445a703bfffac7806c042267864",
+  "size": 874197,
+  "sha256": "0da42e1cf3c6adda299c1ffe97e1fd10a04b6982a9102b9533acd3d4b8483319",
+  "parts": [
+    "idrive_circuit.en.tgz.part-00",
+    "idrive_circuit.en.tgz.part-01",
+    "idrive_circuit.en.tgz.part-02",
+    "idrive_circuit.en.tgz.part-03",
+    "idrive_circuit.en.tgz.part-04"
+  ]
 }

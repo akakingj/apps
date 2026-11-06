@@ -13,7 +13,7 @@ assert.strictEqual(t.read(4200, 2000).torqueNm, null, 'stale ECU torque must not
 t.sample(65535, 2100); assert.strictEqual(t.read(4200, 2100).powerPS, null);
 assert.strictEqual(programme({ statusDriveMode: 'SPORT' }), 'S');
 assert.strictEqual(programme({ statusManualMode: true }), 'M');
-assert.strictEqual(programme({ statusActualGearDrive: 'G4', statusActualStageDrive: 'D' }), null);
+assert.strictEqual(programme({ statusActualGearDrive: 'G4', statusActualStageDrive: 'D' }), 'D');
 assert.strictEqual(programme({ statusSport: 'INACTIVE' }), null);
 assert.strictEqual(display('4', 'S', 'auto'), 'S4');
 assert.strictEqual(display('4', 'D', 'auto'), 'D4');

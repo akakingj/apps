@@ -16,8 +16,8 @@ Canvas.prototype.text = text; Canvas.prototype.line = line;
 assert.strictEqual(seams.length, 13, '7000 RPM uses exactly 14 cells (two per 1000)');
 assert(labels.some((l) => l.value === 'D4' && l.size === 74));
 assert(labels.some((l) => l.value === 'RPM' && l.y > L.bottom));
-assert(labels.some((l) => l.value === 'Torque' && l.x === 285));
-assert(labels.some((l) => l.value === 'Power*' && l.x === 633));
+assert(labels.some((l) => l.value === 'Torque' && l.x === 265));
+assert(labels.some((l) => l.value === 'Power*' && l.x === 623));
 assert.deepStrictEqual(labels.filter((l) => l.y === 187).map((l) => l.value), ['0', '1', '2', '3', '4', '5', '6', '7']);
 assert(!labels.some((l) => /REDLINE|SHIFT|SPORT|변속|레드라인/.test(l.value)));
 function px(cv, x, y) { return Array.from(cv.d.slice((y * W + x) * 4, (y * W + x) * 4 + 4)); }
@@ -47,7 +47,7 @@ assert.strictEqual(redDigits(redzone), 0);
 const a = Buffer.from(face.d), b = Buffer.from(draw(Object.assign({}, normal, { rpm: 6500, shift: true, gear: 'S4' })).d);
 assert.strictEqual(a.length, W * H * 4); assert.strictEqual(difference(a, a).rects.length, 0);
 const d = difference(a, b), copy = Buffer.from(a); let off = 0;
-assert(d.rects.length > 0 && d.rects.length <= 4);
+assert(d.rects.length > 0 && d.rects.length <= 6);
 d.rects.forEach((r) => {
     assert(r.x >= 0 && r.y >= 0 && r.x + r.w <= W && r.y + r.h <= H);
     for (let y = r.y; y < r.y + r.h; y++) { const bytes = r.w * 4; d.pixels.copy(copy, (y * W + r.x) * 4, off, off + bytes); off += bytes; }

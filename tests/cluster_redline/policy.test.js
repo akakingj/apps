@@ -46,7 +46,7 @@ c.tick(0); assert.strictEqual(client.calls.length, 0, 'boot must not create a hi
 c.policy.modeSample(1, 0); c.policy.rpmSample(4200, 1000); c.tick(1000);
 const layer = client.calls[0][2];
 assert.strictEqual(layer.target, 'panel'); assert.strictEqual(layer.visible, false);
-assert.strictEqual(layer.prewarm, false); assert.strictEqual(layer.exclusive, false);
+assert.strictEqual(layer.prewarm, false); assert.strictEqual(layer.exclusive, true);
 assert.strictEqual(layer.z, 100); assert.strictEqual(layer.contend, false);
 assert.strictEqual(layer.guide_hold, false); assert.strictEqual(layer.klass, 'overlay');
 assert.deepStrictEqual(client.calls.map((x) => x[0]), ['image', 'pixels', 'set']);

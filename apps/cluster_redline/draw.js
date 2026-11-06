@@ -18,12 +18,12 @@ function frame(cv, y, lower) {
     mark(cv, W / 2, y - 11);
 }
 function mini(cv, x, label, value, unit, maximum, peak) {
-    const w = 170, y = 368, h = 9, slant = 7;
+    const w = 200, y = 368, h = 12, slant = 7;
     const valid = typeof value === 'number' && isFinite(value) && value >= 0;
-    cv.text(label, x, 344, 15, '#b8c2d1', { font: 'bold' });
+    cv.text(label, x, 344, 18, '#b8c2d1', { font: 'bold' });
     const number = valid ? String(Math.round(value)) : '--';
     const uw = cv.textWidth(unit, 13, { font: 'label' });
-    cv.text(number, x + w - uw - 5, 345, 26, C.text, { align: 'right', font: 'num' });
+    cv.text(number, x + w - uw - 5, 345, 30, C.text, { align: 'right', font: 'num' });
     cv.text(unit, x + w, 345, 13, '#b8c2d1', { align: 'right' });
     const q = (right, color) => {
         if (right <= 0) return;
@@ -90,21 +90,23 @@ function draw(state) {
     cv.text(suffix, nx + nw + 10, 270, 22, tint, { font: 'bold', literal: true });
     const gear = typeof state.gear === 'string' && /^(?:[DSM]?(?:[1-9]|10)|P|R|N|D|--)$/.test(state.gear) ? state.gear : '--';
     cv.text(gear, W / 2, 400, 74, C.text, { align: 'center', font: 'bold' });
-    mini(cv, 285, 'Torque', state.torqueNm, 'Nm', cfg.torqueScale || 500, state.torquePeak);
-    mini(cv, 633, 'Power*', state.powerPS, 'PS', cfg.powerScale || 300, state.powerPeak);
+    mini(cv, 265, 'Torque', state.torqueNm, 'Nm', cfg.torqueScale || 500, state.torquePeak);
+    mini(cv, 623, 'Power*', state.powerPS, 'PS', cfg.powerScale || 300, state.powerPeak);
     return cv;
 }
 // Four independent horizontal regions keep updates below the link budget.
 function difference(previous, next) {
     const stride = W * 4, rects = [], parts = [];
-    [0, 90, 205, 308].forEach((top, band) => {
-        const bottom = [90, 205, 308, H][band];
-        let left = W, right = -1, first = H, last = -1;
+    const regions = [[0, 0, W, 90], [0, 90, W, 205], [0, 205, W, 308],
+        [0, 308, 480, H], [480, 308, 608, H], [608, 308, W, H]];
+    regions.forEach((region) => {
+        const [x0, top, x1, bottom] = region;
+        let left = x1, right = -1, first = H, last = -1;
         for (let y = top; y < bottom; y++) {
             const off = y * stride;
-            if (previous.slice(off, off + stride).equals(next.slice(off, off + stride))) continue;
-            let a = 0, b = W - 1;
-            while (a < W && previous.readUInt32LE(off + a * 4) === next.readUInt32LE(off + a * 4)) a++;
+            if (previous.slice(off + x0 * 4, off + x1 * 4).equals(next.slice(off + x0 * 4, off + x1 * 4))) continue;
+            let a = x0, b = x1 - 1;
+            while (a < x1 && previous.readUInt32LE(off + a * 4) === next.readUInt32LE(off + a * 4)) a++;
             while (b > a && previous.readUInt32LE(off + b * 4) === next.readUInt32LE(off + b * 4)) b--;
             left = Math.min(left, a); right = Math.max(right, b); first = Math.min(first, y); last = y;
         }

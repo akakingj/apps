@@ -10,7 +10,7 @@ const REASONS = { disabled: 'Automatic display off', renderer_unavailable: 'Wait
     profile_unknown: 'Check engine profile', hybrid_engine_stopped: 'Hybrid engine stopped · hidden',
     renderer_refused: 'Renderer refused display', target_unavailable: 'Selected display target unavailable', mode_unknown: 'Waiting for drive mode', not_sport: 'Normal mode · hidden',
     rpm_unknown: 'Waiting for engine RPM', rpm_invalid: 'Check engine RPM', engine_stopped: 'Engine stopped · hidden',
-    stabilizing: 'Confirming Sport mode', sport: 'Sport mode · display requested', stopped: 'Background app stopped' };
+    stabilizing: 'Confirming Sport mode', recovering: 'Waiting for stable live signals', sport: 'Sport mode · display requested', stopped: 'Background app stopped' };
 const MODES = { SPORT: 'Sport', SPORT_PLUS: 'Sport Plus', SPORT_INDIVIDUAL: 'Sport Individual',
     COMFORT: 'Comfort', COMFORT_PLUS: 'Comfort Plus', COMFORT_INDIVIDUAL: 'Comfort Individual',
     ECO_PRO: 'Eco Pro', ECO_PRO_PLUS: 'Eco Pro Plus', ECO_PRO_INDIVIDUAL: 'Eco Pro Individual', ADAPTIVE: 'Adaptive' };
@@ -44,8 +44,10 @@ mgu.run({ async start(ctx) {
         cv.text(translate('Display target') + ': ' + (state && state.targetName || cfg.displayTarget) + ' · ' + target + ' / ' + holder +
             '   ' + translate('Gear') + ': ' + (state && state.gear || '--') + '   ' + cfg.frameRate + ' fps', 54, 437, 25, '#a8bfd4');
         const takeover = state && state.renderer && state.renderer.compatible ? state.renderer.takeOverStock : null;
+        const recent = state && state.transitions || [];
         cv.text(translate('Renderer version') + ': ' + (state && state.renderer && state.renderer.version || '--') +
-            '   ' + translate('Map takeover') + ': ' + (takeover === null ? '--' : takeover ? 'ON' : 'OFF'), 54, 479, 23, '#8194a8');
+            '   ' + translate('Last display change') + ': ' + (recent.length ? recent[recent.length - 1].reason : '--') +
+            '   ' + translate('Upload waits') + ': ' + (state && state.skippedUploads || 0), 54, 479, 21, '#8194a8');
         await ctx.ui.image('MAIN_GFX', cv);
     }
     ctx.loop('MAIN', 2, render);

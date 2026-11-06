@@ -4,10 +4,10 @@ English | [한국어](README.ko.md)
 
 Two ordinary apps for the existing [idrive7-apps](https://github.com/cauliflowermossgrape/idrive7-apps) build and deployment workflow.
 
-Cluster Redline 0.6.0 removes the opaque rectangle, defaults to a 75% display size,
-and implements the compact M-style layout, gearbox prefixes and torque/estimated PS bars.
-The front-center option and 30/60fps requests remain. Real-car fit and sustained FPS
-need checking. [Update instructions](docs/CLUSTER-REDLINE-0.6.0.ko.md).
+Cluster Redline 0.7.0 improves gearbox-source fusion and optional S/M programme support,
+bounds pixel traffic and spaces signal recovery to reduce flicker. Torque/power bars are
+larger and the new size default is 80%. Real-car programme reception and flicker reduction
+need verification. [Update instructions](docs/CLUSTER-REDLINE-0.7.0.ko.md).
 
 | App | English guide | 한국어 설명서 |
 |---|---|---|
@@ -25,7 +25,7 @@ For Cluster Redline, enable Sport auto-display in only the edition you use.
 No GitHub token or publicly redistributed SDK is needed for this public source.
 
 [Store registration and migration guide](docs/MGU-STORE.ko.md).
-The committed `store/runtime/*.tgz` files are SDK-free runtime/UI templates,
+The committed `store/runtime/*.tgz.part-*` files are SDK-free runtime/UI templates,
 not the SDK-containing packages produced by an ordinary PC car-kit build.
 
 ## Merge once, then use the normal commands
