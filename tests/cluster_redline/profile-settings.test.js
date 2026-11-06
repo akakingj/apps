@@ -25,7 +25,7 @@ function effective() {
         assert.strictEqual(effective().frameRate, 20, 'saved 60fps must not override the fixed ceiling');
         assert.strictEqual(effective().redlineRpm, 6000); assert.strictEqual(effective().maxRpm, 7000);
         assert.strictEqual(effective().gearPrefix, undefined); assert.strictEqual(effective().torqueScale, 500);
-        assert.strictEqual(effective().displayTarget, 'panel'); assert.strictEqual(effective().widgetScale, 80);
+        assert.strictEqual(effective().displayTarget, 'map'); assert.strictEqual(effective().widgetScale, 80);
         hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); // petrol -> diesel
         assert.strictEqual(effective().engineProfile, 'diesel'); assert.strictEqual(hu.settings.get('shiftRpm'), 0);
         assert.strictEqual(effective().shiftRpm, 4200); assert.strictEqual(effective().torqueScale, 700);
@@ -33,7 +33,7 @@ function effective() {
         hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().powerUnit, 'kW');
         hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().torqueUnit, 'kgfm');
         hu.handlers.BTN_ADVANCED(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().shiftRpm, 2000);
-        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().displayTarget, 'map');
+        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().displayTarget, 'panel');
         hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().displayTarget, 'hud', 'HUD must be selectable through the actual app controls');
         hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_DOWN(); assert.strictEqual(effective().widgetScale, 75);
         const saved = JSON.parse(fs.readFileSync(path.join(dir, 'settings.json')));

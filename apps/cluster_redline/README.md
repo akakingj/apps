@@ -2,9 +2,9 @@
 
 한국어: [README.ko.md](README.ko.md)
 
-A background MGU app for cluster RPM and shift lights. Version **0.9.1** opens directly to **Basic settings / Advanced settings** and shows its running version in the header.
+A background MGU app for cluster RPM and shift lights. Version **0.9.2** opens directly to **Basic settings / Advanced settings** and shows its running version in the header.
 
-For stock-map takeover, choose **Advanced settings > Display layer > Map area (legacy)**
+For stock-map takeover, choose **Advanced settings > Display layer > Map area (recommended)**
 and set **Instrument cluster > Central display area > Map view or Off**.
 Install **Cluster renderer (cluster-render)** from MGU Store first; the orange text says so.
 Front-center retains its Off recommendation. The orange instruction follows the selected layer; the app does not change the BMW menu.
@@ -15,10 +15,10 @@ the cluster has displayed the frame; native DCSM acquisition races remain unveri
 
 Basic settings: App auto start; vehicle preset (Petrol, Diesel, eDrive PHEV, M); display mode (Sport modes only, All drive modes); power unit (PS/kW); torque unit (Nm/kgf·m).
 
-Advanced settings: shift alert RPM; front-center, legacy map or HUD target; widget size (60–100% discrete steps).
+Advanced settings: shift alert RPM; recommended map, alternate front-center or HUD target; widget size (60–100% discrete steps).
 Manual gearbox prefixes and RPM/torque/power scale settings are removed. Prefixes use received selector/programme data; scales follow the selected preset. These are display presets, not automatically discovered model specifications.
 
-Defaults: Petrol, Sport only, fixed 20 fps, 80%, PS/Nm. Petrol has a 7000 RPM scale, red zone from 6000 and shift alert at 6500. The alert colors RPM digits red. All-mode display still requires fresh RPM/mode data and hides on engine-off, stale data or renderer loss.
+Defaults: map target, Petrol, Sport only, fixed 20 fps, 80%, PS/Nm. Petrol has a 7000 RPM scale, red zone from 6000 and shift alert at 6500. The alert colors RPM digits red. All-mode display still requires fresh RPM/mode data and hides on engine-off, stale data or renderer loss.
 Auto start OFF releases output, subscriptions and worker timers; MainApp retains a lightweight settings host so it can be enabled again. An old OFF choice and saved shift threshold are migrated.
 
 Power* is estimated from ECU engine torque and RPM. eDrive shows engine output only, not electric or combined system output. Unit changes convert values, peaks and scales together. Chassis Sport alone never implies gearbox S/M; unavailable programme signals limit automatic prefix detection.
@@ -61,10 +61,14 @@ The refresh-rate selector is removed. Old saved rates cannot override the fixed 
 
 ## HUD output (0.9.0)
 
-Choose **Advanced settings → Display layer → HUD (RPM / gear / shift)** to show RPM, gear and shift lights on the HUD. This selects HUD instead of this app's cluster output. The existing Sport/all-mode, shift threshold and widget-size settings apply. The default and saved cluster target remain unchanged.
+Choose **Advanced settings → Display layer → HUD (RPM / gear / shift)** to show RPM, gear and shift lights on the HUD. This selects HUD instead of this app's cluster output. The existing Sport/all-mode, shift threshold and widget-size settings apply. Saved HUD choices are retained; see the cluster migration below.
 
 Only the renderer's advertised iDrive 7 `hud:800x480` target is accepted. Factory HUD guidance is not forcibly displaced. Panel and HUD share a native scene ID, so this app requests only one at a time; simultaneous cluster/HUD output is not included. Actual G20 HUD placement and operation require car validation.
 
 [HUD setup and validation guide](../../docs/CLUSTER-REDLINE-0.9.0.ko.md)
 
 [0.9.1: HUD request arbitration fix and diagnostics](../../docs/CLUSTER-REDLINE-0.9.1.ko.md)
+
+[0.9.2: cluster map takeover, guidance hold and acquisition status](../../docs/CLUSTER-REDLINE-0.9.2.ko.md)
+
+Cluster output now defaults to **Map area (recommended)**. Old panel choices move to map once; HUD and other settings are retained. Supported maneuver panels use the renderer's guide hold. Coverage above Assisted Driving View still requires car validation.

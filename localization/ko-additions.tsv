@@ -134,3 +134,8 @@ Install Cluster renderer (cluster-render) from MGU Store first.	먼저 MGU Store
 Fixed 20 fps request limit; actual output depends on the car.	갱신 속도는 20fps로 고정되며 실제 출력 속도는 차량에 따라 달라집니다.
 HUD (RPM / gear / shift)	HUD (회전수·기어·변속 알림)
 HUD only; cluster output stops. Stock HUD guidance may take priority.	HUD만 표시하며 계기판 출력은 중지됩니다. 순정 HUD 안내가 우선할 수 있습니다.
+Map area (recommended)	지도 영역 (권장)
+Map slot acquired	지도 표시 영역 확보됨
+Waiting for stock map release	순정 지도 영역 해제 대기
+Waiting for map acquisition	지도 표시 영역 확보 대기
+Guidance hide unavailable	내비 안내 상자 숨김 사용 불가

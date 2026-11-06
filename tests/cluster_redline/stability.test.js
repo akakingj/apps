@@ -46,7 +46,7 @@ const client = new Client(), painter = { W: 4, H: 4, draw: () => ({ d: Buffer.al
 const c = new Controller(client, painter);
 c.policy.modeSample(1, 0); c.policy.rpmSample(4200, 1000); c.tick(1000);
 assert.strictEqual(client.made[0].exclusive, true, 'atomic image recovery retains the last full frame');
-assert.strictEqual(client.made[0].contend, false, 'still never take over stock panel content');
+assert.strictEqual(client.made[0].contend, true, 'default map output requests stock-map takeover');
 assert.strictEqual(c.tick(2901).requested, false, 'stale RPM still releases immediately');
 c.policy.modeSample(1, 3000); c.policy.rpmSample(4200, 3000);
 assert.strictEqual(c.tick(3000).reason, 'recovering');

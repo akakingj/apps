@@ -17,9 +17,9 @@ class Controller {
         client.on('refused', () => { this.hide(); this.refused = true; });
         client.on('ready', () => { this.hide(); this.policy.reset(); this.refused = false; });
         client.on('layer', (ref, state) => { if (ref === this.ref) this.layerState = state; });
-        client.on('target', (target, state, holder, reason) => {
+        client.on('target', (target, state, holder, reason, guideDisabled) => {
             if (target !== 'map' && target !== 'panel' && target !== 'hud') return;
-            this.targetStates[target] = { state: state, holder: holder || '', reason: reason || '' };
+            this.targetStates[target] = { state: state, holder: holder || '', reason: reason || '', guideDisabled: !!guideDisabled };
         });
     }
     hide() {
@@ -41,6 +41,7 @@ class Controller {
         d.targetName = cfg.displayTarget;
         const target = this.targetStates[cfg.displayTarget] || {};
         d.targetState = target.state || 'idle'; d.targetHolder = target.holder || ''; d.targetReason = target.reason || '';
+        d.guidanceRequested = cfg.displayTarget === 'map'; d.guidanceDisabled = !!target.guideDisabled;
         const panel = cfg.displayTarget === 'panel', hud = cfg.displayTarget === 'hud';
         const painter = hud ? this.hudPainter : this.painter;
         const targetWidth = panel ? 1920 : hud ? 800 : 1088, targetHeight = panel ? 720 : 480;
@@ -78,7 +79,10 @@ class Controller {
                 // separate renderer policy (HUD defaults to disabled); this
                 // app never changes it. Panel and HUD share a native scene ID,
                 // so only the selected target has a layer here.
-                visible: false, prewarm: false, exclusive: true, contend: !panel, guide_hold: false, fps: d.config.frameRate });
+                // Follow the same guide hold as MapFeed on map only. The
+                // renderer limits this to its supported maneuver-panel slots,
+                // releases it with the map, and retains its guard/allowlist.
+                visible: false, prewarm: false, exclusive: true, contend: !panel, guide_hold: !panel && !hud, fps: d.config.frameRate });
             if (!this.ref) { this.refused = true; d.show = false; d.reason = 'renderer_refused'; return d; }
             this.layerState = 'waiting';
             this.layerRate = d.config.frameRate;

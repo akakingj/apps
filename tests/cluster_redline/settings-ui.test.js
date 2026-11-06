@@ -8,6 +8,7 @@ const { t } = require(path.join(dir, 'kit/i18n'));
 const spec = JSON.parse(fs.readFileSync(path.join(dir, 'kit/app-spec.json')));
 const data = {};spec.settings.forEach(s=>{data[s.key]=s.default});
 const saved={schema:spec.settings,get:k=>data[k],set:(k,v)=>{data[k]=v}};
+saved.set('displayTarget', 'panel'); // Keep the alternate-panel instruction regression.
 const page = new SettingsPage(saved, null, spec.version);
 const labels=[], original=Canvas.prototype.text;
 Canvas.prototype.text=function(value,x,y,size,color){labels.push({value:t(value),x,y,size,color});return original.apply(this,arguments)};

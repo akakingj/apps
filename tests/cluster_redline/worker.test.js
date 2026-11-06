@@ -90,8 +90,9 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
             assert.strictEqual(status().config.frameRate, 20); assert.strictEqual(delay, 50);
             assert.strictEqual(status().shift, false); assert.strictEqual(status().gear, withProgram ? 'S4' : 'D4', 'received programme and change-only gear are preserved');
             assert.strictEqual(status().torqueNm, 380); assert(status().powerPS > 100);
-            assert.deepStrictEqual(calls.filter((c) => Array.isArray(c)).map((c) => c[1].target), [target || 'panel']);
-            assert.strictEqual(status().targetName, target || 'panel');
+            assert.deepStrictEqual(calls.filter((c) => Array.isArray(c)).map((c) => c[1].target), [target || 'map']);
+            assert.strictEqual(status().targetName, target || 'map');
+            assert.strictEqual(status().guidanceRequested, !target || target === 'map');
             assert.strictEqual(status().rendererBackend, 'id7');
             assert(status().rendererTargets.includes('hud:800x480'), 'diagnostics record the native advertised targets');
             if (target === 'hud') assert.strictEqual(calls.find(c => Array.isArray(c))[1].iw, 800);

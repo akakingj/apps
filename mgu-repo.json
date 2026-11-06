@@ -40,7 +40,7 @@
       "kind": "app",
       "path": "apps/cluster_redline",
       "title": "계기판 레드라인 (한국어)",
-      "description": "계기판 또는 HUD 회전수·기어·변속 알림 · 큰 설정 버튼 · 렌더러 선행 설치",
+      "description": "지도 영역 선점 · 내비 안내 상자 숨김 · 확보 상태 표시 · 큰 설정 버튼",
       "mguHmi": [
         "ID7"
       ],
@@ -112,7 +112,7 @@
       "kind": "app",
       "path": "store/apps/cluster_redline_en",
       "title": "Cluster Redline (English)",
-      "description": "Cluster or HUD RPM, gear and shift alerts · larger settings controls · renderer installed first",
+      "description": "Stock-map takeover · guidance hold · acquisition status · large settings controls",
       "mguHmi": [
         "ID7"
       ],

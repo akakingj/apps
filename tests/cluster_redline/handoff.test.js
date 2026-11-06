@@ -40,6 +40,7 @@ try {
     assert.deepStrictEqual(waiting.ops(), ['hello', 'layer'], 'first visibility must wait while its frame is queued');
     assert.strictEqual(waiting.sent[1].contend, 1); assert.strictEqual(waiting.sent[1].visible, 0);
     assert.strictEqual(waiting.sent[1].target, 'map');
+    assert.strictEqual(waiting.sent[1].guide_hold, 1, 'guide hold must reach the native renderer on the wire');
     waiting.sock.emit('drain');
     assert.deepStrictEqual(waiting.ops(), ['hello', 'layer', 'frame', 'set']);
     assert.strictEqual(waiting.sent[3].visible, 1);

@@ -27,7 +27,7 @@ function checkPackage(file, id, version, start, language) {
     const spec = json(file, 'javascript/kit/app-spec.json');
     assert.strictEqual(spec.id, id);
     if (id.indexOf('cluster_redline') === 0) {
-        assert.strictEqual(spec.settings.find((s) => s.key === 'displayTarget').default, 'panel');
+        assert.strictEqual(spec.settings.find((s) => s.key === 'displayTarget').default, 'map');
         assert.strictEqual(spec.settings.find((s) => s.key === 'widgetScale').default, 80);
         assert(!spec.settings.some((s) => ['gearPrefix', 'redlineRpm', 'maxRpm', 'torqueScale', 'powerScale'].includes(s.key)));
         assert.strictEqual(spec.settings.find((s) => s.key === 'appEnabled').default, true);

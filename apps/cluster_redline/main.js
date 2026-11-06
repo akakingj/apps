@@ -6,6 +6,7 @@ const { t } = require('./kit/i18n');
 const { SettingsPage, W, H } = require('./settings-ui');
 const { configure } = require('./settings-chrome');
 const worker = require('./worker');
+const { mapStatus } = require('./output-status');
 const REASONS = {
     disabled: 'Automatic display off', renderer_unavailable: 'Waiting for cluster renderer',
     profile_unknown: 'Check engine profile', hybrid_engine_stopped: 'Hybrid engine stopped · hidden',
@@ -23,6 +24,12 @@ mgu.run({ async start(ctx) {
         if (old.appEnabled === undefined && old.autoSport === false) ctx.settings.set('appEnabled', false);
         if (old.renderer === 'software') ctx.settings.set('renderer', 'auto');
     } catch (e) {}
+    // Move the old panel default to the map takeover path once. Settings keeps
+    // private migration keys; later explicit panel choices and HUD are retained.
+    if (ctx.settings.get('_clusterMapV') !== 1) {
+        if (ctx.settings.get('displayTarget') === 'panel') ctx.settings.set('displayTarget', 'map');
+        ctx.settings.set('_clusterMapV', 1);
+    }
     let background = null, drawing = false, again = false;
     const page = new SettingsPage(ctx.settings, () => render().catch(report), ctx.spec.version);
     function report(e) { ctx.log.error('settings', e.message || e); }
@@ -45,7 +52,8 @@ mgu.run({ async start(ctx) {
             try { state = JSON.parse(fs.readFileSync(path.join(ctx.dataDir, 'cluster-redline-status.json'), 'utf8')); } catch (e) {}
             if (state && (!isFinite(Date.parse(state.at)) || Date.now() - Date.parse(state.at) > 5000)) state = null;
             const reason = !ctx.settings.get('appEnabled') ? 'disabled' : state && state.reason;
-            const cv = page.draw(ctx.canvas(W, H), t(REASONS[reason] || 'Waiting for background app'));
+            const targetStatus = reason !== 'disabled' && ctx.settings.get('displayTarget') === 'map' ? mapStatus(state) : null;
+            const cv = page.draw(ctx.canvas(W, H), t(targetStatus || REASONS[reason] || 'Waiting for background app'));
             page.targets = cv.targets;
             await Promise.all([
                 ctx.ui.text('BTN_VALUE_DOWN', page.open ? 'Cancel' : 'Value -'),
