@@ -50,7 +50,7 @@ for suffix in /var/opt/cluster-render/current/cluster-render.conf /var/opt/clust
     file="$task_root$suffix"
     if [ -r "$file" ]; then
         printf '%s\n' "PATH: $suffix"
-        grep -E '^[[:space:]]*(map_|panel_|status_path|log_file|dcsm_hmi_client_handle)' "$file" || :
+        grep -E '^[[:space:]]*(map_|panel_|hud_|guide_|targets[[:space:]]*=|generation[[:space:]]*=|scene_ids_allowed|guard_path|status_path|log_file|dcsm_hmi_client_handle)' "$file" || :
     fi
 done
 printf '%s\n' '=== BEFORE: RENDERER LOG TAIL ==='
@@ -87,7 +87,8 @@ $remoteScript = $remoteScript.Replace("`r", '')
 $remoteScript += "`n"
 
 Write-Host 'Capture takes about 55 seconds. Keep the car stationary.'
-Write-Host 'While capture runs, switch from Comfort/map view to Sport once.'
+Write-Host 'Choose the output to test (map, panel or HUD) in the app before capture.'
+Write-Host 'While capture runs, reproduce the missing display once, for example by switching Comfort to Sport.'
 Write-Host 'Leave the resulting display as it is until capture finishes.'
 Write-Host ('Report: ' + $reportPath)
 

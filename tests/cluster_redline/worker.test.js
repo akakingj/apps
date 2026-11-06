@@ -92,6 +92,8 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
             assert.strictEqual(status().torqueNm, 380); assert(status().powerPS > 100);
             assert.deepStrictEqual(calls.filter((c) => Array.isArray(c)).map((c) => c[1].target), [target || 'panel']);
             assert.strictEqual(status().targetName, target || 'panel');
+            assert.strictEqual(status().rendererBackend, 'id7');
+            assert(status().rendererTargets.includes('hud:800x480'), 'diagnostics record the native advertised targets');
             if (target === 'hud') assert.strictEqual(calls.find(c => Array.isArray(c))[1].iw, 800);
             // The settings UI is never opened in this test. Its visibility is irrelevant.
             mode({ actualValueModeDrivingExperience: 4 }); tick(2500);

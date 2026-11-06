@@ -36,8 +36,8 @@ with tempfile.TemporaryDirectory(prefix='cluster-log-') as temporary:
     root = Path(temporary)
     write(root, '/var/opt/cluster-render/current/component.json', json.dumps({'id': 'cluster-render', 'version': '0.3.11'}))
     write(root, '/var/opt/cluster-render/component.json', json.dumps({'id': 'cluster-render', 'version': '9.9.9'}))
-    write(root, '/var/opt/cluster-render/current/cluster-render.conf', 'map_take_over_stock = 1\npanel_take_over_stock = 0\n')
-    write(root, '/var/opt/cluster-render/cluster-render.local.conf', 'map_take_over_stock = 0\n')
+    write(root, '/var/opt/cluster-render/current/cluster-render.conf', 'map_take_over_stock = 1\npanel_take_over_stock = 0\nhud_slot = 0x323\nhud_take_over_stock = 0\ntargets = map,panel,hud\n')
+    write(root, '/var/opt/cluster-render/cluster-render.local.conf', 'map_take_over_stock = 0\nhud_take_over_stock = 1\n')
     write(root, '/run/cluster-render/status.txt', 'target map: parked behind stock\n')
     write(root, '/var/opt/cluster-render/log/cluster-render.log', 'target map: take-over 1: next no sooner than 1.5 s\n')
     for uid in ('12501', '12502'):
@@ -50,6 +50,8 @@ with tempfile.TemporaryDirectory(prefix='cluster-log-') as temporary:
     assert report.count('=== SAMPLE ') == 2
     assert report.count('target map: parked behind stock') == 2
     assert 'map_take_over_stock = 1' in report and 'map_take_over_stock = 0' in report
+    assert 'hud_slot = 0x323' in report and 'targets = map,panel,hud' in report
+    assert 'hud_take_over_stock = 0' in report and 'hud_take_over_stock = 1' in report, 'HUD defaults and owner overrides must be captured without changing them'
     assert report.count('take-over 1') == 2, 'Before and after tails'
     assert '12501' in report and '12502' in report, 'Must capture co-installed instances'
     assert 'CAPTURE END' in report

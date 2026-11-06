@@ -2,7 +2,7 @@
 
 한국어: [README.ko.md](README.ko.md)
 
-A background MGU app for cluster RPM and shift lights. Version **0.9.0** opens directly to **Basic settings / Advanced settings** and shows its running version in the header.
+A background MGU app for cluster RPM and shift lights. Version **0.9.1** opens directly to **Basic settings / Advanced settings** and shows its running version in the header.
 
 For stock-map takeover, choose **Advanced settings > Display layer > Map area (legacy)**
 and set **Instrument cluster > Central display area > Map view or Off**.
@@ -66,3 +66,5 @@ Choose **Advanced settings → Display layer → HUD (RPM / gear / shift)** to s
 Only the renderer's advertised iDrive 7 `hud:800x480` target is accepted. Factory HUD guidance is not forcibly displaced. Panel and HUD share a native scene ID, so this app requests only one at a time; simultaneous cluster/HUD output is not included. Actual G20 HUD placement and operation require car validation.
 
 [HUD setup and validation guide](../../docs/CLUSTER-REDLINE-0.9.0.ko.md)
+
+[0.9.1: HUD request arbitration fix and diagnostics](../../docs/CLUSTER-REDLINE-0.9.1.ko.md)

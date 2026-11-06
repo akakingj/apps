@@ -14,7 +14,7 @@ function inspect(root, io) {
     root = root || '/'; io = io || fs;
     const base = path.join(root, 'var/opt/cluster-render');
     const result = { minimum: MINIMUM, version: null, compatible: false, metadata: null,
-        localConfig: path.join(base, 'cluster-render.local.conf'), takeOverStock: true, reason: '' };
+        localConfig: path.join(base, 'cluster-render.local.conf'), takeOverStock: true, hudTakeOverStock: false, reason: '' };
     const candidates = [path.join(base, 'current/component.json'), path.join(base, 'component.json')];
     for (const file of candidates) {
         let source;
@@ -33,10 +33,10 @@ function inspect(root, io) {
     configs.forEach((file) => {
         try {
             io.readFileSync(file, 'utf8').split(/\r?\n/).forEach((line) => {
-                const m = line.match(/^\s*map_take_over_stock\s*=\s*([^#;\s]+)/);
-                if (m) result.takeOverStock = m[1] === '1' ? true : m[1] === '0' ? false : null;
+                const m = line.match(/^\s*(map|hud)_take_over_stock\s*=\s*([^#;\s]+)/);
+                if (m) result[m[1] === 'hud' ? 'hudTakeOverStock' : 'takeOverStock'] = m[2] === '1' ? true : m[2] === '0' ? false : null;
             });
-        } catch (e) {} // The service's documented default is 1 when no override exists.
+        } catch (e) {} // Keep each target's documented default when no readable override exists.
     });
     return result;
 }

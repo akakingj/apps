@@ -3,7 +3,7 @@
 English: [README.md](README.md)
 
 MGU에서 백그라운드로 동작하는 계기판 RPM·변속 알림 앱입니다.
-**0.9.0**는 앱을 열면 기본설정 / 상세설정 탭을 바로 표시하고, 상단에 실행 버전을 표시합니다.
+**0.9.1**는 앱을 열면 기본설정 / 상세설정 탭을 바로 표시하고, 상단에 실행 버전을 표시합니다.
 
 ![기본설정](../../screenshots/cluster_redline/settings-basic.png)
 ![상세설정](../../screenshots/cluster_redline/settings-advanced.png)
@@ -70,3 +70,5 @@ RPM·기어·변속 알림을 HUD로 보내며, 이 앱의 계기판 출력은 �
 순정 HUD 안내를 강제로 해제하지 않으며 실제 G20 HUD 위치·표시는 실차 확인이 필요합니다.
 
 [HUD 사용·검사 안내](../../docs/CLUSTER-REDLINE-0.9.0.ko.md)
+
+[0.9.1: HUD 출력 요청 수정과 로그 수집](../../docs/CLUSTER-REDLINE-0.9.1.ko.md)

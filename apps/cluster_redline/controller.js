@@ -73,9 +73,12 @@ class Controller {
                 // fails; a nonexclusive image is hidden during the rewrite.
                 // Alpha remains transparent over factory gauges. Other lower
                 // custom layers in this compositor target are suspended.
-                // HUD yields to factory guidance. Never request panel + HUD:
-                // they share a native scene ID on iDrive 7.
-                visible: false, prewarm: false, exclusive: true, contend: !panel && !hud, guide_hold: false, fps: d.config.frameRate });
+                // Map and HUD ask even while stock content owns their slot,
+                // matching Robertn's MapFeed. Forced stock unmapping is a
+                // separate renderer policy (HUD defaults to disabled); this
+                // app never changes it. Panel and HUD share a native scene ID,
+                // so only the selected target has a layer here.
+                visible: false, prewarm: false, exclusive: true, contend: !panel, guide_hold: false, fps: d.config.frameRate });
             if (!this.ref) { this.refused = true; d.show = false; d.reason = 'renderer_refused'; return d; }
             this.layerState = 'waiting';
             this.layerRate = d.config.frameRate;

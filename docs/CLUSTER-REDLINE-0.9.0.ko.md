@@ -68,3 +68,5 @@ notifier-only 회귀 검사와 네 언어별 공개 템플릿의 체크섬·스�
 ![HUD 변속 알림 데모](../screenshots/cluster_redline/hud-shift-on-black.png)
 
 ![HUD 선택 메뉴](../screenshots/cluster_redline/settings-hud.png)
+
+후속 버전: [0.9.1 HUD 출력 요청 수정](CLUSTER-REDLINE-0.9.1.ko.md). `contend` 설명은 버전별로 다릅니다.

@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Cluster or HUD RPM, gear and shift alerts with Basic/Advanced settings",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",

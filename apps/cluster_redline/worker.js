@@ -104,7 +104,7 @@ function start(ctx) {
                     reason: state.reason, mode: state.mode, rpm: state.rpm, shift: state.shift,
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
-                    renderer: rendererInfo, requestedSettings: raw,
+                    renderer: rendererInfo, rendererBackend: client.backend || null, rendererTargets: client.targets || '', requestedSettings: raw,
                     profile: config.engineProfile, config: config,
                     errors: errors.slice(-8), source: live ? 'live-someip' : 'offline-disabled',
                     gearSignals: gearbox.samples, transitions: controller.transitions,

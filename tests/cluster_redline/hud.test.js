@@ -23,7 +23,8 @@ let state = c.tick(1050, config);
 assert.strictEqual(state.requested, true); assert.strictEqual(state.gear, 'M4'); assert.strictEqual(state.shift, false);
 const image = client.events.filter(e => e[0] === 'image').pop()[2];
 assert.deepStrictEqual([image.target, image.iw, image.ih, image.x, image.y, image.w, image.h], ['hud', 800, 480, 80, 48, 640, 384]);
-assert.strictEqual(image.contend, false); assert.strictEqual(image.guide_hold, false);
+assert.strictEqual(image.contend, true, 'HUD must request the slot even when stock content owns it, matching upstream MapFeed');
+assert.strictEqual(image.guide_hold, false);
 assert.strictEqual(image.visible, false); assert.strictEqual(image.prewarm, false);
 client.emit('target', 'hud', 'parked', 'stock', 'guidance');
 state = c.tick(1100, config); assert.strictEqual(state.targetState, 'parked'); assert.strictEqual(state.targetHolder, 'stock');
@@ -63,4 +64,4 @@ for (const pair of [[normal,alert], [alert,normal], [normal,hud.draw(Object.assi
 assert.strictEqual(hud.difference(Buffer.from(normal.d),Buffer.from(normal.d)).rects.length,0);
 const outDir = process.argv[3];
 if (outDir) { fs.mkdirSync(outDir,{recursive:true}); fs.writeFileSync(path.join(outDir,'hud-rpm.png'),normal.png()); fs.writeFileSync(path.join(outDir,'hud-shift.png'),alert.png()); }
-console.log('PASS: exclusive cluster/HUD switching, exact ID7 HUD geometry, factory-guidance yield, first-frame ordering, live gear/shift gates, transparent HUD and exact cropped deltas');
+console.log('PASS: exclusive cluster/HUD switching, exact ID7 HUD geometry, contending HUD request without changing native takeover policy, first-frame ordering, live gear/shift gates, transparent HUD and exact cropped deltas');

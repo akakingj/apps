@@ -35,9 +35,9 @@ def main():
     files += [Path('tools') / p for p in ('cluster-redline-preview.js', 'cluster-redline-preflight.js',
                                        'cluster-redline-settings-preview.js', 'collect-cluster-redline.ps1', 'collect-redline-install.ps1', 'install-overlay.py', 'upstream-integration.py')]
     files += [Path('tests') / p for p in ('metadata.test.js', 'standard-installer.test.py',
-                                       'standard-kit.test.py', 'overlay.test.py', 'collect-cluster-redline.test.py', 'collect-redline-install.test.py', 'cluster-redline-manifest.test.py')]
+                                       'standard-kit.test.py', 'overlay.test.py', 'collect-cluster-redline.test.py', 'collect-redline-install.test.py', 'cluster-redline-manifest.test.py', 'hud-slot-request.test.py')]
     files += [Path(p) for p in ('docs/JAM-INTEGRATION.ko.md', 'docs/VALIDATION.ko.md', 'docs/CLUSTER-REDLINE-0.4.0.ko.md', 'docs/CLUSTER-REDLINE-0.5.0.ko.md', 'docs/CLUSTER-REDLINE-0.6.0.ko.md', 'docs/CLUSTER-REDLINE-0.7.0.ko.md', 'localization/ko-additions.tsv',
-              'docs/CLUSTER-REDLINE-0.8.0.ko.md', 'docs/CLUSTER-REDLINE-0.8.2.ko.md', 'docs/CLUSTER-REDLINE-0.8.3.ko.md', 'docs/CLUSTER-REDLINE-0.8.4.ko.md', 'docs/CLUSTER-REDLINE-0.8.5.ko.md', 'docs/CLUSTER-REDLINE-0.8.7.ko.md', 'docs/CLUSTER-REDLINE-0.9.0.ko.md', 'docs/REDLINE-INSTALL-FAILED.ko.md', 'docs/COLLECT-CLUSTER-REDLINE.ko.md', 'docs/CLUSTER-OVERLAY-RESEARCH.ko.md', 'docs/AUTO-RENDERER.ko.md', 'LICENSES/MPL-2.0.txt', 'NOTICE.cluster-redline.md')]
+              'docs/CLUSTER-REDLINE-0.8.0.ko.md', 'docs/CLUSTER-REDLINE-0.8.2.ko.md', 'docs/CLUSTER-REDLINE-0.8.3.ko.md', 'docs/CLUSTER-REDLINE-0.8.4.ko.md', 'docs/CLUSTER-REDLINE-0.8.5.ko.md', 'docs/CLUSTER-REDLINE-0.8.7.ko.md', 'docs/CLUSTER-REDLINE-0.9.0.ko.md', 'docs/CLUSTER-REDLINE-0.9.1.ko.md', 'docs/REDLINE-INSTALL-FAILED.ko.md', 'docs/COLLECT-CLUSTER-REDLINE.ko.md', 'docs/CLUSTER-OVERLAY-RESEARCH.ko.md', 'docs/AUTO-RENDERER.ko.md', 'LICENSES/MPL-2.0.txt', 'NOTICE.cluster-redline.md')]
     conflicts = [str(p) for p in files if (target / p).exists() and
                  ((target / p).is_dir() or (target / p).read_bytes() != (HERE / p).read_bytes())]
     if conflicts and not args.force:
