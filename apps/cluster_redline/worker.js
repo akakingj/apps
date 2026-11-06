@@ -28,6 +28,7 @@ function start(ctx) {
     let config = settings(), lastStatus = -Infinity, stopped = false, timer;
     let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub, fesSub, programSub;
     const subs = [], errors = [];
+    function keep(s) { if (stopped) s.shutdown(); else subs.push(s); }
     const reportError = (name, e) => { const s = name + ': ' + e; if (errors.indexOf(s) < 0) { errors.push(s); log.warn(s); } };
     const live = signals && typeof signals.hasNative === 'function' && signals.hasNative();
     if (!live) reportError('someip', 'live native binding unavailable; cluster output disabled');
@@ -46,16 +47,16 @@ function start(ctx) {
                 const raw = v && v.actualValueRPMEngineCrankshaft;
                 controller.policy.rpmSample(typeof raw === 'number' && raw >= 0 && raw < 65535 ? raw * 0.25 : null, mono());
             },
-        }, log, { pollMs: 1000 }).then((s) => { subs.push(s); if (s.error) reportError(CDS, s.error); }).catch((e) => reportError(CDS, e));
+        }, log, { pollMs: 1000 }).then((s) => { keep(s); if (s.error) reportError(CDS, s.error); }).catch((e) => reportError(CDS, e));
         const handlers = {};
         handlers[MODE_FIELD] = (v) => controller.policy.modeSample(v && v.actualValueModeDrivingExperience, mono());
         handlers.statusActualValueTorque2 = (v) => controller.telemetry.sample(v && v.actualValueTorqueCrankshaft, mono());
-        signals.watch(FES, '1', handlers, log, { pollMs: 1000 }).then((s) => { fesSub = s; subs.push(s); if (s.error) reportError(FES, s.error); }).catch((e) => reportError(FES, e));
+        signals.watch(FES, '1', handlers, log, { pollMs: 1000 }).then((s) => { fesSub = s; keep(s); if (s.error) reportError(FES, s.error); }).catch((e) => reportError(FES, e));
         signals.watch(VEHICLE_INFO, '1', {
             statusGearboxDrive: (v) => gearbox.sample('gearbox', v),
             DataPowerTrain2: (v) => gearbox.sample('selection', v),
         }, log, { pollMs: 1000 }).then((s) => {
-            gearSub = s; subs.push(s);
+            gearSub = s; keep(s);
             if (s.error) { controller.gear = '--'; reportError('optional gear', s.error); }
         }).catch((e) => { controller.gear = '--'; reportError('optional gear', e); });
         // Some cars publish S/M only through MDrive. The Store build omits
@@ -64,11 +65,13 @@ function start(ctx) {
         try { const cfg = signals.loadConfig(MDRIVE); hasProgram = !!(cfg.fields && cfg.fields.dataDisplayGearbox); } catch (e) {}
         if (hasProgram) signals.watch(MDRIVE, '1', {
             dataDisplayGearbox: (v) => gearbox.sample('programme', v),
-        }, log, { pollMs: 1000 }).then((s) => { programSub = s; subs.push(s); if (s.error) reportError('optional gearbox programme', s.error); }).catch((e) => reportError('optional gearbox programme', e));
+        }, log, { pollMs: 1000 }).then((s) => { programSub = s; keep(s); if (s.error) reportError('optional gearbox programme', s.error); }).catch((e) => reportError('optional gearbox programme', e));
     }
     function stop() {
         if (stopped) return;
         stopped = true; clearTimeout(timer); controller.close();
+        process.removeListener('exit', stop);
+        if (ctx.app && ctx.app.removeListener) ctx.app.removeListener('shutdown', stop);
         subs.forEach((s) => { try { s.shutdown(); } catch (e) {} });
         try { atomic(path.join(ctx.dataDir, 'cluster-redline-status.json'), { at: new Date().toISOString(), reason: 'stopped', requested: false, layerState: 'hidden' }); } catch (e) {}
     }

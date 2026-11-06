@@ -2,14 +2,20 @@
 // This module never talks to the vehicle or renderer; its inputs must be live.
 const PROFILES = {
     petrol: { label: 'Petrol', shiftRpm: 6500, redlineRpm: 6000, maxRpm: 7000,
+        torqueScale: 500, powerScale: 300,
         ranges: { shiftRpm: [2000, 7500], redlineRpm: [3000, 8500], maxRpm: [4000, 10000] } },
     diesel: { label: 'Diesel', shiftRpm: 4200, redlineRpm: 5000, maxRpm: 6000,
+        torqueScale: 700, powerScale: 300,
         ranges: { shiftRpm: [2000, 5000], redlineRpm: [3000, 5500], maxRpm: [4000, 7000] } },
-    hybrid: { label: 'Hybrid', shiftRpm: 6500, redlineRpm: 7000, maxRpm: 8000,
+    hybrid: { label: 'eDrive (PHEV)', shiftRpm: 6500, redlineRpm: 7000, maxRpm: 8000,
+        torqueScale: 600, powerScale: 400,
+        ranges: { shiftRpm: [2000, 7500], redlineRpm: [3000, 8500], maxRpm: [4000, 10000] } },
+    m: { label: 'M', shiftRpm: 7000, redlineRpm: 7000, maxRpm: 9000,
+        torqueScale: 800, powerScale: 600,
         ranges: { shiftRpm: [2000, 7500], redlineRpm: [3000, 8500], maxRpm: [4000, 10000] } },
 };
 // Zero RPM settings mean the selected profile's defaults, rather than engine-off.
-const DEFAULTS = { autoSport: true, engineProfile: 'petrol', shiftRpm: 0, redlineRpm: 0, maxRpm: 0, frameRate: 12, displayTarget: 'panel', widgetScale: 80, gearPrefix: 'auto', torqueScale: 500, powerScale: 300 };
+const DEFAULTS = { appEnabled: true, engineProfile: 'petrol', displayMode: 'sport', powerUnit: 'PS', torqueUnit: 'Nm', shiftRpm: 0, frameRate: 12, displayTarget: 'panel', widgetScale: 80 };
 const MODES = { 1: 'SPORT', 2: 'SPORT_PLUS', 3: 'SPORT_INDIVIDUAL', 4: 'COMFORT', 5: 'COMFORT_PLUS',
     6: 'COMFORT_INDIVIDUAL', 7: 'ECO_PRO', 8: 'ECO_PRO_PLUS', 9: 'ECO_PRO_INDIVIDUAL', 10: 'ADAPTIVE',
     SPORT_DYNAMIC: 'SPORT', SPORT_EXPERT: 'SPORT_PLUS', SPORT_INDIVIDUAL: 'SPORT_INDIVIDUAL',
@@ -18,22 +24,25 @@ const SPORT = ['SPORT', 'SPORT_PLUS', 'SPORT_INDIVIDUAL'];
 function settings(raw) {
     raw = raw || {};
     const out = Object.assign({}, DEFAULTS);
-    if (Object.prototype.hasOwnProperty.call(raw, 'autoSport')) out.autoSport = raw.autoSport === true;
+    // Retain an old owner's OFF choice; removed manual scales/prefixes are ignored.
+    if (typeof raw.appEnabled === 'boolean') out.appEnabled = raw.appEnabled;
+    else if (raw.autoSport === false) out.appEnabled = false;
+    if (['sport', 'all'].indexOf(raw.displayMode) >= 0) out.displayMode = raw.displayMode;
+    if (['PS', 'kW'].indexOf(raw.powerUnit) >= 0) out.powerUnit = raw.powerUnit;
+    if (['Nm', 'kgfm'].indexOf(raw.torqueUnit) >= 0) out.torqueUnit = raw.torqueUnit;
     if (Object.prototype.hasOwnProperty.call(raw, 'engineProfile')) {
         out.engineProfile = typeof raw.engineProfile === 'string' && Object.prototype.hasOwnProperty.call(PROFILES, raw.engineProfile)
             ? raw.engineProfile : 'unknown';
     }
     const profile = PROFILES[out.engineProfile] || PROFILES.petrol;
-    ['shiftRpm', 'redlineRpm', 'maxRpm'].forEach((key) => {
+    ['shiftRpm'].forEach((key) => {
         const value = raw[key], range = profile.ranges[key];
         out[key] = typeof value === 'number' && isFinite(value) && value >= range[0] && value <= range[1] ? value : profile[key];
     });
+    ['redlineRpm', 'maxRpm', 'torqueScale', 'powerScale'].forEach((key) => { out[key] = profile[key]; });
     if (typeof raw.frameRate === 'number' && isFinite(raw.frameRate) && Math.floor(raw.frameRate) === raw.frameRate && raw.frameRate >= 2 && raw.frameRate <= 60) out.frameRate = raw.frameRate;
     if (Object.prototype.hasOwnProperty.call(raw, 'displayTarget')) out.displayTarget = ['map', 'panel'].indexOf(raw.displayTarget) >= 0 ? raw.displayTarget : 'unknown';
     if ([60, 65, 70, 75, 80, 85, 90, 100].indexOf(raw.widgetScale) >= 0) out.widgetScale = raw.widgetScale;
-    if (['auto', 'D', 'S', 'M'].indexOf(raw.gearPrefix) >= 0) out.gearPrefix = raw.gearPrefix;
-    if (typeof raw.torqueScale === 'number' && isFinite(raw.torqueScale) && raw.torqueScale >= 300 && raw.torqueScale <= 1500) out.torqueScale = raw.torqueScale;
-    if (typeof raw.powerScale === 'number' && isFinite(raw.powerScale) && raw.powerScale >= 200 && raw.powerScale <= 1000) out.powerScale = raw.powerScale;
     // Red-zone start and shift alert are independent display settings.
     out.maxRpm = Math.max(out.maxRpm, out.redlineRpm);
     return out;
@@ -55,18 +64,19 @@ class Policy {
     evaluate(now, ready, config) {
         const cfg = settings(config);
         const fresh = (at, ttl) => at !== null && now >= at && now - at <= ttl;
-        let reason = 'sport';
-        if (!cfg.autoSport) reason = 'disabled';
+        let reason = cfg.displayMode === 'all' ? 'all_modes' : 'sport';
+        if (!cfg.appEnabled) reason = 'disabled';
         else if (!Object.prototype.hasOwnProperty.call(PROFILES, cfg.engineProfile)) reason = 'profile_unknown';
         else if (!ready) reason = 'renderer_unavailable';
         else if (!fresh(this.modeAt, 3500)) reason = 'mode_unknown';
-        else if (SPORT.indexOf(this.mode) < 0) reason = 'not_sport';
+        else if (cfg.displayMode === 'sport' && SPORT.indexOf(this.mode) < 0) reason = 'not_sport';
         else if (!fresh(this.rpmAt, 1800)) reason = 'rpm_unknown';
         else if (this.rpm < 100) reason = cfg.engineProfile === 'hybrid' ? 'hybrid_engine_stopped' : 'engine_stopped';
         else if (this.rpm > cfg.maxRpm + 1000) reason = 'rpm_invalid';
-        else if (this.sportSince === null || now - this.sportSince < 1000) reason = 'stabilizing';
-        return { show: reason === 'sport', reason: reason, mode: this.mode, rpm: this.rpm,
-            shift: reason === 'sport' && this.rpm >= cfg.shiftRpm, config: cfg };
+        else if (cfg.displayMode === 'sport' && (this.sportSince === null || now - this.sportSince < 1000)) reason = 'stabilizing';
+        const show = reason === 'sport' || reason === 'all_modes';
+        return { show: show, reason: reason, mode: this.mode, rpm: this.rpm,
+            shift: show && this.rpm >= cfg.shiftRpm, config: cfg };
     }
 }
 module.exports = { Policy, DEFAULTS, PROFILES, settings, modeOf, SPORT };

@@ -1,48 +1,45 @@
 'use strict';
-const assert = require('assert');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
+const assert = require('assert'), fs = require('fs'), os = require('os'), path = require('path');
 const { settings } = require('../../apps/cluster_redline/policy');
 const project = path.resolve(process.argv[2] || '');
-const stage = path.resolve(process.argv[3] || path.join(__dirname, '../../dist/cluster_redline'));
+const stage = path.resolve(process.argv[3] || path.join(project, 'dist/cluster_redline'));
 if (!process.argv[2]) throw new Error('Pass the original idrive7-apps project path');
 const { headUnit } = require(path.join(project, 'kit/tools/hu-stub'));
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cluster-profile-'));
-// Simulate a 0.1.x owner with manual petrol limits. Upgrading must retain them.
-fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ shiftRpm: 6200, redlineRpm: 6800, maxRpm: 8000 }));
-const hu = headUnit(stage, { dataDir: dir, image: async () => {}, log: { info() {}, warn() {}, error() {} } });
+// Saved shift threshold survives; retired scales/prefixes must no longer override presets.
+fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ shiftRpm: 6200, redlineRpm: 6800, maxRpm: 8000, gearPrefix: 'S', torqueScale: 1500, autoSport: false }));
+let frames = 0;
+const hu = headUnit(stage, { dataDir: dir, image: async () => { frames++; }, log: { info() {}, warn() {}, error() {} } });
 function effective() {
-    const raw = {};
-    ['autoSport', 'engineProfile', 'shiftRpm', 'redlineRpm', 'maxRpm', 'frameRate', 'displayTarget', 'widgetScale', 'gearPrefix', 'torqueScale', 'powerScale'].forEach((k) => { raw[k] = hu.settings.get(k); });
-    return settings(raw);
+    const raw = {}; hu.spec.settings.forEach((s) => { raw[s.key] = hu.settings.get(s.key); }); return settings(raw);
 }
 (async () => {
     try {
-        hu.start();
-        await new Promise((r) => setTimeout(r, 30));
-        assert.strictEqual(effective().engineProfile, 'petrol');
+        hu.start(); await new Promise((r) => setTimeout(r, 30));
+        assert(frames > 0, 'actual app entry must draw settings on startup');
+        assert.strictEqual(effective().appEnabled, false, 'legacy OFF must survive upgrade');
+        const listeners = process.listenerCount('exit');
+        hu.settings.set('appEnabled', true); assert.strictEqual(process.listenerCount('exit'), listeners + 1);
+        hu.settings.set('appEnabled', false); assert.strictEqual(process.listenerCount('exit'), listeners, 'OFF must stop its worker and remove the shutdown listener');
         assert.strictEqual(effective().shiftRpm, 6200);
-        assert.strictEqual(effective().redlineRpm, 6800);
-        assert.strictEqual(effective().displayTarget, 'panel');
-        assert.strictEqual(effective().widgetScale, 80);
-        hu.settings.set('widgetScale', 65); assert.strictEqual(effective().widgetScale, 65);
-        hu.settings.set('gearPrefix', 'S'); assert.strictEqual(effective().gearPrefix, 'S');
-        for (const rate of [12, 30, 60]) {
-            hu.settings.set('frameRate', rate); assert.strictEqual(effective().frameRate, rate);
-        }
-        hu.settings.set('displayTarget', 'map'); assert.strictEqual(effective().displayTarget, 'map');
-        hu.settings.set('shiftRpm', 2000);
-        assert.strictEqual(effective().shiftRpm, 2000, 'real settings UI must preserve a selected 2000 rpm threshold');
-        hu.settings.set('engineProfile', 'diesel');
-        for (const k of ['shiftRpm', 'redlineRpm', 'maxRpm']) assert.strictEqual(hu.settings.get(k), 0);
-        assert.strictEqual(effective().shiftRpm, 4200); assert.strictEqual(effective().maxRpm, 6000);
-        hu.settings.set('shiftRpm', 4500); assert.strictEqual(effective().shiftRpm, 4500);
-        hu.settings.set('engineProfile', 'hybrid');
-        assert.strictEqual(effective().shiftRpm, 6500);
+        assert.strictEqual(effective().redlineRpm, 6000); assert.strictEqual(effective().maxRpm, 7000);
+        assert.strictEqual(effective().gearPrefix, undefined); assert.strictEqual(effective().torqueScale, 500);
+        assert.strictEqual(effective().displayTarget, 'panel'); assert.strictEqual(effective().widgetScale, 80);
+        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); // petrol -> diesel
+        assert.strictEqual(effective().engineProfile, 'diesel'); assert.strictEqual(hu.settings.get('shiftRpm'), 0);
+        assert.strictEqual(effective().shiftRpm, 4200); assert.strictEqual(effective().torqueScale, 700);
+        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().displayMode, 'all');
+        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().powerUnit, 'kW');
+        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().torqueUnit, 'kgfm');
+        hu.handlers.BTN_ADVANCED(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().shiftRpm, 2000);
+        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().frameRate, 30);
+        hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().frameRate, 60);
+        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().displayTarget, 'map');
+        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_DOWN(); assert.strictEqual(effective().widgetScale, 75);
         const saved = JSON.parse(fs.readFileSync(path.join(dir, 'settings.json')));
-        assert.strictEqual(saved.engineProfile, 'hybrid'); assert.strictEqual(saved.shiftRpm, 0);
-        console.log('PASS: actual settings UI preserves old petrol choices, resets limits on profile switch and persists the new profile');
+        for (const key of ['appEnabled', 'engineProfile', 'displayMode', 'powerUnit', 'torqueUnit', 'shiftRpm', 'frameRate', 'displayTarget', 'widgetScale']) assert.strictEqual(saved[key], hu.settings.get(key), 'persisted setting '+key);
+        assert(!hu.spec.settings.some(s => ['gearPrefix','redlineRpm','maxRpm','torqueScale','powerScale','autoSport'].includes(s.key)));
+        console.log('PASS: actual bilingual-ready entry/UI, legacy OFF and shift migration, preset reset, both tabs, all nine native bar controls and persistence');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
-    process.exit(0); // demo/background timers belong to this one-shot test process
+    process.exit(0);
 })().catch((e) => { console.error(e); fs.rmSync(dir, { recursive: true, force: true }); process.exit(1); });

@@ -3,7 +3,7 @@ const assert = require('assert');
 const { EventEmitter } = require('events');
 const { Policy, PROFILES, settings } = require('../../apps/cluster_redline/policy');
 const { Controller } = require('../../apps/cluster_redline/controller');
-const expected = { petrol: [6500, 6000, 7000], diesel: [4200, 5000, 6000], hybrid: [6500, 7000, 8000] };
+const expected = { petrol: [6500, 6000, 7000], diesel: [4200, 5000, 6000], hybrid: [6500, 7000, 8000], m: [7000, 7000, 9000] };
 Object.keys(expected).forEach((profile) => {
     const low = settings({ engineProfile: profile, shiftRpm: 2000 });
     assert.strictEqual(low.shiftRpm, 2000, '2000 rpm offered by the UI must not silently become a profile default');
@@ -58,4 +58,4 @@ assert.strictEqual(diesel.show, true); assert.strictEqual(diesel.shift, true); a
 c.tick(2300, { engineProfile: 'diesel', frameRate: 4 });
 assert.strictEqual(client.made[client.made.length - 1].fps, 4, 'frame-rate changes must reach the renderer');
 c.close();
-console.log('PASS: one app / three profiles, per-profile presets, custom ranges, hybrid engine-off hide, unknown-profile hide and live profile-switch cleanup');
+console.log('PASS: one app / four presets, per-profile presets, custom ranges, hybrid engine-off hide, unknown-profile hide and live profile-switch cleanup');

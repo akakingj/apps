@@ -8,7 +8,7 @@ const { settings } = require('../../apps/cluster_redline/policy');
 const { Controller } = require('../../apps/cluster_redline/controller');
 const source = fs.readFileSync(path.join(__dirname, '../../apps/cluster_redline/worker.js'), 'utf8');
 
-async function scenario(live, version, backend, withProgram) {
+async function scenario(live, version, backend, withProgram, stopEarly) {
     withProgram = withProgram !== false;
     backend = backend || 'id7';
     let time = 0, timer, client, watches = 0, shutdowns = 0;
@@ -39,7 +39,7 @@ async function scenario(live, version, backend, withProgram) {
         if (name === './renderer') return require('../../apps/cluster_redline/renderer');
         if (name === './gear') return require('../../apps/cluster_redline/gear');
         throw new Error('Unexpected dependency ' + name);
-    }, process: { hrtime: () => [Math.floor(time / 1000), Math.floor((time % 1000) * 1000000)], once() {} },
+    }, process: { hrtime: () => [Math.floor(time / 1000), Math.floor((time % 1000) * 1000000)], once() {}, removeListener() {} },
     setTimeout: (fn) => { timer = fn; return 1; }, clearTimeout: () => { timer = null; }, console };
     vm.runInNewContext(source, box, { filename: 'worker.js' });
     const worker = box.module.exports.start({
@@ -52,6 +52,13 @@ async function scenario(live, version, backend, withProgram) {
             return Promise.resolve(sub);
         } },
     });
+    if (stopEarly) {
+        worker.stop();
+        await Promise.resolve();
+        assert.strictEqual(timer, null); assert.strictEqual(shutdowns, watches, 'late subscriptions must shut down after OFF');
+        assert.strictEqual(app.listenerCount('shutdown'), 0);
+        return;
+    }
     await Promise.resolve();
     const status = () => JSON.parse(files[path.join('/data', 'cluster-redline-status.json')]);
     const tick = (at) => { time = at; assert(timer); const fn = timer; timer = null; fn(); };
@@ -87,7 +94,7 @@ async function scenario(live, version, backend, withProgram) {
             subscriptions['de.bmw.infrastructure.VehicleInformation'].available = false;
             mode({ actualValueModeDrivingExperience: 1 }); rpm({ actualValueRPMEngineCrankshaft: 24000 }); tick(3600);
             assert.strictEqual(status().gear, '--', 'provider loss must clear the last gear');
-            config.autoSport = false; tick(4200); assert.strictEqual(status().requested, false);
+            config.appEnabled = false; tick(4200); assert.strictEqual(status().requested, false);
         } else {
             assert.strictEqual(status().requested, false);
             if (!['0.3.10', '0.4.0'].includes(version)) assert.strictEqual(calls.indexOf('connect'), -1);
@@ -105,5 +112,6 @@ async function scenario(live, version, backend, withProgram) {
     await scenario(true, '0.3.10', 'id7', false);
     await scenario(true, '0.3.10', 'id8');
     await scenario(false, '0.3.10');
+    await scenario(true, '0.3.10', 'id7', true, true);
     console.log('PASS: real worker live-field adapters, raw RPM scale, background sport-only output, master OFF, old-renderer refusal, offline no-connect and platform shutdown');
 })().catch((e) => { console.error(e); process.exit(1); });

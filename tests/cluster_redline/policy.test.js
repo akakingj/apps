@@ -27,7 +27,7 @@ p.rpmSample(4200, 1000); assert.strictEqual(p.evaluate(3000, true).show, false, 
 p.rpmSample(4200, 4000); assert.strictEqual(p.evaluate(4000, true).show, false, 'stale mode must hide');
 assert.strictEqual(modeOf('invalid'), null);
 assert.strictEqual(settings({ shiftRpm: 'bad' }).shiftRpm, settings().shiftRpm);
-assert.strictEqual(settings({ autoSport: 0 }).autoSport, false);
+assert.strictEqual(settings({ appEnabled: false }).appEnabled, false);
 assert.strictEqual(modeOf({ toString: () => '1' }), null);
 const stale = new Policy(); stale.modeSample(1, 0); stale.rpmSample(4200, 4000);
 stale.modeSample(1, 4000); assert.strictEqual(stale.evaluate(4000, true).show, false, 'resuming a stale mode needs confirmation again');

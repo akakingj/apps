@@ -1,0 +1,34 @@
+'use strict';
+const assert = require('assert');
+const { Policy, PROFILES, settings } = require('../../apps/cluster_redline/policy');
+const { gauges, PS_TO_KW, NM_PER_KGFM } = require('../../apps/cluster_redline/units');
+const legacy = settings({ autoSport: false, gearPrefix: 'M', redlineRpm: 8000, maxRpm: 10000, torqueScale: 1500, powerScale: 1000 });
+assert.strictEqual(legacy.appEnabled, false);
+assert.deepStrictEqual([legacy.redlineRpm, legacy.maxRpm, legacy.torqueScale, legacy.powerScale], [6000, 7000, 500, 300]);
+assert.strictEqual(legacy.gearPrefix, undefined);
+for (const profile of Object.keys(PROFILES)) {
+    const cfg = settings({ engineProfile: profile });
+    assert.strictEqual(cfg.torqueScale, PROFILES[profile].torqueScale);
+    assert.strictEqual(cfg.powerScale, PROFILES[profile].powerScale);
+    assert.deepStrictEqual(settings(cfg), cfg);
+}
+const p = new Policy();
+p.modeSample(4, 1000); p.rpmSample(2500, 1000);
+assert.strictEqual(p.evaluate(1000, true).show, false);
+const all = { displayMode: 'all', shiftRpm: 2000 };
+assert.strictEqual(p.evaluate(1000, true, all).show, true);
+assert.strictEqual(p.evaluate(1000, true, all).shift, true);
+assert.strictEqual(p.evaluate(1000, true, { displayMode: 'all', appEnabled: false }).show, false);
+p.rpmSample(0, 1100); assert.strictEqual(p.evaluate(1100, true, all).show, false);
+p.rpmSample(2500, 1200); assert.strictEqual(p.evaluate(3101, true, all).show, false);
+p.modeSample(null, 3102); p.rpmSample(2500, 3102); assert.strictEqual(p.evaluate(3102, true, all).show, false);
+const state = { torqueNm: 400, torquePeak: 450, powerPS: 258, powerPeak: 280, config: settings() };
+const native = gauges(state);
+const converted = gauges(Object.assign({}, state, { config: settings({ torqueUnit: 'kgfm', powerUnit: 'kW' }) }));
+assert(Math.abs(converted.torque.value - 40.7886485) < 1e-6);
+assert(Math.abs(converted.power.value - 189.7586775) < 1e-6);
+assert(Math.abs(converted.torque.peak - 450 / NM_PER_KGFM) < 1e-10);
+assert(Math.abs(converted.power.peak - 280 * PS_TO_KW) < 1e-10);
+for (const k of ['torque', 'power']) assert(Math.abs(native[k].value / native[k].maximum - converted[k].value / converted[k].maximum) < 1e-12, 'changing units must preserve the physical bar fraction');
+assert.strictEqual(gauges({ torqueNm: null, powerPS: null, config: settings({ powerUnit: 'kW' }) }).power.value, null);
+console.log('PASS: four preset scales, removed settings ignored, Sport/all-mode gating, master OFF, stale/unknown inputs and real value/peak/scale unit conversion');

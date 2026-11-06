@@ -36,7 +36,7 @@ class Controller {
         } else if (this.ref && (this.layerRate !== cfg.frameRate || this.targetName !== cfg.displayTarget || this.layerScale !== cfg.widgetScale)) this.hide();
         this.profile = cfg.engineProfile;
         const d = this.policy.evaluate(now, this.client.ready && !this.refused, cfg);
-        d.gear = gear.display(this.gear, this.gearMode, cfg.gearPrefix);
+        d.gear = gear.display(this.gear, this.gearMode, 'auto');
         Object.assign(d, this.telemetry.read(d.rpm, now));
         d.targetName = cfg.displayTarget;
         const target = this.targetStates[cfg.displayTarget] || {};
@@ -80,7 +80,7 @@ class Controller {
         }
         // Do not repaint a whole canvas 60 times/s when no source value changed.
         // Keep freshness/mode checks above this cache so stale signals still hide.
-        const paintKey = [d.rpm, d.shift, d.gear, d.torqueNm, d.powerPS, d.torquePeak, d.powerPeak, cfg.shiftRpm, cfg.redlineRpm, cfg.maxRpm, cfg.torqueScale, cfg.powerScale].join('|');
+        const paintKey = [d.rpm, d.shift, d.gear, d.torqueNm, d.powerPS, d.torquePeak, d.powerPeak, cfg.shiftRpm, cfg.redlineRpm, cfg.maxRpm, cfg.torqueScale, cfg.powerScale, cfg.torqueUnit, cfg.powerUnit].join('|');
         if (this.previous && this.paintKey === paintKey) return Object.assign(d, { requested: true, layerState: this.layerState });
         if (this.previous && !this.upload.ready(now)) return Object.assign(d, { requested: true, layerState: this.layerState });
         const canvas = this.painter.draw(d), pixels = Buffer.from(canvas.d);

@@ -106,3 +106,26 @@ Power*	마력*
 Waiting for stable live signals	주행 신호가 안정되기를 기다리는 중
 Last display change	최근 표시 변경
 Upload waits	전송 대기
+Basic settings	기본설정
+Advanced settings	상세설정
+App auto start	앱 자동 켜짐
+Vehicle preset	차량 프리셋
+eDrive (PHEV)	eDrive (플러그인 하이브리드)
+Display mode	표시 모드
+Sport modes only	스포츠 모드만
+All drive modes	전체 모드
+Power unit	마력 단위
+Torque unit	토크 단위
+Preset default	프리셋 기본값
+Set Instrument cluster > Central display area to Off for correct operation.	계기판 → 중심 표시 영역을 [꺼짐]으로 바꿔야 정상 작동합니다.
+Presets set gauge scales; eDrive shows engine output only, not combined output.	프리셋은 표시용 눈금입니다. eDrive는 합산 출력이 아닌 엔진 출력만 표시합니다.
+Refresh rate is a requested limit; actual output depends on the car.	갱신 속도는 요청 상한이며 실제 출력 속도는 차량에 따라 달라집니다.
+All drive modes · display requested	전체 모드 · 표시 요청
+Previous item	이전 항목
+Next item	다음 항목
+Value -	값 -
+Value +	값 +
+Selected	선택됨
+Status	상태
+Cancel	취소
+Select	선택

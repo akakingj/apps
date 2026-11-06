@@ -1,5 +1,20 @@
 # Changelog
 
+## Cluster Redline 0.8.1
+
+- Match the Live Data header: title and Basic/Advanced tabs in one strip.
+- Use a plain black list, thin dividers, M color strip and subtle red selection.
+- Keep orange setup guidance, setting behavior and native bar fallback controls.
+
+## Cluster Redline 0.8.0
+
+- Add Basic/Advanced settings tabs and an orange Central display area Off instruction.
+- Add a persisted output-worker switch, Sport/all-mode selection and Petrol/Diesel/eDrive/M display presets.
+- Convert power/torque values, peaks and scales for PS/kW and Nm/kgf·m.
+- Retire manual gearbox prefixes and RPM/torque/power scales; use received programmes and preset scales.
+- Preserve legacy OFF and shift settings, shut down late subscriptions, and keep native RHMI controls.
+- Document ongoing stock-map/Assisted Driving View overlay investigation; no claimed fix for scene priority.
+
 ## 1.3.1
 
 - Cluster Redline 0.4.1: G20 330i petrol scale maximum 7000 rpm and red zone from 6000 rpm.

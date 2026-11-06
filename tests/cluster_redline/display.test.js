@@ -47,6 +47,9 @@ assert.strictEqual(client.made[client.made.length - 1].w, 653, 'owner can reduce
 c.tick(1260, { widgetScale: 75 });
 c.telemetry.sample(2807, 1270); const withTorque = c.tick(1270);
 assert.strictEqual(withTorque.torqueNm, 380); assert(withTorque.powerPS > 220);
+const unitPaints = paints;
+c.tick(1530, { powerUnit: 'kW', torqueUnit: 'kgfm' });
+assert(paints > unitPaints, 'unit changes redraw even with unchanged sensor readings');
 const stale = c.tick(4000, { frameRate: 60 });
 assert.strictEqual(stale.requested, false, 'cached image must not bypass stale signal release');
 assert.strictEqual(c.ref, 0);

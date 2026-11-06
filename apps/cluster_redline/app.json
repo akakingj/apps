@@ -1,8 +1,8 @@
 {
   "id": "cluster_redline",
   "title": "Cluster Redline",
-  "description": "Auto-start sport-only cluster RPM and shift lights with petrol, diesel and hybrid profiles",
-  "version": "0.7.0",
+  "description": "Tabbed cluster settings, vehicle presets, true power/torque unit conversion and Sport/all-mode display",
+  "version": "0.8.1",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
@@ -32,18 +32,156 @@
       "title": "Cluster Redline",
       "buttons": [
         [
-          "BTN_SETTINGS",
-          "Settings"
+          "BTN_BASIC",
+          "Basic settings"
+        ],
+        [
+          "BTN_ADVANCED",
+          "Advanced settings"
+        ],
+        [
+          "BTN_PREVIOUS",
+          "Previous item"
+        ],
+        [
+          "BTN_NEXT",
+          "Next item"
+        ],
+        [
+          "BTN_VALUE_DOWN",
+          "Value -"
+        ],
+        [
+          "BTN_VALUE_UP",
+          "Value +"
         ]
       ]
     }
   ],
   "settings": [
     {
-      "key": "autoSport",
-      "label": "Show automatically in Sport",
+      "key": "appEnabled",
+      "label": "App auto start",
       "type": "bool",
       "default": true
+    },
+    {
+      "key": "engineProfile",
+      "label": "Vehicle preset",
+      "type": "choice",
+      "default": "petrol",
+      "options": [
+        [
+          "petrol",
+          "Petrol"
+        ],
+        [
+          "diesel",
+          "Diesel"
+        ],
+        [
+          "hybrid",
+          "eDrive (PHEV)"
+        ],
+        [
+          "m",
+          "M"
+        ]
+      ]
+    },
+    {
+      "key": "displayMode",
+      "label": "Display mode",
+      "type": "choice",
+      "default": "sport",
+      "options": [
+        [
+          "sport",
+          "Sport modes only"
+        ],
+        [
+          "all",
+          "All drive modes"
+        ]
+      ]
+    },
+    {
+      "key": "powerUnit",
+      "label": "Power unit",
+      "type": "choice",
+      "default": "PS",
+      "options": [
+        [
+          "PS",
+          "PS"
+        ],
+        [
+          "kW",
+          "kW"
+        ]
+      ]
+    },
+    {
+      "key": "torqueUnit",
+      "label": "Torque unit",
+      "type": "choice",
+      "default": "Nm",
+      "options": [
+        [
+          "Nm",
+          "Nm"
+        ],
+        [
+          "kgfm",
+          "kgf·m"
+        ]
+      ]
+    },
+    {
+      "key": "shiftRpm",
+      "label": "Shift alert RPM",
+      "type": "number",
+      "unit": "rpm",
+      "default": 0,
+      "labels": {
+        "0": "Preset default"
+      },
+      "steps": [
+        0,
+        2000,
+        2500,
+        3000,
+        3500,
+        4000,
+        4200,
+        4500,
+        4700,
+        5000,
+        5500,
+        5800,
+        6000,
+        6200,
+        6500,
+        6800,
+        7000,
+        7500
+      ]
+    },
+    {
+      "key": "frameRate",
+      "label": "Cluster refresh rate",
+      "type": "number",
+      "unit": "fps",
+      "default": 12,
+      "steps": [
+        4,
+        6,
+        8,
+        10,
+        12,
+        30,
+        60
+      ]
     },
     {
       "key": "displayTarget",
@@ -79,189 +217,17 @@
       ]
     },
     {
-      "key": "gearPrefix",
-      "label": "Gear prefix",
+      "key": "renderer",
+      "label": "Renderer",
       "type": "choice",
       "default": "auto",
       "options": [
         [
           "auto",
           "Automatic"
-        ],
-        [
-          "D",
-          "D"
-        ],
-        [
-          "S",
-          "S"
-        ],
-        [
-          "M",
-          "M"
         ]
-      ]
-    },
-    {
-      "key": "engineProfile",
-      "label": "Engine profile",
-      "type": "choice",
-      "default": "petrol",
-      "options": [
-        [
-          "petrol",
-          "Petrol"
-        ],
-        [
-          "diesel",
-          "Diesel"
-        ],
-        [
-          "hybrid",
-          "Hybrid"
-        ]
-      ]
-    },
-    {
-      "key": "shiftRpm",
-      "label": "Shift alert RPM",
-      "type": "number",
-      "unit": "rpm",
-      "default": 0,
-      "labels": {
-        "0": "Profile default"
-      },
-      "steps": [
-        0,
-        2000,
-        2500,
-        3000,
-        3500,
-        4000,
-        4200,
-        4500,
-        4700,
-        5000,
-        5500,
-        5800,
-        6000,
-        6200,
-        6500,
-        6800,
-        7000,
-        7500
-      ]
-    },
-    {
-      "key": "redlineRpm",
-      "label": "Redline RPM",
-      "type": "number",
-      "unit": "rpm",
-      "default": 0,
-      "labels": {
-        "0": "Profile default"
-      },
-      "steps": [
-        0,
-        3500,
-        4000,
-        4500,
-        5000,
-        5500,
-        6000,
-        6500,
-        6800,
-        7000,
-        7200,
-        7500,
-        8000
-      ]
-    },
-    {
-      "key": "maxRpm",
-      "label": "RPM scale maximum",
-      "type": "number",
-      "unit": "rpm",
-      "default": 0,
-      "labels": {
-        "0": "Profile default"
-      },
-      "steps": [
-        0,
-        4000,
-        5000,
-        6000,
-        7000,
-        8000,
-        9000,
-        10000
-      ]
-    },
-    {
-      "key": "frameRate",
-      "label": "Cluster refresh rate",
-      "type": "number",
-      "unit": "fps",
-      "default": 12,
-      "steps": [
-        4,
-        6,
-        8,
-        10,
-        12,
-        30,
-        60
-      ]
-    },
-    {
-      "key": "torqueScale",
-      "label": "Torque scale maximum",
-      "type": "number",
-      "unit": "Nm",
-      "default": 500,
-      "steps": [
-        300,
-        400,
-        500,
-        600,
-        700,
-        800,
-        900,
-        1000,
-        1200,
-        1500
-      ]
-    },
-    {
-      "key": "powerScale",
-      "label": "Power scale maximum",
-      "type": "number",
-      "unit": "PS",
-      "default": 300,
-      "steps": [
-        200,
-        250,
-        300,
-        350,
-        400,
-        450,
-        500,
-        600,
-        800,
-        1000
-      ]
-    },
-    {
-      "key": "renderer",
-      "label": "Renderer",
-      "type": "choice",
-      "default": "software",
-      "options": [
-        [
-          "software",
-          "Software"
-        ]
-      ]
+      ],
+      "hidden": true
     }
   ],
   "mguClusterRenderMinVersion": "0.3.10",

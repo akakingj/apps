@@ -33,11 +33,11 @@ def main():
         else:
             files.extend(p.relative_to(HERE) for p in (HERE / 'tests/cluster_redline').glob('*.js'))
     files += [Path('tools') / p for p in ('cluster-redline-preview.js', 'cluster-redline-preflight.js',
-                                       'install-overlay.py', 'upstream-integration.py')]
+                                       'cluster-redline-settings-preview.js', 'install-overlay.py', 'upstream-integration.py')]
     files += [Path('tests') / p for p in ('metadata.test.js', 'standard-installer.test.py',
                                        'standard-kit.test.py', 'overlay.test.py')]
     files += [Path(p) for p in ('docs/JAM-INTEGRATION.ko.md', 'docs/VALIDATION.ko.md', 'docs/CLUSTER-REDLINE-0.4.0.ko.md', 'docs/CLUSTER-REDLINE-0.5.0.ko.md', 'docs/CLUSTER-REDLINE-0.6.0.ko.md', 'docs/CLUSTER-REDLINE-0.7.0.ko.md', 'localization/ko-additions.tsv',
-              'LICENSES/MPL-2.0.txt', 'NOTICE.cluster-redline.md')]
+              'docs/CLUSTER-REDLINE-0.8.0.ko.md', 'docs/CLUSTER-OVERLAY-RESEARCH.ko.md', 'LICENSES/MPL-2.0.txt', 'NOTICE.cluster-redline.md')]
     conflicts = [str(p) for p in files if (target / p).exists() and
                  ((target / p).is_dir() or (target / p).read_bytes() != (HERE / p).read_bytes())]
     if conflicts and not args.force:

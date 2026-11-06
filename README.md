@@ -4,15 +4,15 @@ English | [한국어](README.ko.md)
 
 Two ordinary apps for the existing [idrive7-apps](https://github.com/cauliflowermossgrape/idrive7-apps) build and deployment workflow.
 
-Cluster Redline 0.7.0 improves gearbox-source fusion and optional S/M programme support,
-bounds pixel traffic and spaces signal recovery to reduce flicker. Torque/power bars are
-larger and the new size default is 80%. Real-car programme reception and flicker reduction
-need verification. [Update instructions](docs/CLUSTER-REDLINE-0.7.0.ko.md).
+Cluster Redline 0.8.1 adds Basic/Advanced settings tabs, four vehicle presets,
+Sport/all-mode display and actual power/torque unit conversion. An orange instruction
+asks for Central display area Off. Rendering above every stock map/Assist view remains
+unverified. [Update instructions](docs/CLUSTER-REDLINE-0.8.0.ko.md).
 
 | App | English guide | 한국어 설명서 |
 |---|---|---|
 | iDrive Circuit — parked-only puzzle | [Circuit](apps/idrive_circuit/README.md) | [회로 퍼즐](apps/idrive_circuit/README.ko.md) |
-| Cluster Redline — Sport-only cluster RPM and shift lights | [Cluster Redline](apps/cluster_redline/README.md) | [계기판 레드라인](apps/cluster_redline/README.ko.md) |
+| Cluster Redline — configurable cluster RPM and shift lights | [Cluster Redline](apps/cluster_redline/README.md) | [계기판 레드라인](apps/cluster_redline/README.ko.md) |
 
 ## Install through MGU Store
 

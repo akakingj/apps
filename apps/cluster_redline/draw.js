@@ -1,5 +1,6 @@
 'use strict';
 const { Canvas, ramp } = require('./kit/canvas');
+const { gauges } = require('./units');
 const W = 1088, H = 480;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const C = { track: '#1b212b', text: '#f4f7fb', red: '#ff2a2a' };
@@ -17,11 +18,11 @@ function frame(cv, y, lower) {
     cv.polyline([[589, y], [964, y], [990, y + side]], 1.5, '#8993a0');
     mark(cv, W / 2, y - 11);
 }
-function mini(cv, x, label, value, unit, maximum, peak) {
+function mini(cv, x, label, value, unit, maximum, peak, decimals) {
     const w = 200, y = 368, h = 12, slant = 7;
     const valid = typeof value === 'number' && isFinite(value) && value >= 0;
     cv.text(label, x, 344, 18, '#b8c2d1', { font: 'bold' });
-    const number = valid ? String(Math.round(value)) : '--';
+    const number = valid ? value.toFixed(decimals || 0) : '--';
     const uw = cv.textWidth(unit, 13, { font: 'label' });
     cv.text(number, x + w - uw - 5, 345, 30, C.text, { align: 'right', font: 'num' });
     cv.text(unit, x + w, 345, 13, '#b8c2d1', { align: 'right' });
@@ -40,7 +41,7 @@ function mini(cv, x, label, value, unit, maximum, peak) {
     [0, 0.5, 1].forEach((f) => {
         const px = x + span * f;
         cv.line(px, y + h + 3, px, y + h + 6, 1, '#a0a9b7');
-        cv.text(String(Math.round(maximum * f)), px, 403, 13, '#c5cdd8', { align: 'center', font: 'num' });
+        cv.text((maximum * f).toFixed(decimals || 0), px, 403, 13, '#c5cdd8', { align: 'center', font: 'num' });
     });
 }
 function draw(state) {
@@ -90,8 +91,9 @@ function draw(state) {
     cv.text(suffix, nx + nw + 10, 270, 22, tint, { font: 'bold', literal: true });
     const gear = typeof state.gear === 'string' && /^(?:[DSM]?(?:[1-9]|10)|P|R|N|D|--)$/.test(state.gear) ? state.gear : '--';
     cv.text(gear, W / 2, 400, 74, C.text, { align: 'center', font: 'bold' });
-    mini(cv, 265, 'Torque', state.torqueNm, 'Nm', cfg.torqueScale || 500, state.torquePeak);
-    mini(cv, 623, 'Power*', state.powerPS, 'PS', cfg.powerScale || 300, state.powerPeak);
+    const g = gauges(state);
+    mini(cv, 265, 'Torque', g.torque.value, g.torque.unit, g.torque.maximum, g.torque.peak, g.torque.decimals);
+    mini(cv, 623, 'Power*', g.power.value, g.power.unit, g.power.maximum, g.power.peak, g.power.decimals);
     return cv;
 }
 // Four independent horizontal regions keep updates below the link budget.
