@@ -2,7 +2,7 @@
 
 한국어: [README.ko.md](README.ko.md)
 
-A background MGU app for cluster RPM and shift lights. Version **0.8.4** opens directly to **Basic settings / Advanced settings** and shows its running version in the header.
+A background MGU app for cluster RPM and shift lights. Version **0.8.5** opens directly to **Basic settings / Advanced settings** and shows its running version in the header.
 
 For stock-map takeover, choose **Advanced settings > Display layer > Map area (legacy)**
 and set **Instrument cluster > Central display area > Map view or Off**.
@@ -54,3 +54,5 @@ The refresh-rate selector is removed. Old saved rates cannot override the fixed 
 [0.8.3 update guide](../../docs/CLUSTER-REDLINE-0.8.3.ko.md)
 
 [0.8.4: 실행 버전 확인 / Verify the running version](../../docs/CLUSTER-REDLINE-0.8.4.ko.md)
+
+[0.8.5 install fix: notifier-only gearbox programme](../../docs/CLUSTER-REDLINE-0.8.5.ko.md)

@@ -136,10 +136,16 @@ async function checkSettingsEntry(file, id, version) {
             fs.writeFileSync(catalogFile, JSON.stringify({ interfaces: {} }));
             const absent = build(Object.assign({}, options, { catalog: catalogFile, out: path.join(temp, id + '-no-program') }));
             assert(!json(absent, 'manifest.json').proxies[optional]);
-            const interfaces = {}; interfaces[optional] = { fields: { dataDisplayGearbox: {} } };
+            // This car's field has a notifier and no getter. Requesting "rs"
+            // makes the real installer reject it with UPDATE_FAILED.
+            const interfaces = {}; interfaces[optional] = { fields: { dataDisplayGearbox: { notifier: { id: 32769 } } } };
             fs.writeFileSync(catalogFile, JSON.stringify({ interfaces }));
             const present = build(Object.assign({}, options, { catalog: catalogFile, out: path.join(temp, id + '-program') }));
-            assert(json(present, 'manifest.json').proxies[optional]);
+            assert.strictEqual(json(present, 'manifest.json').proxies[optional].attributes.dataDisplayGearbox, 's');
+            interfaces[optional].fields.dataDisplayGearbox = { getter: { id: 1 } };
+            fs.writeFileSync(catalogFile, JSON.stringify({ interfaces }));
+            const noEvents = build(Object.assign({}, options, { catalog: catalogFile, out: path.join(temp, id + '-no-events') }));
+            assert(!json(noEvents, 'manifest.json').proxies[optional], 'optional programme needs a notifier, not a getter');
         }
         const alias = id + '2', dir = path.join(sourceCopy, alias);
         copy(path.join(ROOT, component.path), dir);

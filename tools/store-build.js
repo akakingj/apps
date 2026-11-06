@@ -114,14 +114,15 @@ function build(options) {
         ready.name = id; ready.version = version; ready.mguHmi = ['ID7']; ready.mguLocalOnly = true;
         fs.writeFileSync(packageFile, JSON.stringify(ready, null, 2) + '\n');
         // MDrive is not present in every firmware. Only request its optional
-        // S/M field when the vehicle catalog actually contains it; never embed
+        // S/M notifier when the vehicle catalog actually contains it; never embed
         // any catalog data in a public package. Host builds omit it by default.
         const optionalProgram = 'de.bmw.infotainment.misc.MDrive';
         let hasProgram = false;
         try {
             const catalog = JSON.parse(fs.readFileSync(options.catalog || '/etc/oap/someip/someip-interfaces.json', 'utf8'));
             const iface = catalog.interfaces && catalog.interfaces[optionalProgram];
-            hasProgram = !!(iface && iface.fields && iface.fields.dataDisplayGearbox);
+            const field = iface && iface.fields && iface.fields.dataDisplayGearbox;
+            hasProgram = !!(field && field.notifier);
         } catch (e) { if (options.catalog) throw e; }
         if (!hasProgram) {
             const manifestFile = path.join(stage, 'manifest.json');
