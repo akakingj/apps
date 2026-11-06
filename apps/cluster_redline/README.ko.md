@@ -3,7 +3,7 @@
 English: [README.md](README.md)
 
 MGU에서 백그라운드로 동작하는 계기판 RPM·변속 알림 앱입니다.
-**0.8.5**는 앱을 열면 기본설정 / 상세설정 탭을 바로 표시하고, 상단에 실행 버전을 표시합니다.
+**0.8.7**는 앱을 열면 기본설정 / 상세설정 탭을 바로 표시하고, 상단에 실행 버전을 표시합니다.
 
 ![기본설정](../../screenshots/cluster_redline/settings-basic.png)
 ![상세설정](../../screenshots/cluster_redline/settings-advanced.png)
@@ -59,3 +59,5 @@ python kit/tools/build.py --language ko cluster_redline
 [0.8.4: 실행 버전 확인 / Verify the running version](../../docs/CLUSTER-REDLINE-0.8.4.ko.md)
 
 [0.8.5 설치 실패 수정: 변속 프로그램 신호의 getter 요청 제거](../../docs/CLUSTER-REDLINE-0.8.5.ko.md)
+
+[0.8.7: 큰 설정 글자·터치 버튼 / Larger settings controls](../../docs/CLUSTER-REDLINE-0.8.7.ko.md)

@@ -4,6 +4,7 @@ const path = require('path');
 const mgu = require('./kit/mgu');
 const { t } = require('./kit/i18n');
 const { SettingsPage, W, H } = require('./settings-ui');
+const { configure } = require('./settings-chrome');
 const worker = require('./worker');
 const REASONS = {
     disabled: 'Automatic display off', renderer_unavailable: 'Waiting for cluster renderer',
@@ -15,6 +16,7 @@ const REASONS = {
     all_modes: 'All drive modes · display requested', stopped: 'Background app stopped',
 };
 mgu.run({ async start(ctx) {
+    configure(ctx);
     // Preserve a legacy OFF choice when moving from autoSport to appEnabled.
     try {
         const old = JSON.parse(fs.readFileSync(path.join(ctx.dataDir, 'settings.json'), 'utf8'));

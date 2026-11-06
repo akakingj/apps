@@ -40,7 +40,7 @@
       "kind": "app",
       "path": "apps/cluster_redline",
       "title": "계기판 레드라인 (한국어)",
-      "description": "한국어 스포츠 계기판 · 기본/상세 설정 탭 · 실행 버전 표시 · 렌더러 선행 설치",
+      "description": "한국어 스포츠 계기판 · 큰 설정 글자와 터치 버튼 · 렌더러 선행 설치",
       "mguHmi": [
         "ID7"
       ],
@@ -112,7 +112,7 @@
       "kind": "app",
       "path": "store/apps/cluster_redline_en",
       "title": "Cluster Redline (English)",
-      "description": "Sport cluster · Basic/Advanced settings · visible running version · renderer installed first",
+      "description": "Sport cluster · larger settings text and touch controls · renderer installed first",
       "mguHmi": [
         "ID7"
       ],

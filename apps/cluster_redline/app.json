@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Tabbed cluster settings, vehicle presets, true power/torque unit conversion and Sport/all-mode display",
-  "version": "0.8.5",
+  "version": "0.8.7",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
