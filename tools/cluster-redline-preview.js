@@ -5,6 +5,7 @@ const path = require('path');
 const stage = path.resolve(process.argv[2] || path.join(__dirname, '../dist/cluster_redline'));
 const out = path.resolve(process.argv[3] || path.join(__dirname, '../preview/cluster_redline'));
 const { draw } = require(path.join(stage, 'source/javascript/draw'));
+const hud = require(path.join(stage, 'source/javascript/hud-draw'));
 const { Canvas } = require(path.join(stage, 'source/javascript/kit/canvas'));
 const { Policy, settings } = require(path.join(stage, 'source/javascript/policy'));
 fs.mkdirSync(out, { recursive: true });
@@ -15,7 +16,7 @@ function scene(name, rpm, engineProfile, options) {
     state.torqueNm = state.shift ? 265 : 380;
     state.powerPS = state.torqueNm * rpm / 9549.2966 * 1.3596216;
     state.torquePeak = state.torqueNm; state.powerPeak = state.powerPS;
-    const face = draw(state);
+    const face = options && options.displayTarget === 'hud' ? hud.draw(state) : draw(state);
     fs.writeFileSync(path.join(out, name + '.png'), face.png());
     const preview = new Canvas(face.w, face.h); preview.clear('#05070b'); preview.blit(face, 0, 0);
     fs.writeFileSync(path.join(out, name + '-on-black.png'), preview.png());
@@ -28,6 +29,8 @@ scene('diesel-shift', 4200, 'diesel');
 scene('hybrid-rpm', 3500, 'hybrid');
 scene('threshold-2000-before', 1990, 'petrol', { shiftRpm: 2000 });
 scene('threshold-2000-alert', 2000, 'petrol', { shiftRpm: 2000 });
+scene('hud-rpm', 4200, 'petrol', { displayTarget: 'hud' });
+scene('hud-shift', 6500, 'petrol', { displayTarget: 'hud' });
 const html = `<!doctype html><meta charset="utf-8"><title>계기판 레드라인 미리보기</title>
 <style>body{background:#10151d;color:#ecf2fa;font:18px system-ui;max-width:1088px;margin:32px auto;padding:16px}img{max-width:100%}section{border:1px solid #34465b;padding:20px;margin:20px 0;border-radius:12px}.off{height:140px;display:grid;place-items:center;color:#a5b7cb;background:#0b0e12}p{line-height:1.6}</style>
 <h1>계기판 레드라인</h1><p>실제 앱 렌더링 미리보기 · 데모 수치 · 내부 1088 × 480 / 기본 실차 표시 816 × 360 · 마력*은 토크와 RPM으로 계산한 PS입니다. 빈 배경은 투명합니다.</p>

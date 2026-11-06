@@ -4,7 +4,7 @@ English | [한국어](README.ko.md)
 
 Two ordinary apps for the existing [idrive7-apps](https://github.com/cauliflowermossgrape/idrive7-apps) build and deployment workflow.
 
-Cluster Redline 0.8.7 provides Basic/Advanced settings tabs, four vehicle presets,
+Cluster Redline 0.9.0 provides Basic/Advanced settings tabs, four vehicle presets,
 Sport/all-mode display and actual power/torque unit conversion. An orange instruction
 allows Map view/Off for the map target, with deferred first-image visibility. Renderer installation guidance is included and refresh is fixed at a requested 20fps.
 Rendering above every stock map/Assist view remains
@@ -73,3 +73,11 @@ See [validation](docs/VALIDATION.ko.md), [client attribution](NOTICE.cluster-red
 [0.8.5 install fix: notifier-only gearbox programme](docs/CLUSTER-REDLINE-0.8.5.ko.md)
 
 [0.8.7: Larger settings text and touch controls](docs/CLUSTER-REDLINE-0.8.7.ko.md)
+
+## HUD output (0.9.0)
+
+Choose **Advanced settings → Display layer → HUD (RPM / gear / shift)** to show RPM, gear and shift lights on the HUD. This selects HUD instead of this app's cluster output. The existing Sport/all-mode, shift threshold and widget-size settings apply. The default and saved cluster target remain unchanged.
+
+Only the renderer's advertised iDrive 7 `hud:800x480` target is accepted. Factory HUD guidance is not forcibly displaced. Panel and HUD share a native scene ID, so this app requests only one at a time; simultaneous cluster/HUD output is not included. Actual G20 HUD placement and operation require car validation.
+
+[HUD setup and validation guide](docs/CLUSTER-REDLINE-0.9.0.ko.md)

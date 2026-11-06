@@ -4,8 +4,8 @@ const gear = require('./gear');
 const { Telemetry } = require('./telemetry');
 const { UploadPacer } = require('./upload');
 class Controller {
-    constructor(client, painter) {
-        this.client = client; this.painter = painter; this.policy = new Policy();
+    constructor(client, painter, hudPainter) {
+        this.client = client; this.painter = painter; this.hudPainter = hudPainter; this.policy = new Policy();
         this.ref = 0; this.previous = null; this.layerState = 'hidden'; this.refused = false;
         this.profile = null; this.layerRate = null;
         this.gear = '--'; this.gearMode = null; this.telemetry = new Telemetry(); this.layerScale = null;
@@ -18,7 +18,7 @@ class Controller {
         client.on('ready', () => { this.hide(); this.policy.reset(); this.refused = false; });
         client.on('layer', (ref, state) => { if (ref === this.ref) this.layerState = state; });
         client.on('target', (target, state, holder, reason) => {
-            if (target !== 'map' && target !== 'panel') return;
+            if (target !== 'map' && target !== 'panel' && target !== 'hud') return;
             this.targetStates[target] = { state: state, holder: holder || '', reason: reason || '' };
         });
     }
@@ -41,9 +41,11 @@ class Controller {
         d.targetName = cfg.displayTarget;
         const target = this.targetStates[cfg.displayTarget] || {};
         d.targetState = target.state || 'idle'; d.targetHolder = target.holder || ''; d.targetReason = target.reason || '';
-        const panel = cfg.displayTarget === 'panel';
-        const geometry = panel ? 'panel:1920x720' : 'map:1088x480';
-        if (d.show && (cfg.displayTarget === 'unknown' || String(this.client.targets || '').split(',').indexOf(geometry) < 0)) {
+        const panel = cfg.displayTarget === 'panel', hud = cfg.displayTarget === 'hud';
+        const painter = hud ? this.hudPainter : this.painter;
+        const targetWidth = panel ? 1920 : hud ? 800 : 1088, targetHeight = panel ? 720 : 480;
+        const geometry = cfg.displayTarget + ':' + targetWidth + 'x' + targetHeight;
+        if (d.show && (!painter || cfg.displayTarget === 'unknown' || String(this.client.targets || '').split(',').indexOf(geometry) < 0)) {
             d.show = false; d.reason = 'target_unavailable';
         }
         if (!d.show) {
@@ -63,15 +65,17 @@ class Controller {
         if (!this.ref) {
             // Preserve alpha inside the image too; shrink its footprint so the
             // frame/text do not extend into the factory dials as 0.5.0 did.
-            const width = Math.round(this.painter.W * cfg.widgetScale / 100), height = Math.round(this.painter.H * cfg.widgetScale / 100);
+            const width = Math.round(painter.W * cfg.widgetScale / 100), height = Math.round(painter.H * cfg.widgetScale / 100);
             this.ref = this.client.image({ target: cfg.displayTarget, klass: panel ? 'overlay' : 'content', z: 100,
-                x: ((panel ? 1920 : 1088) - width) / 2, y: ((panel ? 720 : 480) - height) / 2,
-                w: width, h: height, iw: this.painter.W, ih: this.painter.H, sampling: 'bilinear',
+                x: (targetWidth - width) / 2, y: (targetHeight - height) / 2,
+                w: width, h: height, iw: painter.W, ih: painter.H, sampling: 'bilinear',
                 // An exclusive image keeps its last complete frame if a write
                 // fails; a nonexclusive image is hidden during the rewrite.
                 // Alpha remains transparent over factory gauges. Other lower
                 // custom layers in this compositor target are suspended.
-                visible: false, prewarm: false, exclusive: true, contend: !panel, guide_hold: false, fps: d.config.frameRate });
+                // HUD yields to factory guidance. Never request panel + HUD:
+                // they share a native scene ID on iDrive 7.
+                visible: false, prewarm: false, exclusive: true, contend: !panel && !hud, guide_hold: false, fps: d.config.frameRate });
             if (!this.ref) { this.refused = true; d.show = false; d.reason = 'renderer_refused'; return d; }
             this.layerState = 'waiting';
             this.layerRate = d.config.frameRate;
@@ -83,7 +87,7 @@ class Controller {
         const paintKey = [d.rpm, d.shift, d.gear, d.torqueNm, d.powerPS, d.torquePeak, d.powerPeak, cfg.shiftRpm, cfg.redlineRpm, cfg.maxRpm, cfg.torqueScale, cfg.powerScale, cfg.torqueUnit, cfg.powerUnit].join('|');
         if (this.previous && this.paintKey === paintKey) return Object.assign(d, { requested: true, layerState: this.layerState });
         if (this.previous && !this.upload.ready(now)) return Object.assign(d, { requested: true, layerState: this.layerState });
-        const canvas = this.painter.draw(d), pixels = Buffer.from(canvas.d);
+        const canvas = painter.draw(d), pixels = Buffer.from(canvas.d);
         if (!this.previous) {
             this.upload.allow(pixels.length, now, true);
             this.client.pixels(this.ref, null, pixels);
@@ -93,7 +97,7 @@ class Controller {
             if (typeof this.client.showWhenSent === 'function') this.client.showWhenSent(this.ref);
             else this.client.set(this.ref, { visible: true });
         } else {
-            const delta = this.painter.difference(this.previous, pixels);
+            const delta = painter.difference(this.previous, pixels);
             if (delta.rects.length && !this.upload.allow(delta.pixels.length, now, false)) return Object.assign(d, { requested: true, layerState: this.layerState });
             if (delta.rects.length) this.client.pixels(this.ref, delta.rects, delta.pixels);
         }

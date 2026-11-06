@@ -8,12 +8,13 @@ const { settings } = require('../../apps/cluster_redline/policy');
 const { Controller } = require('../../apps/cluster_redline/controller');
 const source = fs.readFileSync(path.join(__dirname, '../../apps/cluster_redline/worker.js'), 'utf8');
 
-async function scenario(live, version, backend, withProgram, stopEarly) {
+async function scenario(live, version, backend, withProgram, stopEarly, target) {
     withProgram = withProgram !== false;
     backend = backend || 'id7';
     let time = 0, timer, delay, client, watches = 0, shutdowns = 0;
     const files = {}, feeds = {}, subscriptions = {}, config = settings(), app = new EventEmitter();
     const calls = [];
+    if (target) config.displayTarget = target;
     class FakeClient extends EventEmitter {
         constructor() { super(); client = this; this.ready = false; this.backend = backend; this.targets = 'map:1088x480,panel:1920x720,hud:800x480'; this.next = 0; }
         connect() { calls.push('connect'); this.ready = true; this.emit('ready'); }
@@ -35,6 +36,7 @@ async function scenario(live, version, backend, withProgram, stopEarly) {
         if (name === './cluster_render_client') return { ClusterRender: FakeClient };
         if (name === './controller') return { Controller };
         if (name === './draw') return painter;
+        if (name === './hud-draw') return Object.assign({}, painter, { W: 800 });
         if (name === './policy') return require('../../apps/cluster_redline/policy');
         if (name === './renderer') return require('../../apps/cluster_redline/renderer');
         if (name === './gear') return require('../../apps/cluster_redline/gear');
@@ -88,8 +90,9 @@ async function scenario(live, version, backend, withProgram, stopEarly) {
             assert.strictEqual(status().config.frameRate, 20); assert.strictEqual(delay, 50);
             assert.strictEqual(status().shift, false); assert.strictEqual(status().gear, withProgram ? 'S4' : 'D4', 'received programme and change-only gear are preserved');
             assert.strictEqual(status().torqueNm, 380); assert(status().powerPS > 100);
-            assert.deepStrictEqual(calls.filter((c) => Array.isArray(c)).map((c) => c[1].target), ['panel']);
-            assert.strictEqual(status().targetName, 'panel');
+            assert.deepStrictEqual(calls.filter((c) => Array.isArray(c)).map((c) => c[1].target), [target || 'panel']);
+            assert.strictEqual(status().targetName, target || 'panel');
+            if (target === 'hud') assert.strictEqual(calls.find(c => Array.isArray(c))[1].iw, 800);
             // The settings UI is never opened in this test. Its visibility is irrelevant.
             mode({ actualValueModeDrivingExperience: 4 }); tick(2500);
             assert.strictEqual(status().requested, false); assert(calls.includes('drop'));
@@ -111,6 +114,7 @@ async function scenario(live, version, backend, withProgram, stopEarly) {
     await scenario(true, '0.3.9');
     await scenario(true, '0.3.1');
     await scenario(true, '0.4.0');
+    await scenario(true, '0.4.0', 'id7', true, false, 'hud');
     await scenario(true, '0.3.10', 'id7', false);
     await scenario(true, '0.3.10', 'id8');
     await scenario(false, '0.3.10');

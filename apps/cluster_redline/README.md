@@ -2,7 +2,7 @@
 
 한국어: [README.ko.md](README.ko.md)
 
-A background MGU app for cluster RPM and shift lights. Version **0.8.7** opens directly to **Basic settings / Advanced settings** and shows its running version in the header.
+A background MGU app for cluster RPM and shift lights. Version **0.9.0** opens directly to **Basic settings / Advanced settings** and shows its running version in the header.
 
 For stock-map takeover, choose **Advanced settings > Display layer > Map area (legacy)**
 and set **Instrument cluster > Central display area > Map view or Off**.
@@ -15,7 +15,7 @@ the cluster has displayed the frame; native DCSM acquisition races remain unveri
 
 Basic settings: App auto start; vehicle preset (Petrol, Diesel, eDrive PHEV, M); display mode (Sport modes only, All drive modes); power unit (PS/kW); torque unit (Nm/kgf·m).
 
-Advanced settings: shift alert RPM; front-center or legacy map target; widget size (60–100% discrete steps).
+Advanced settings: shift alert RPM; front-center, legacy map or HUD target; widget size (60–100% discrete steps).
 Manual gearbox prefixes and RPM/torque/power scale settings are removed. Prefixes use received selector/programme data; scales follow the selected preset. These are display presets, not automatically discovered model specifications.
 
 Defaults: Petrol, Sport only, fixed 20 fps, 80%, PS/Nm. Petrol has a 7000 RPM scale, red zone from 6000 and shift alert at 6500. The alert colors RPM digits red. All-mode display still requires fresh RPM/mode data and hides on engine-off, stale data or renderer loss.
@@ -58,3 +58,11 @@ The refresh-rate selector is removed. Old saved rates cannot override the fixed 
 [0.8.5 install fix: notifier-only gearbox programme](../../docs/CLUSTER-REDLINE-0.8.5.ko.md)
 
 [0.8.7: Larger settings text and touch controls](../../docs/CLUSTER-REDLINE-0.8.7.ko.md)
+
+## HUD output (0.9.0)
+
+Choose **Advanced settings → Display layer → HUD (RPM / gear / shift)** to show RPM, gear and shift lights on the HUD. This selects HUD instead of this app's cluster output. The existing Sport/all-mode, shift threshold and widget-size settings apply. The default and saved cluster target remain unchanged.
+
+Only the renderer's advertised iDrive 7 `hud:800x480` target is accepted. Factory HUD guidance is not forcibly displaced. Panel and HUD share a native scene ID, so this app requests only one at a time; simultaneous cluster/HUD output is not included. Actual G20 HUD placement and operation require car validation.
+
+[HUD setup and validation guide](../../docs/CLUSTER-REDLINE-0.9.0.ko.md)

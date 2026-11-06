@@ -34,6 +34,7 @@ function effective() {
         hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().torqueUnit, 'kgfm');
         hu.handlers.BTN_ADVANCED(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().shiftRpm, 2000);
         hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().displayTarget, 'map');
+        hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().displayTarget, 'hud', 'HUD must be selectable through the actual app controls');
         hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_DOWN(); assert.strictEqual(effective().widgetScale, 75);
         const saved = JSON.parse(fs.readFileSync(path.join(dir, 'settings.json')));
         for (const key of ['appEnabled', 'engineProfile', 'displayMode', 'powerUnit', 'torqueUnit', 'shiftRpm', 'displayTarget', 'widgetScale']) assert.strictEqual(saved[key], hu.settings.get(key), 'persisted setting '+key);

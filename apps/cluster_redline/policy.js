@@ -42,7 +42,7 @@ function settings(raw) {
     });
     ['redlineRpm', 'maxRpm', 'torqueScale', 'powerScale'].forEach((key) => { out[key] = profile[key]; });
     // Fixed request ceiling. Retired saved 12/30/60 fps choices never override it.
-    if (Object.prototype.hasOwnProperty.call(raw, 'displayTarget')) out.displayTarget = ['map', 'panel'].indexOf(raw.displayTarget) >= 0 ? raw.displayTarget : 'unknown';
+    if (Object.prototype.hasOwnProperty.call(raw, 'displayTarget')) out.displayTarget = ['map', 'panel', 'hud'].indexOf(raw.displayTarget) >= 0 ? raw.displayTarget : 'unknown';
     if ([60, 65, 70, 75, 80, 85, 90, 100].indexOf(raw.widgetScale) >= 0) out.widgetScale = raw.widgetScale;
     // Red-zone start and shift alert are independent display settings.
     out.maxRpm = Math.max(out.maxRpm, out.redlineRpm);

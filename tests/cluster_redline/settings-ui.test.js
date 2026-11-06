@@ -2,7 +2,7 @@
 const assert = require('assert'), fs = require('fs'), path = require('path');
 const stage = path.resolve(process.argv[2]);
 const dir = path.join(stage, 'source/javascript');
-const { SettingsPage, WARNING, MAP_WARNING, RENDERER_NOTICE, options } = require(path.join(dir, 'settings-ui'));
+const { SettingsPage, WARNING, MAP_WARNING, HUD_WARNING, RENDERER_NOTICE, options } = require(path.join(dir, 'settings-ui'));
 const { Canvas } = require(path.join(dir, 'kit/canvas'));
 const { t } = require(path.join(dir, 'kit/i18n'));
 const spec = JSON.parse(fs.readFileSync(path.join(dir, 'kit/app-spec.json')));
@@ -25,6 +25,18 @@ Canvas.prototype.text = function(value) { mapLabels.push(t(value)); return origi
 page.draw(new Canvas(1600,520));
 Canvas.prototype.text = original;
 assert(mapLabels.includes(t(MAP_WARNING)), 'map takeover must allow Map view or Off in its instruction');
+const hudLabels = [];
+saved.set('displayTarget', 'hud');
+Canvas.prototype.text = function(value) { hudLabels.push(t(value)); return original.apply(this, arguments); };
+page.draw(new Canvas(1600,520));
+Canvas.prototype.text = original;
+assert(hudLabels.includes(t(HUD_WARNING)), 'HUD instructions describe exclusive output and factory guidance');
+assert(!hudLabels.includes(t(WARNING)) && !hudLabels.includes(t(MAP_WARNING)), 'HUD selection must not instruct owners to alter the cluster menu');
+if (JSON.parse(fs.readFileSync(path.join(dir,'kit/locale.json'))).language === 'ko') {
+    for (const value of [HUD_WARNING, 'HUD (RPM / gear / shift)']) {
+        assert.notStrictEqual(t(value), value, 'HUD option and warning must have Korean translations');
+    }
+}
 saved.set('displayTarget', 'panel');
 assert.strictEqual(new Set(cv.targets.map(r=>r.key)).size,7);
 for(const r of cv.targets){assert.strictEqual(typeof r.run,'function');assert(r.y>=0&&r.y+r.h<=520)}
@@ -39,6 +51,9 @@ page.selectTab(1);page.activate(0);
 const list=options(page.item(),page.config());const target=list.findIndex(v=>v[0]===2000);
 page.choose(target);assert.strictEqual(data.shiftRpm,2000);
 page.selectTab(0);page.focus=2;page.change(1);assert.strictEqual(data.displayMode,'all');
-const atlas=JSON.parse(fs.readFileSync(path.join(dir,'kit/fonts/korean.json'))).sizes[0].glyphs;
-for(const l of labels)for(const ch of l.value)if(/[가-힣]/.test(ch))assert(atlas[ch.charCodeAt(0)],'missing glyph '+ch);
+if (JSON.parse(fs.readFileSync(path.join(dir,'kit/locale.json'))).language === 'ko') {
+    const atlas=JSON.parse(fs.readFileSync(path.join(dir,'kit/fonts/korean.json'))).sizes[0].glyphs;
+    for(const value of labels.map(l=>l.value).concat(hudLabels, [t('HUD (RPM / gear / shift)')]))
+        for(const ch of value)if(/[가-힣]/.test(ch))assert(atlas[ch.charCodeAt(0)],'missing glyph '+ch);
+}
 console.log('PASS: rendered tabs, orange instruction under auto start, clickable rotary/touch targets, preset/RPM choices and Korean glyph coverage');

@@ -6,6 +6,7 @@ const path = require('path');
 const { ClusterRender } = require('./cluster_render_client');
 const { Controller } = require('./controller');
 const painter = require('./draw');
+const hudPainter = require('./hud-draw');
 const { settings, DEFAULTS } = require('./policy');
 const renderer = require('./renderer');
 const gear = require('./gear');
@@ -23,7 +24,7 @@ function atomic(file, value) {
 function supportedRenderer() { return renderer.inspect(undefined, fs).compatible; }
 function start(ctx) {
     const log = ctx.log, signals = ctx.signals;
-    const client = new ClusterRender('cluster-redline'), controller = new Controller(client, painter);
+    const client = new ClusterRender('cluster-redline'), controller = new Controller(client, painter, hudPainter);
     const gearbox = new gear.GearState();
     let config = settings(), lastStatus = -Infinity, stopped = false, timer;
     let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub, fesSub, programSub;

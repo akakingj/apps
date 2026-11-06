@@ -12,6 +12,7 @@ const GROUPS = [
 const WARNING = 'Set Instrument cluster > Central display area to Off for correct operation.';
 const MAP_WARNING = 'Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
 const RENDERER_NOTICE = 'Install Cluster renderer (cluster-render) from MGU Store first.';
+const HUD_WARNING = 'HUD only; cluster output stops. Stock HUD guidance may take priority.';
 function options(item, cfg) {
     if (item.type === 'bool') return [[false, 'Off'], [true, 'On']];
     if (item.type === 'choice') return item.options;
@@ -94,7 +95,7 @@ class SettingsPage {
                 cv.text(this.value(item, cfg), 1482, baseline, 34, '#c1cddd', { align: 'right' });
                 if (item.type !== 'bool') cv.polyline([[1514, y + h / 2 - 12], [1527, y + h / 2], [1514, y + h / 2 + 12]], 3, '#909cac');
                 if (key === 'appEnabled') {
-                    const warning = cfg.displayTarget === 'map' ? MAP_WARNING : WARNING;
+                    const warning = cfg.displayTarget === 'hud' ? HUD_WARNING : cfg.displayTarget === 'map' ? MAP_WARNING : WARNING;
                     cv.text(RENDERER_NOTICE, 100, y + 73, fit(RENDERER_NOTICE, 24, 1400), '#ff9e36');
                     cv.text(warning, 100, y + 102, fit(warning, 24, 1400), '#ff9e36');
                 }
@@ -135,4 +136,4 @@ class SettingsPage {
         targets.push({ x: 1210, y: 448, w: 326, h: 64, act: () => { this.open = null; this.changed(); } });
     }
 }
-module.exports = { SettingsPage, GROUPS, TABS, WARNING, MAP_WARNING, RENDERER_NOTICE, options, W, H };
+module.exports = { SettingsPage, GROUPS, TABS, WARNING, MAP_WARNING, HUD_WARNING, RENDERER_NOTICE, options, W, H };

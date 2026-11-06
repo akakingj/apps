@@ -71,7 +71,11 @@ try {
     save('settings-rpm-full');
     const choice = page.choice; tapLogical(display.pageTargets[1]); assert.notStrictEqual(page.choice, choice);
     tapLogical(display.pageTargets[display.pageTargets.length - 1]); assert.strictEqual(page.open, null);
+    tapLogical(display.pageTargets[1]); assert.strictEqual(page.open, 'displayTarget');
+    save('settings-hud-target-full');
+    tapLogical(display.pageTargets[4]); assert.strictEqual(values.displayTarget, 'hud', 'HUD target can be selected through real compositor touch routing');
     tapLogical(display.tabs[0]);
+    save('settings-hud-basic-full');
     components.BTN_NEXT.on('action', () => page.move(1));
     components.BTN_VALUE_UP.on('action', () => page.change(1));
     function tapBar(id) {

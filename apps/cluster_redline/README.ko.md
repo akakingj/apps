@@ -3,7 +3,7 @@
 English: [README.md](README.md)
 
 MGU에서 백그라운드로 동작하는 계기판 RPM·변속 알림 앱입니다.
-**0.8.7**는 앱을 열면 기본설정 / 상세설정 탭을 바로 표시하고, 상단에 실행 버전을 표시합니다.
+**0.9.0**는 앱을 열면 기본설정 / 상세설정 탭을 바로 표시하고, 상단에 실행 버전을 표시합니다.
 
 ![기본설정](../../screenshots/cluster_redline/settings-basic.png)
 ![상세설정](../../screenshots/cluster_redline/settings-advanced.png)
@@ -61,3 +61,12 @@ python kit/tools/build.py --language ko cluster_redline
 [0.8.5 설치 실패 수정: 변속 프로그램 신호의 getter 요청 제거](../../docs/CLUSTER-REDLINE-0.8.5.ko.md)
 
 [0.8.7: 큰 설정 글자·터치 버튼 / Larger settings controls](../../docs/CLUSTER-REDLINE-0.8.7.ko.md)
+
+## HUD 출력 (0.9.0)
+
+**상세설정 → 표시 레이어 → HUD (회전수·기어·변속 알림)**에서 선택합니다.
+RPM·기어·변속 알림을 HUD로 보내며, 이 앱의 계기판 출력은 중지됩니다.
+기존 스포츠/전체 모드와 변속 회전수·위젯 크기 설정이 적용됩니다. 기본값과 기존 저장 설정은 유지됩니다.
+순정 HUD 안내를 강제로 해제하지 않으며 실제 G20 HUD 위치·표시는 실차 확인이 필요합니다.
+
+[HUD 사용·검사 안내](../../docs/CLUSTER-REDLINE-0.9.0.ko.md)

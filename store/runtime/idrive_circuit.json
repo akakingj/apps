@@ -3,9 +3,9 @@
   "id": "idrive_circuit",
   "language": "ko",
   "source_version": "1.0.0",
-  "ui_sha256": "aa9d7cfee5cc5d511c65681f5daf3176795c923e6560429178b2a78843aa85f3",
-  "size": 1078094,
-  "sha256": "d10aefc364d3aed1445aefcf0bdbfa1391ce7cc05a2fc5288bd3704ae51dcd3d",
+  "ui_sha256": "aa25984dfc55bf24564fede80a4fff2121d4a2665a54fb09856d199a15d9fc16",
+  "size": 1079728,
+  "sha256": "23f104d8f6bc1598f88462e75f39edea7e4d15b5d2ffcec60eed69f8dac2c04a",
   "parts": [
     "idrive_circuit.tgz.part-00",
     "idrive_circuit.tgz.part-01",
