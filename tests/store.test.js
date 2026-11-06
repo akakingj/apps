@@ -52,7 +52,9 @@ function optionsFor(args) {
         assert.deepStrictEqual(catalog.skipped, []);
         assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'idrive_circuit', 'idrive_circuit_en']);
         assert(catalog.components.every((c) => c.script.node === 'tools/store-build.js' && !c.script.network));
-        assert.strictEqual(catalog.components.find((c) => c.id === 'cluster_redline').requires['cluster-render'], '0.3.10');
+        for (const id of ['cluster_redline', 'cluster_redline_en']) {
+            assert.strictEqual(catalog.components.find((c) => c.id === id).requires['cluster-render'], '0.3.10');
+        }
     }
     const identities = new Set();
     for (const component of doc.components) {

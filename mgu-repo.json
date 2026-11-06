@@ -40,7 +40,7 @@
       "kind": "app",
       "path": "apps/cluster_redline",
       "title": "계기판 레드라인 (한국어)",
-      "description": "한국어 계기판 · 기본/상세 설정 · 가솔린·디젤·eDrive·M 프리셋 · 실제 단위 환산",
+      "description": "한국어 스포츠 계기판 · 필요한 렌더러 자동 선행 설치 · 20fps 요청 상한 고정",
       "mguHmi": [
         "ID7"
       ],
@@ -112,7 +112,7 @@
       "kind": "app",
       "path": "store/apps/cluster_redline_en",
       "title": "Cluster Redline (English)",
-      "description": "Tabbed settings · Petrol/Diesel/eDrive/M presets · Sport/all modes · true power/torque unit conversion",
+      "description": "Sport cluster · installs required renderer first · fixed 20fps request limit",
       "mguHmi": [
         "ID7"
       ],

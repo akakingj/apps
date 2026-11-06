@@ -27,6 +27,11 @@ Power* is estimated from ECU engine torque and RPM. eDrive shows engine output o
 
 Install either language entry from this repository in MGU Store, or copy the source overlay to upstream and use its normal build/install workflow:
 
+Store installs a missing/older required cluster-render first, then the app;
+a compatible installed renderer is reused. The registered upstream source
+(normally `robertnisipeanu/idrive-apps` Releases) must offer the renderer.
+See the [automatic dependency guide](../../docs/AUTO-RENDERER.ko.md).
+
 ```sh
 python tools/install-overlay.py /path/to/idrive7-apps --apps cluster_redline --force
 cd /path/to/idrive7-apps
