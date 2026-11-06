@@ -19,7 +19,7 @@ cluster-render 설치 안내와 20fps 고정이 적용됩니다. 실차 출력 �
 
 이 저장소는 **Repo tree 방식**을 지원합니다.
 차량 Store에서 **Settings → Add source**를 열고
-`jaimeen77-cmyk/idrive7-apps-jam`을 입력한 뒤 **main → Check now**를 선택하세요.
+`jaimeen77-cmyk/apps`을 입력한 뒤 **main → Check now**를 선택하세요.
 목록에서 각 앱의 **한국어 / English** 버전을 선택해 설치합니다.
 별도 빌드 명령은 필요 없으며, SDK는 차량에 있는 것을 Store가 연결합니다.
 기존 한국어판은 유지됩니다. 영문판은 별도 앱과 설정으로 설치됩니다.

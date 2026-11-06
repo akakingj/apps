@@ -18,7 +18,7 @@ unverified. [Update instructions](docs/CLUSTER-REDLINE-0.8.3.ko.md).
 ## Install through MGU Store
 
 This repository now supports the **Repo tree** layout. In MGU Store, open
-**Settings → Add source**, enter `jaimeen77-cmyk/idrive7-apps-jam`, choose
+**Settings → Add source**, enter `jaimeen77-cmyk/apps`, choose
 **main**, then **Check now**. Choose the listing marked **한국어** or **English**
 for each app. The head unit builds the selected language; no build flag is needed.
 Existing Korean app ids are retained. English editions have separate ids and settings.

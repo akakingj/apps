@@ -9,11 +9,11 @@
 3. 다음 주소 또는 짧은 저장소 이름을 입력합니다.
 
 ```text
-https://github.com/jaimeen77-cmyk/idrive7-apps-jam
+https://github.com/jaimeen77-cmyk/apps
 ```
 
 ```text
-jaimeen77-cmyk/idrive7-apps-jam
+jaimeen77-cmyk/apps
 ```
 
 4. 채널 선택 화면에서 **main** 브랜치를 선택합니다. Releases가 아닙니다.

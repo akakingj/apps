@@ -25,7 +25,7 @@ Publish version bumps with these manifests (the builder rejects mismatched versi
 Preserve the included upstream MIT, MPL-2.0 client and OFL font attribution.
 The templates retain the original runtime/font license files.
 
-Registration: add `jaimeen77-cmyk/idrive7-apps-jam` in MGU Store and select
+Registration: add `jaimeen77-cmyk/apps` in MGU Store and select
 the `main` branch. Each app has a **한국어** and **English** listing.
 They install separately and retain separate settings; use only one Cluster Redline
 edition's Sport auto-display. See [Korean guide](../docs/MGU-STORE.ko.md).
