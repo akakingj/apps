@@ -23,6 +23,9 @@ const REASONS = {
     guidance_unknown: 'Waiting for navigation state · HUD released',
     guidance_stale: 'Navigation state stale · HUD released',
     guidance_unavailable: 'Navigation state unavailable · HUD released',
+    navigation_maneuver_unknown: 'Waiting for navigation data · stock HUD preserved',
+    navigation_provider_unknown: 'Waiting for navigation data · stock HUD preserved',
+    navigation_calculating: 'Calculating route · HUD released',
     renderer_recovering: 'Recovering renderer layer',
 };
 mgu.run({ async start(ctx) {

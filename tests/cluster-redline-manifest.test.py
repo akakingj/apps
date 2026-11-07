@@ -16,7 +16,7 @@ field = 'dataDisplayGearbox'
 assert spec['signals'][iface][field] == 's'
 nav = 'de.bmw.infotainment.navigation.guiding.Guidance'
 assert spec['signals'][nav]['_instances'] == 'Main_Instance'
-assert spec['signals'][nav]['guidanceState'] == 'r'
+assert all(spec['signals'][nav][key]=='rs' for key in ['guidanceState','guidingProvider','conclusiveDart'])
 
 with tempfile.TemporaryDirectory(prefix='redline-manifest-') as temp:
     root = Path(temp)
@@ -50,6 +50,6 @@ for suffix in ('', '-ko.1'):
             manifest = json.load(archive.extractfile(manifest_path))
         assert manifest['proxies'][iface]['attributes'][field] == 's', str(package)
         assert manifest['proxies'][nav]['instances'] == 'Main_Instance', str(package)
-        assert manifest['proxies'][nav]['attributes']['guidanceState'] == 'r', str(package)
+        assert all(manifest['proxies'][nav]['attributes'][key]=='rs' for key in ['guidanceState','guidingProvider','conclusiveDart']), str(package)
 
 print('PASS: upstream getter regression; all four language artifacts preserve notifier-only gearbox and read-only Guidance/Main_Instance')

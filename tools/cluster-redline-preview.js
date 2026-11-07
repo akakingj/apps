@@ -6,6 +6,7 @@ const stage = path.resolve(process.argv[2] || path.join(__dirname, '../dist/clus
 const out = path.resolve(process.argv[3] || path.join(__dirname, '../preview/cluster_redline'));
 const { draw } = require(path.join(stage, 'source/javascript/draw'));
 const hud = require(path.join(stage, 'source/javascript/hud-draw'));
+const compose = require(path.join(stage, 'source/javascript/hud-compose'));
 const { Canvas } = require(path.join(stage, 'source/javascript/kit/canvas'));
 const { Policy, settings } = require(path.join(stage, 'source/javascript/policy'));
 fs.mkdirSync(out, { recursive: true });
@@ -19,7 +20,8 @@ function scene(name, rpm, engineProfile, options) {
     state.torqueNm = rpm === 0 ? 0 : state.shift ? 265 : 380;
     state.powerPS = state.torqueNm * rpm / 9549.2966 * 1.3596216;
     state.torquePeak = state.torqueNm; state.powerPeak = state.powerPS;
-    const face = options && options.displayTarget === 'hud' ? hud.draw(state) : draw(state);
+    state.navigation=options&&options.previewNavigation;
+    const face = state.navigation ? compose.draw(state) : options && options.displayTarget === 'hud' ? hud.draw(state) : draw(state);
     fs.writeFileSync(path.join(out, name + '.png'), face.png());
     const preview = new Canvas(face.w, face.h); preview.clear('#05070b'); preview.blit(face, 0, 0);
     fs.writeFileSync(path.join(out, name + '-on-black.png'), preview.png());
@@ -33,6 +35,7 @@ scene('hybrid-rpm', 3500, 'hybrid');
 scene('threshold-2000-before', 1990, 'petrol', { shiftRpm: 2000 });
 scene('threshold-2000-alert', 2000, 'petrol', { shiftRpm: 2000 });
 scene('hud-rpm', 3500, 'petrol', { displayTarget: 'hud', previewGear:'D1' });
+scene('hud-navigation',5200,'petrol',{displayTarget:'hud',previewGear:'S4',previewNavigation:{visible:true,maneuver:'RIGHT',distanceText:'300 m',provider:'ANDROID_AUTO'}});
 scene('hud-high-rpm', 5000, 'petrol', { displayTarget:'hud', previewGear:'S1' });
 scene('hud-shift', 5500, 'petrol', { displayTarget:'hud', previewGear:'M1', previewFlash:true });
 scene('hud-shift-dim', 5500, 'petrol', { displayTarget:'hud', previewGear:'M1', previewFlash:false });
@@ -41,7 +44,7 @@ scene('stop-go', 0, 'petrol', {previewWarm:true,previewGear:'D1'});
 scene('hud-stop-go', 0, 'petrol', {displayTarget:'hud',previewWarm:true,previewGear:'D1'});
 const html = `<!doctype html><meta charset="utf-8"><title>계기판 레드라인 미리보기</title>
 <style>body{background:#10151d;color:#ecf2fa;font:18px system-ui;max-width:1088px;margin:32px auto;padding:16px}img{max-width:100%}section{border:1px solid #34465b;padding:20px;margin:20px 0;border-radius:12px}.off{height:140px;display:grid;place-items:center;color:#a5b7cb;background:#0b0e12}p{line-height:1.6}</style>
-<h1>계기판 레드라인</h1><p>실제 앱 렌더링 미리보기 · 데모 수치 · 내부 1088 × 480 / 기본 실차 표시 816 × 360 · 마력*은 토크와 RPM으로 계산한 PS입니다. 빈 배경은 투명합니다.</p>
+<h1>계기판 레드라인</h1><p>실제 앱 렌더링 미리보기 · 데모 수치 · 내부 1088 × 480 / 기본 실차 표시 870 × 384 · 마력*은 토크와 RPM으로 계산한 PS입니다. 빈 배경은 투명합니다.</p>
 <section><h2>부팅 · Comfort · Eco · 신호 없음</h2><div class="off">표시 OFF — 이 앱은 레이어를 만들지 않으며 순정 화면을 유지합니다.</div></section>
 <section><h2>가솔린 · 스포츠 모드</h2><img src="sport-rpm.png" alt="가솔린 4200 rpm"><p>확인된 스포츠 모드와 최신 회전수 신호가 있을 때만 표시합니다.</p></section>
 <section><h2>가솔린 · 변속 알림</h2><img src="sport-shift.png" alt="가솔린 6500 rpm 변속 알림"><p>기본 설정: 알림은 별도 설정 · G20 가솔린 레드라인 시작 6000 · 눈금 최대 7000 rpm.</p></section>
@@ -51,7 +54,8 @@ const html = `<!doctype html><meta charset="utf-8"><title>계기판 레드라인
 <section><h2>디젤 · 변속 알림</h2><img src="diesel-shift.png" alt="디젤 4200 rpm 변속 알림"></section>
 <section><h2>하이브리드 · 엔진 작동</h2><img src="hybrid-rpm.png" alt="하이브리드 3500 rpm"><p>엔진이 작동하고 스포츠 모드일 때 RPM을 표시합니다. 실행 후 정상적인 0rpm을 받는 동안에는 화면을 유지합니다. RPM만으로 전기 구동·회생 여부를 판정하지 않습니다.</p></section>
 <section><h2>Stop &amp; Go · 0 RPM 유지</h2><img src="stop-go.png" alt="정차 중 유효한 0rpm 표시 유지"></section>
-<section><h2>HUD · 클러스터와 같은 UI</h2><img src="hud-rpm.png" alt="클러스터와 동일한 색상과 배치의 HUD"><img src="hud-stop-go.png" alt="HUD 자동 정차 중 0rpm 유지"></section>
+<section><h2>HUD · 이전 배치와 공통 RPM 색상</h2><img src="hud-rpm.png" alt="클러스터와 공통 색상, RPM 양옆 토크·마력의 HUD"><img src="hud-stop-go.png" alt="HUD 자동 정차 중 0rpm 유지"></section>
+<section><h2>HUD 길안내 · 위치/크기 별도 조절</h2><img src="hud-navigation-on-black.png" alt="HUD 회전 화살표와 거리 데모"><p>그림은 데모 안내입니다. 실제 휴대폰 안내 수신과 차량 출력은 실차 확인이 필요합니다.</p></section>
 <p>스포츠 모드를 벗어나면 레이어를 해제합니다. 실제 표시는 차량·펌웨어·계기판 모드에 따라 검증해야 합니다.</p>`;
 fs.writeFileSync(path.join(out, 'index.html'), html);
 console.log('Preview:', path.join(out, 'index.html'));

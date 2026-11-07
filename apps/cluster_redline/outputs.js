@@ -51,6 +51,7 @@ class Outputs {
         order.forEach((name) => {
             const out = this[name], selected = cfg[prefix + (name === 'hud' ? 'HudOutput' : 'ClusterOutput')];
             out.profile = cfg.engineProfile; out.gear = this.gear; out.gearMode = this.gearMode;
+            out.navigation = name === 'hud' ? this.navigation : null;
             const blocked=name==='hud' && this.hudBlocked;
             states[name] = out.tick(now, Object.assign({}, cfg, { displayTarget: name === 'hud' ? 'hud' : 'map', appEnabled: cfg.appEnabled && selected === 'redline' && !blocked }));
             if (selected === 'stock' && cfg.appEnabled) states[name].reason = 'stock';

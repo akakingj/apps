@@ -55,6 +55,14 @@ function filterOptionalProxies(manifest, catalog, optional) {
     const instances = catalog.instanceIDs && catalog.instanceIDs[guidance];
     const named = instances && Object.prototype.hasOwnProperty.call(instances, 'Main_Instance') && instances.Main_Instance != null;
     if (optional && optional[guidance] && (!route || !route.getter || !route.getter.id || !named)) delete proxies[guidance];
+    if (optional && optional[guidance] && proxies[guidance]) {
+        const attrs=proxies[guidance].attributes||{};
+        ['guidanceState','guidingProvider','conclusiveDart'].forEach((key)=>{
+            const item=field(guidance,key);
+            if(!item||!item.getter||!item.getter.id)delete attrs[key];
+            else if(attrs[key]&&(!item.notifier||!item.notifier.id))attrs[key]=attrs[key].replace(/s/g,'');
+        });
+    }
     return manifest;
 }
 function build(options) {

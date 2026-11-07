@@ -2,6 +2,7 @@
 const { Canvas, ramp } = require('./kit/canvas');
 const { gauges } = require('./units');
 const { drawMark } = require('./m-mark');
+const rpmColors = require('./rpm-colors');
 const W = 1088, H = 480;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const C = { track: '#1b212b', text: '#f4f7fb', red: '#ff2a2a' };
@@ -61,7 +62,7 @@ function draw(state) {
     const top = clamp(rpm, 0, cfg.maxRpm);
     for (let r = 0; r < top; r += 500) {
         const end = Math.min(r + 500, top);
-        if (r < cfg.redlineRpm) polygon(r, Math.min(end, cfg.redlineRpm), ramp(['#1455df', '#1dc8f9', '#be4ee2', '#ed3fa7'], r / cfg.maxRpm));
+        if (r < cfg.redlineRpm) polygon(r, Math.min(end, cfg.redlineRpm), rpmColors.colorAt(r, cfg));
         if (end > cfg.redlineRpm) polygon(Math.max(r, cfg.redlineRpm), end, C.red);
     }
     for (let r = 500; r < cfg.maxRpm; r += 500) {

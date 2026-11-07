@@ -5,6 +5,10 @@ const INSTANCE = 'Main_Instance';
 const FIELD = 'guidanceState';
 const TTL_MS = 5000;
 function decode(value) {
+    // The supplied vehicle catalog defines INACTIVE=0, CALCULATING_ROUTE=1, ACTIVE=2.
+    if (value === 0) return 'inactive';
+    if (value === 1) return 'calculating';
+    if (value === 2) return 'active';
     if (value === 'ACTIVE') return 'active';
     if (value === 'CALCULATING_ROUTE') return 'calculating';
     if (value === 'INACTIVE') return 'inactive';

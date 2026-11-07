@@ -40,7 +40,7 @@
       "kind": "app",
       "path": "apps/cluster_redline",
       "title": "계기판 레드라인 (한국어)",
-      "description": "계기판·HUD 개별 선택 · 위치/가로/세로 조절 · 순정 안내 우선",
+      "description": "금속 M · 공통 RPM 색상 · HUD 길안내와 별도 위치/크기 조절",
       "mguHmi": [
         "ID7"
       ],
@@ -112,7 +112,7 @@
       "kind": "app",
       "path": "store/apps/cluster_redline_en",
       "title": "Cluster Redline (English)",
-      "description": "Independent cluster/HUD outputs, adjustable layout and stock-guidance priority",
+      "description": "Metallic M, shared RPM palette and adjustable native HUD turn guidance",
       "mguHmi": [
         "ID7"
       ],

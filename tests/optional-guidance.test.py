@@ -120,4 +120,27 @@ with tempfile.TemporaryDirectory(prefix='redline-optional-guidance-') as temp:
         store_input.write_text(json.dumps({'manifest': manifest, 'catalog': catalog, 'optional': {NAV: True}}))
         result = json.loads(subprocess.check_output([node, '-e', store_js, str(ROOT / 'tools/store-build.js'), str(store_input)], text=True))
         assert (MDRIVE in result['proxies']) == expected
+    # New navigation inputs remain independently optional. Never send an
+    # unsupported getter/notifier request to BMW's installer generator.
+    for label, extras, expected in [
+        ('state only', {}, {'guidanceState':'rs'}),
+        ('getter only navigation', {'guidingProvider':{'getter':{'id':27}}, 'conclusiveDart':{'getter':{'id':28}}}, {'guidanceState':'rs','guidingProvider':'r','conclusiveDart':'r'}),
+        ('full navigation', {'guidingProvider':{'getter':{'id':27},'notifier':{'id':32789}}, 'conclusiveDart':{'getter':{'id':28},'notifier':{'id':32790}}}, {'guidanceState':'rs','guidingProvider':'rs','conclusiveDart':'rs'}),
+        ('invalid navigation getters', {'guidingProvider':{'getter':{}}, 'conclusiveDart':{'notifier':{'id':32790}}}, {'guidanceState':'rs'}),
+    ]:
+        fields={'guidanceState':{'getter':{'id':2},'notifier':{'id':32770}}}
+        fields.update(extras)
+        catalog={'interfaces':{NAV:{'fields':fields},MDRIVE:{'fields':{'dataDisplayGearbox':{'notifier':{'id':32769}}}}},'instanceIDs':{NAV:{'Main_Instance':128}}}
+        requested=copy.deepcopy(manifest)
+        requested['proxies'][NAV]['attributes']={key:'rs' for key in ['guidanceState','guidingProvider','conclusiveDart']}
+        catalog_file.write_text(json.dumps(catalog))
+        (stage/'meta.json').write_text(json.dumps({'id':'cluster_redline','optional':{NAV:'navigation'}}))
+        target.write_text(json.dumps(requested))
+        subprocess.run(['sh',str(harness),node,str(catalog_file),str(stage)],check=True,capture_output=True,text=True)
+        desktop=json.loads(target.read_text())
+        store_input.write_text(json.dumps({'manifest':requested,'catalog':catalog,'optional':{NAV:True}}))
+        store=json.loads(subprocess.check_output([node,'-e',store_js,str(ROOT/'tools/store-build.js'),str(store_input)],text=True))
+        for result in [desktop,store]:
+            assert result['proxies'][NAV]['attributes']==expected,(label,result['proxies'][NAV])
+            assert result['proxies'][NAV]['instances']=='Main_Instance'
 print('PASS: named Main_Instance requirements, missing/empty/invalid getter metadata, actual desktop/Store optional Guidance filtering (missing interface/field/getter, notifier-only, getter-only, both), mandatory preservation, read-only flags/catalog, prior Jam-marker upgrade and idempotency')

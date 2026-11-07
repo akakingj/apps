@@ -8,7 +8,7 @@ const policy = require('../../apps/cluster_redline/policy');
 const guidance = require('../../apps/cluster_redline/guidance');
 const source = fs.readFileSync(path.join(__dirname, '../../apps/cluster_redline/worker.js'), 'utf8');
 const CDS = 'de.bmw.infotainment.vehicle.CDS', FES = 'de.bmw.infotainment.drivingexcitement.FES';
-const flush = async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); };
+const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
 function deferred() { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
 function harness(options) {
     const opt = options || {}, files = {}, feeds = {}, subscriptions = {}, watches = [], loads = [], polls = [], events = [];
@@ -39,9 +39,10 @@ function harness(options) {
         if (name === './outputs') return { Outputs };
         if (name === './cluster_render_client') return { ClusterRender: FakeClient };
         if (name === './draw') return painter;
-        if (name === './hud-draw') return Object.assign({}, painter, { W: 800, H: 353 });
+        if (name === './hud-compose') return Object.assign({}, painter, { W: 800, H: 353 });
         if (name === './policy') return policy;
         if (name === './guidance') return guidance;
+        if(name === './native-navigation')return require('../../apps/cluster_redline/native-navigation');
         if (name === './gear') return require('../../apps/cluster_redline/gear');
         if (name === './renderer') return { inspect: () => ({ compatible: true, version: '0.4.0', hudGuidanceSafe: true }) };
         throw new Error('Unexpected dependency ' + name);
@@ -57,7 +58,8 @@ function harness(options) {
             loads.push(iface);
             if (iface === guidance.INTERFACE) {
                 if (opt.missing) throw new Error('guidance absent');
-                return { fields: { guidanceState: opt.definition === undefined ? { getter: { id: 3 } } : opt.definition } };
+                const fields={guidanceState:opt.definition===undefined?{getter:{id:3}}:opt.definition};
+                if(opt.withManeuvers){fields.guidingProvider={getter:{id:27}};fields.conclusiveDart={getter:{id:28}};}return {fields};
             }
             throw new Error('optional MDrive absent');
         },
@@ -67,10 +69,10 @@ function harness(options) {
             if (iface === guidance.INTERFACE) {
                 assert.strictEqual(iface, 'de.bmw.infotainment.navigation.guiding.Guidance');
                 assert.strictEqual(instance, 'Main_Instance');
-                assert.deepStrictEqual(Object.keys(handlers), ['guidanceState']);
+                assert.deepStrictEqual(Object.keys(handlers),opt.withManeuvers?['guidanceState','guidingProvider','conclusiveDart']:['guidanceState']);
                 assert.strictEqual(Object.keys(flags).length, 0, 'guidance polling belongs to the worker timer');
                 sub.proxy = { getValue(field, timeout) {
-                    assert.strictEqual(field, 'guidanceState'); assert.strictEqual(timeout, 1000);
+                    assert((opt.withManeuvers?['guidanceState','guidingProvider','conclusiveDart']:['guidanceState']).includes(field));assert.strictEqual(timeout,1000);
                     if (pollThrow) throw pollThrow;
                     const read = deferred(); polls.push(Object.assign(read, { field, timeout, at: time })); return read.promise;
                 }, setValue() { throw new Error('worker must not write native guidance'); }, callMethod() { throw new Error('worker must not control routing'); } };
@@ -102,7 +104,7 @@ function harness(options) {
         assert.strictEqual(proc.listenerCount('exit'), 0); assert.strictEqual(app.listenerCount('shutdown'), 0);
         for (const sub of Object.values(subscriptions)) assert.strictEqual(sub.shutdowns, 1);
     }
-    return { worker, client, app, proc, files, feeds, loads, subscriptions, watches, polls, events, lateSubscriptions,
+    return { config, worker, client, app, proc, files, feeds, loads, subscriptions, watches, polls, events, lateSubscriptions,
         tick, navigate, both, onlyCluster, stopped, setPollThrow: value => { pollThrow = value; },
         get writes() { return writeCount; }, get pendingTimer() { return timer; } };
 }
@@ -115,7 +117,7 @@ async function eventYield() {
             h.navigate(value, 1100);
             assert.strictEqual(h.worker.controller.hud.ref, 0, 'guidance events drop HUD before the next worker tick');
             assert.strictEqual(h.worker.controller.cluster.ref, cluster); assert(h.events.some(e => e[0] === 'drop' && e[1] === hud));
-            h.tick(1150); h.onlyCluster(reason);
+            h.tick(1150); h.onlyCluster(reason==='guidance_active'?'navigation_provider_unknown':reason==='guidance_calculating'?'navigation_calculating':reason);
             h.navigate('INACTIVE', 1200); h.client.emit('target', 'hud', 'idle', '', '', false); h.tick(1250); h.both();
             assert.strictEqual(h.worker.controller.cluster.ref, cluster, 'HUD yield/recovery must not churn cluster acquisition');
             assert.strictEqual(h.loads.filter(x => x === guidance.INTERFACE).length, 1);
@@ -147,44 +149,44 @@ async function optionalReadSafety() {
 async function pollingAndRaces() {
     const h = harness();
     try {
-        await flush(); h.tick(1000); h.onlyCluster('guidance_unknown'); assert.strictEqual(h.polls.length, 1);
+        await flush(); h.tick(1000); await flush(); h.onlyCluster('guidance_unknown'); assert.strictEqual(h.polls.length, 1);
         h.polls[0].resolve('INACTIVE'); await flush(); h.tick(1050); h.both();
         h.tick(1999); assert.strictEqual(h.polls.length, 1, 'owned reads are limited to once a second');
-        h.tick(2000); assert.strictEqual(h.polls.length, 2);
+        h.tick(2000); await flush(); assert.strictEqual(h.polls.length, 2);
         h.tick(3000); h.tick(4000); assert.strictEqual(h.polls.length, 2, 'one unresolved getter must not spawn additional reads');
         h.navigate('ACTIVE', 4050); assert.strictEqual(h.worker.controller.hud.ref, 0);
-        h.polls[1].resolve('INACTIVE'); await flush(); h.tick(4100); h.onlyCluster('guidance_active');
+        h.polls[1].resolve('INACTIVE'); await flush(); h.tick(4100); await flush(); h.onlyCluster('navigation_provider_unknown');
         assert.strictEqual(h.polls.length, 3, 'a completed old read frees the next poll without overwriting the newer event');
         h.polls[2].resolve('INACTIVE'); await flush(); h.tick(4150); h.both();
-        h.tick(5100); assert.strictEqual(h.polls.length, 4);
+        h.tick(5100); await flush(); assert.strictEqual(h.polls.length, 4);
         h.polls[3].reject(new Error('read failed')); await flush();
         assert.strictEqual(h.worker.controller.hud.ref, 0, 'a failed getter releases HUD immediately');
         h.tick(5150); h.onlyCluster('guidance_unknown');
         h.navigate('INACTIVE', 5200); h.tick(5250); h.both();
-        h.setPollThrow(new Error('synchronous binding failure')); h.tick(6100); h.onlyCluster('guidance_unknown');
+        h.setPollThrow(new Error('synchronous binding failure')); h.tick(6100); await flush(); h.tick(6150); h.onlyCluster('guidance_unknown');
     } finally { h.worker.stop(); h.stopped(); }
 }
 async function providerReconnectRace() {
     const h = harness();
     try {
-        await flush(); h.navigate('INACTIVE'); h.tick(1000); h.both();
+        await flush(); h.navigate('INACTIVE'); h.tick(1000); await flush(); h.both();
         assert.strictEqual(h.polls.length, 1);
         h.subscriptions[guidance.INTERFACE].available = false; h.tick(1100); h.onlyCluster('guidance_unavailable');
         h.subscriptions[guidance.INTERFACE].available = true; h.tick(1200); h.onlyCluster('guidance_unknown');
         h.polls[0].resolve('INACTIVE'); await flush(); h.tick(1250); h.onlyCluster('guidance_unknown');
         assert.strictEqual(h.polls.length, 1, 'reconnection does not bypass the owned one-second polling interval');
-        h.tick(2000); assert.strictEqual(h.polls.length, 2);
+        h.tick(2000); await flush(); assert.strictEqual(h.polls.length, 2);
         h.polls[1].resolve('INACTIVE'); await flush(); h.tick(2050); h.both();
         // An error from a superseded read is equally unable to overwrite a
         // newer event, including a fresh native INACTIVE notification.
-        h.tick(3000); assert.strictEqual(h.polls.length, 3);
+        h.tick(3000); await flush(); assert.strictEqual(h.polls.length, 3);
         h.navigate('INACTIVE', 3050); h.polls[2].reject(new Error('old read failed')); await flush();
         h.tick(3100); h.both();
     } finally { h.worker.stop(); h.stopped(); }
 }
 async function lateReadsAndSubscriptions() {
     const h = harness();
-    await flush(); h.navigate('INACTIVE'); h.tick(1000); h.both();
+    await flush(); h.navigate('INACTIVE'); h.tick(1000); await flush(); h.both();
     const pending = h.polls[0];
     h.app.emit('shutdown'); h.stopped();
     const count = h.events.length, writes = h.writes;
@@ -197,7 +199,29 @@ async function lateReadsAndSubscriptions() {
     await flush(); early.stopped();
     assert.strictEqual(early.events.filter(e => e[0] === 'image').length, 0);
 }
+async function composedNavigation() {
+    const h=harness({withManeuvers:true});
+    const dart={maneuver:{intersection:{direction:'RIGHT',unreliable:false,formattedDistance:{distance:'300',unit:'METER'}}}};
+    try {
+        await flush();h.navigate('ACTIVE');
+        h.feeds[guidance.INTERFACE].guidingProvider('ANDROID_AUTO');
+        h.feeds[guidance.INTERFACE].conclusiveDart(dart);
+        h.tick(1000);await flush();h.both();
+        assert.strictEqual(h.worker.controller.navigation.distanceText,'300 m');
+        assert.strictEqual(h.client.active.get(h.worker.controller.hud.ref).contend,true,'only a composed current arrow permits contention');
+        h.config.hudNavigationEnabled=false;h.tick(1100);h.onlyCluster('guidance_active');
+        h.config.hudNavigationEnabled=true;h.tick(1200);h.both();
+        h.feeds[guidance.INTERFACE].conclusiveDart({maneuver:{placeholderElement:{type:'GAP'}}});
+        assert.strictEqual(h.worker.controller.hud.ref,0);h.tick(1250);h.onlyCluster('navigation_maneuver_unknown');
+        h.feeds[guidance.INTERFACE].conclusiveDart(dart);h.tick(1300);h.both();
+        h.feeds[guidance.INTERFACE].guidingProvider('CAR_PLAY');
+        assert.strictEqual(h.worker.controller.hud.ref,0,'new provider must wait for its own maneuver');
+        h.feeds[guidance.INTERFACE].conclusiveDart(dart);h.tick(1350);h.both();
+        h.navigate('INACTIVE',1400);h.tick(1450);h.both();
+        assert(!h.worker.controller.navigation.visible);assert.strictEqual(h.client.active.get(h.worker.controller.hud.ref).contend,false);
+    } finally {h.worker.stop();h.stopped();}
+}
 (async () => {
-    await eventYield(); await optionalReadSafety(); await pollingAndRaces(); await providerReconnectRace(); await lateReadsAndSubscriptions();
+    await composedNavigation();await eventYield(); await optionalReadSafety(); await pollingAndRaces(); await providerReconnectRace(); await lateReadsAndSubscriptions();
     console.log('PASS: actual worker native-guidance getter gating/instance, immediate HUD-only yield, fresh recovery, optional/stale/provider safety, bounded polling, event/read/provider-reconnect races and complete late-work shutdown');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -67,12 +67,15 @@ JAM_METADATA
 '''
 
 
-OPTIONAL_GUIDANCE_MARKER = '// Jam optional guidance instance v2'
+OPTIONAL_GUIDANCE_MARKER = '// Jam optional guidance fields v3'
 
 
 def optional_guidance_source(text):
     if OPTIONAL_GUIDANCE_MARKER in text:
-        return text
+        if '// Jam optional guidance field persistence v3' in text:
+            return text
+        return replace_once(text, '        if (!Object.keys(missing).length) process.exit(0);',
+            '        // Jam optional guidance field persistence v3\n        fs.writeFileSync(mf, JSON.stringify(m, null, 1));\n        if (!Object.keys(missing).length) process.exit(0);')
     original = '        for (const i of Object.keys(opt)) if (!have[i]) { missing[i] = opt[i]; delete m.proxies[i]; }'
     prior = """        // Jam optional guidance getter v1: polling needs a getter, not only a notifier.
         const supportsOptional = (i) => {
@@ -82,7 +85,7 @@ def optional_guidance_source(text):
             return !!(field && field.getter);
         };
         for (const i of Object.keys(opt)) if (!supportsOptional(i)) { missing[i] = opt[i]; delete m.proxies[i]; }"""
-    after = """        // Jam optional guidance instance v2: the runtime connects to Main_Instance.
+    after = """        // Jam optional guidance fields v3: the runtime connects to Main_Instance.
         const all = JSON.parse(fs.readFileSync(catalog, "utf8"));
         const supportsOptional = (i) => {
             if (!have[i]) return false;
@@ -92,8 +95,22 @@ def optional_guidance_source(text):
             const named = instances && Object.prototype.hasOwnProperty.call(instances, "Main_Instance") && instances.Main_Instance != null;
             return !!(field && field.getter && field.getter.id && named);
         };
-        for (const i of Object.keys(opt)) if (!supportsOptional(i)) { missing[i] = opt[i]; delete m.proxies[i]; }"""
-    return replace_once(text, prior if '// Jam optional guidance getter v1' in text else original, after)
+        for (const i of Object.keys(opt)) if (!supportsOptional(i)) { missing[i] = opt[i]; delete m.proxies[i]; }
+        const nav="de.bmw.infotainment.navigation.guiding.Guidance";
+        if(opt[nav] && m.proxies[nav]) {
+            const attrs=m.proxies[nav].attributes||{};
+            ["guidanceState","guidingProvider","conclusiveDart"].forEach((key)=>{
+                const item=have[nav].fields&&have[nav].fields[key];
+                if(!item||!item.getter||!item.getter.id)delete attrs[key];
+                else if(attrs[key]&&(!item.notifier||!item.notifier.id))attrs[key]=attrs[key].replace(/s/g,"");
+            });
+        }"""
+    if '// Jam optional guidance instance v2' in text:
+        start=text.index('        // Jam optional guidance instance v2')
+        end=text.index('        for (const i of Object.keys(opt)) if (!supportsOptional(i)) { missing[i] = opt[i]; delete m.proxies[i]; }',start)
+        end+=len('        for (const i of Object.keys(opt)) if (!supportsOptional(i)) { missing[i] = opt[i]; delete m.proxies[i]; }')
+        return optional_guidance_source(text[:start]+after+text[end:])
+    return optional_guidance_source(replace_once(text, prior if '// Jam optional guidance getter v1' in text else original, after))
 
 
 def installer_source(text):

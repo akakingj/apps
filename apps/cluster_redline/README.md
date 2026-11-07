@@ -1,9 +1,9 @@
-# Cluster Redline 1.0.3
+# Cluster Redline 1.0.4
 ## 1.0.1
 
-1.0.3 keeps fresh zero-RPM output through automatic stop/start after a running-engine sample. HUD now uses the cluster face and palette, matching metallic M marks and shared red shift-light pulses. HUD source height is now353px; placement controls use its actual dimensions. [Change notes](../../docs/CLUSTER-REDLINE-1.0.3.ko.md).
+1.0.4 restores the earlier 800×240 HUD layout and side-gauge sizes with correctly sized metallic M marks. Both displays share blue/lighter-blue RPM cells, changing to purple/pink after4000rpm and red at the configured redline. [Changes](../../docs/CLUSTER-REDLINE-1.0.4.ko.md).
 
-Read-only OEM guidance-state monitoring releases our HUD during route calculation/navigation and whenever that state cannot be checked. Only fresh explicit INACTIVE permits HUD rendering. Missing optional getters are omitted at install time. Native linger and other HUD clients still apply. Add torque/power mini gauges beside RPM, with bounded horizontal placement and real unit conversion. Retry only verified transient layer failures (2/5/10 seconds, three attempts), never bypass native guards. A separate native parked-recovery source patch is provided for upstream review; **the app does not install that renderer patch**, and real-car recovery remains unverified. [Change notes](../../docs/CLUSTER-REDLINE-1.0.1.ko.md).
+Read-only Guidance maneuver/provider/state inputs compose a turn arrow and supplied distance into our HUD. Missing/stale maneuver data preserves stock guidance. Stop & Go zero-RPM retention and bounded transient recovery remain.
 
 
 [한국어](README.ko.md)
@@ -18,15 +18,15 @@ Advanced settings: Redline display mode (Sport / All drive modes), HUD display (
 
 Position / size lets you select Cluster or HUD, move in 10-pixel steps and adjust width/height separately in 5% steps. Temporary X/Y/width/height readouts show the bounded native placement. Changes update the existing layer without repeatedly reacquiring it.
 
-The HUD shares the cluster face: angled blue/cyan/purple/pink RPM cells, fixed red zone, metallic M framing and bottom-centred received gear (`M1`, `S1`, `D1`, `P`, etc.), with torque/power on its sides. Both outputs use green/yellow/red progressing LEDs; at the shift threshold the LEDs pulse red at 2 Hz and RPM digits stay red. Unlit LEDs are black. Gear prefixes depend on the car's available selector/programme signals; chassis Sport does not imply gearbox S.
+HUD restores the earlier top RPM bar, large central RPM, side torque/power gauges and received gear at the right. Cluster/HUD share the RPM palette and metallic M. Gear prefixes follow received signals.
 
 Defaults: Sport only; Cluster Redline, HUD Stock; Petrol; PS/Nm; fixed 20 fps request ceiling. Cluster dimensions default to 80% and HUD to 75%. Actual rendering speed depends on the car. eDrive power is engine-only, estimated from engine torque and RPM, not combined electric output.
 
 ## Factory HUD navigation
 
-**Requires cluster-render 0.4.0 or newer.** Version 0.9.1 mistakenly requested a contending HUD layer, which could keep newly arriving stock guidance parked behind Redline. This version requests a non-contending, non-exclusive HUD layer. The native renderer can release it for stock guidance and popups, then reacquire it when the slot is free. Its configured yield/linger delays still apply.
+**Requires cluster-render0.4.0+.** HUD contention is permitted only while fresh supported maneuver data is already composed. Otherwise stock guidance takes priority. Native popup/foreign-owner yielding and linger policies still apply.
 
-**Simultaneous factory navigation and Redline in the same HUD slot is not implemented.** Positioning a smaller image does not merge two native scenes. When stock guidance occupies that slot it has priority, so Redline may temporarily disappear. Separate-area coexistence needs renderer support and real-car validation; the placement preview does not prove a clear area on a windshield.
+**Advanced settings > Position / size > HUD navigation** has its own On/Off, position, width and height. CarPlay/Android Auto schema definitions are used; actual phone-app delivery and vehicle rendering remain unverified. Unsupported guidance preserves the stock HUD.
 
 The app checks that the native HUD policy leaves stock takeover disabled and includes popup yield slot `0x322`. An unsafe owner override suppresses only this app's HUD output and reports a settings warning. It never enables `hud_take_over_stock`, changes BMW menus, bypasses native guards or resets renderer configuration.
 
@@ -60,3 +60,6 @@ Host tests cover settings entry/touch/rotary routing, independent outputs, share
 [1.0.2 install fix: request the native Guidance Main_Instance explicitly and omit this optional proxy when its instance/getter is unavailable. Vehicle installation still needs confirmation.](../../docs/CLUSTER-REDLINE-1.0.2.ko.md)
 
 ![Stop & Go](../../screenshots/cluster_redline/stop-go.png)
+
+![HUD navigation](../../screenshots/cluster_redline/hud-navigation-on-black.png)
+![Navigation settings](../../screenshots/cluster_redline/settings-layout-hud-navigation.png)

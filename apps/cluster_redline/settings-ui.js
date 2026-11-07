@@ -5,6 +5,7 @@ const { header } = require('./settings-chrome');
 const { settings: effective, PROFILES } = require('./policy');
 const { placement } = require('./layout');
 const HUD = require('./hud-draw');
+const NAV = require('./nav-draw');
 const W = 1600, H = 520;
 const TABS = ['Basic settings', 'Advanced settings'];
 const GROUPS = [
@@ -14,7 +15,7 @@ const GROUPS = [
 const WARNING = 'Set Instrument cluster > Central display area to Off for correct operation.';
 const MAP_WARNING = 'Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
 const RENDERER_NOTICE = 'Install Cluster renderer (cluster-render) from MGU Store first.';
-const HUD_WARNING = 'Stock HUD guidance has priority; same-slot content cannot be shown together.';
+const HUD_WARNING = 'HUD navigation shows received turn guidance; unavailable data preserves stock guidance.';
 const STOCK_NOTICE = 'Stock displays selected; Redline does not occupy either display.';
 const LAYOUT_ITEM = { key: 'layout', label: 'Position / size', type: 'layout' };
 function options(item, cfg) {
@@ -120,7 +121,7 @@ class SettingsPage {
             });
             if (this.tab === 0) cv.text('Presets set gauge scales; eDrive shows engine output only, not combined output.', 84, 510, 22, '#8b98aa');
             else {
-                cv.text('Status', 84, 430, 26, '#7f8b9d');
+                cv.text('Status',84,430,26,'#7f8b9d');
                 if (Array.isArray(status)) status.forEach((line,i)=>cv.text(line,84,457+i*28,fit(line,24,1450),'#bdc9d8'));
                 else cv.text(status || 'Waiting for background app', 84, 470, fit(status || 'Waiting for background app',30,1450), '#bdc9d8');
                 cv.text('Fixed 20 fps request limit; actual output depends on the car.', 84, 510, 22, '#8b98aa');
@@ -132,9 +133,9 @@ class SettingsPage {
     adjust(param, delta) {
         this.layoutParam=param;
         const cfg=this.config(),name=this.layoutTarget,suffix=['OffsetX','OffsetY','WidthScale','HeightScale'][param];
-        const shape={W:name==='hud'?HUD.W:1088,H:name==='hud'?HUD.H:480},r=placement(cfg,name==='hud'?'hud':'map',shape);
+        const shape=name==='hudNav'?NAV:name==='hud'?HUD:{W:1088,H:480},r=placement(cfg,name==='cluster'?'map':name,shape);
         const key=name+suffix,step=param<2?10:5;
-        const min=param===0?r.minX:param===1?r.minY:20,max=param===0?r.maxX:param===1?r.maxY:param===3&&name==='hud'?150:100;
+        const min=param===0?r.minX:param===1?r.minY:20,max=param===0?r.maxX:param===1?r.maxY:name==='hudNav'?200:param===3&&name==='hud'?150:100;
         this.settings.set(key,Math.max(min,Math.min(max,cfg[key]+delta*step)));
         this.changed();
     }
@@ -150,22 +151,23 @@ class SettingsPage {
             } else cv.text(label,x+w/2,y+h/2+11,30,'#f3f5f7',{align:'center'});
             targets.push({x,y,w,h,act});
         };
-        ['cluster','hud'].forEach((name,i)=>button(name==='hud'?'HUD':'Cluster',84+i*260,110,240,64,()=>{this.layoutTarget=name;this.changed();},this.layoutTarget===name));
+        ['cluster','hud','hudNav'].forEach((name,i)=>button(name==='hudNav'?'HUD navigation':name==='hud'?'HUD':'Cluster',84+i*260,110,240,64,()=>{this.layoutTarget=name;this.changed();},this.layoutTarget===name));
+        if(this.layoutTarget==='hudNav')button(cfg.hudNavigationEnabled?'On':'Off',890,110,300,64,()=>{this.settings.set('hudNavigationEnabled',!cfg.hudNavigationEnabled);this.changed();},cfg.hudNavigationEnabled);
         button('Back',1260,110,276,64,()=>{this.open=null;this.changed();});
         cv.text('Position',100,208,28,'#b8c5d4');
         button('↑',320,218,100,72,()=>this.adjust(1,-1),this.layoutParam===1);
         button('←',200,302,100,72,()=>this.adjust(0,-1),this.layoutParam===0);
         button('→',440,302,100,72,()=>this.adjust(0,1),this.layoutParam===0);
         button('↓',320,386,100,72,()=>this.adjust(1,1),this.layoutParam===1);
-        ['Gauge width','Gauge height'].forEach((label,i)=>{
+        (this.layoutTarget==='hudNav'?['Navigation width','Navigation height']:['Gauge width','Gauge height']).forEach((label,i)=>{
             const y=226+i*140,key=this.layoutTarget+(i?'HeightScale':'WidthScale');
             cv.text(label,800,y,30,'#b8c5d4');
             button('−',1020,y+18,100,72,()=>this.adjust(i+2,-1),this.layoutParam===i+2);
             button('+',1140,y+18,100,72,()=>this.adjust(i+2,1),this.layoutParam===i+2);
             cv.text(String(cfg[key])+' %',1500,y+67,34,'#ffffff',{align:'right',font:'num'});
         });
-        const shape={W:this.layoutTarget==='hud'?HUD.W:1088,H:this.layoutTarget==='hud'?HUD.H:480};
-        const r=placement(cfg,this.layoutTarget==='hud'?'hud':'map',shape);
+        const shape=this.layoutTarget==='hudNav'?NAV:this.layoutTarget==='hud'?HUD:{W:1088,H:480};
+        const r=placement(cfg,this.layoutTarget==='cluster'?'map':this.layoutTarget,shape);
         cv.text(t('Coordinates')+': X '+r.x+' · Y '+r.y+' · '+r.w+' × '+r.h,84,503,24,'#ffad45',{literal:true});
     }
     drawChoices(cv, cfg, targets) {

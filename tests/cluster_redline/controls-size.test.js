@@ -77,9 +77,15 @@ try {
     assert.strictEqual(values.sportHudOutput,'redline');assert.strictEqual(values.sportClusterOutput,'stock');
     tapLogical(display.pageTargets[3]);assert.strictEqual(page.open,'layout');save('settings-layout-cluster-full');
     tapLogical(display.pageTargets[1]);assert.strictEqual(page.layoutTarget,'hud');
-    tapLogical(display.pageTargets[5]);assert.strictEqual(values.hudOffsetX,10);
-    tapLogical(display.pageTargets[8]);assert.strictEqual(values.hudWidthScale,80);save('settings-layout-hud-full');
-    tapLogical(display.pageTargets[2]);assert.strictEqual(page.open,null);
+    tapLogical(display.pageTargets[6]);assert.strictEqual(values.hudOffsetX,10);
+    tapLogical(display.pageTargets[9]);assert.strictEqual(values.hudWidthScale,80);save('settings-layout-hud-full');
+    tapLogical(display.pageTargets[2]);assert.strictEqual(page.layoutTarget,'hudNav');
+    tapLogical(display.pageTargets.find(r=>r.x===1140&&r.y===244));assert.strictEqual(values.hudNavWidthScale,105);
+    assert.strictEqual(values.hudWidthScale,80,'navigation width is independent of RPM HUD width');
+    tapLogical(display.pageTargets.find(r=>r.x===890&&r.y===110));assert.strictEqual(values.hudNavigationEnabled,false);
+    tapLogical(display.pageTargets.find(r=>r.x===440&&r.y===302));assert.strictEqual(values.hudNavOffsetX,10);
+    save('settings-layout-hud-navigation-full');
+    tapLogical(display.pageTargets.find(r=>r.x===1260&&r.y===110));assert.strictEqual(page.open,null);
     tapLogical(display.tabs[0]);
     save('settings-hud-basic-full');
     components.BTN_NEXT.on('action', () => page.move(1));

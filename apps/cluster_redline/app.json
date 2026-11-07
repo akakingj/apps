@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Independent stock/Redline cluster and HUD outputs, adjustable placement and native-guidance priority",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
@@ -25,9 +25,11 @@
       "dataDisplayGearbox": "s"
     },
     "de.bmw.infotainment.navigation.guiding.Guidance": {
-      "_optional": "Read-only native navigation state; HUD stays released when guidance state cannot be checked",
-      "guidanceState": "r",
-      "_instances": "Main_Instance"
+      "_optional": "Read-only guidance state and maneuver data; missing navigation inputs preserve stock HUD guidance",
+      "guidanceState": "rs",
+      "_instances": "Main_Instance",
+      "guidingProvider": "rs",
+      "conclusiveDart": "rs"
     }
   },
   "screens": [
@@ -349,6 +351,44 @@
       "label": "hud HeightScale",
       "type": "number",
       "default": 75,
+      "unit": "%",
+      "hidden": true
+    },
+    {
+      "key": "hudNavigationEnabled",
+      "label": "HUD navigation",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "key": "hudNavOffsetX",
+      "label": "Navigation OffsetX",
+      "type": "number",
+      "default": 0,
+      "unit": "px",
+      "hidden": true
+    },
+    {
+      "key": "hudNavOffsetY",
+      "label": "Navigation OffsetY",
+      "type": "number",
+      "default": 0,
+      "unit": "px",
+      "hidden": true
+    },
+    {
+      "key": "hudNavWidthScale",
+      "label": "Navigation WidthScale",
+      "type": "number",
+      "default": 100,
+      "unit": "%",
+      "hidden": true
+    },
+    {
+      "key": "hudNavHeightScale",
+      "label": "Navigation HeightScale",
+      "type": "number",
+      "default": 100,
       "unit": "%",
       "hidden": true
     }

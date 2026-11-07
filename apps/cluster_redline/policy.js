@@ -19,7 +19,8 @@ const FRAME_RATE = 20;
 const DEFAULTS = { appEnabled: true, engineProfile: 'petrol', displayMode: 'sport', powerUnit: 'PS', torqueUnit: 'Nm', shiftRpm: 0, frameRate: FRAME_RATE, displayTarget: 'map', widgetScale: 80 };
 Object.assign(DEFAULTS, { sportClusterOutput: 'redline', sportHudOutput: 'stock', allClusterOutput: 'redline', allHudOutput: 'stock',
     clusterOffsetX: 0, clusterOffsetY: 0, clusterWidthScale: 80, clusterHeightScale: 80,
-    hudOffsetX: 0, hudOffsetY: -100, hudWidthScale: 75, hudHeightScale: 75 });
+    hudOffsetX: 0, hudOffsetY: -100, hudWidthScale: 75, hudHeightScale: 75,
+    hudNavigationEnabled: true, hudNavOffsetX: 0, hudNavOffsetY: 0, hudNavWidthScale: 100, hudNavHeightScale: 100 });
 const MODES = { 1: 'SPORT', 2: 'SPORT_PLUS', 3: 'SPORT_INDIVIDUAL', 4: 'COMFORT', 5: 'COMFORT_PLUS',
     6: 'COMFORT_INDIVIDUAL', 7: 'ECO_PRO', 8: 'ECO_PRO_PLUS', 9: 'ECO_PRO_INDIVIDUAL', 10: 'ADAPTIVE',
     SPORT_DYNAMIC: 'SPORT', SPORT_EXPERT: 'SPORT_PLUS', SPORT_INDIVIDUAL: 'SPORT_INDIVIDUAL',
@@ -31,6 +32,7 @@ function settings(raw) {
     // Retain an old owner's OFF choice; removed manual scales/prefixes are ignored.
     if (typeof raw.appEnabled === 'boolean') out.appEnabled = raw.appEnabled;
     else if (raw.autoSport === false) out.appEnabled = false;
+    if (typeof raw.hudNavigationEnabled === 'boolean') out.hudNavigationEnabled = raw.hudNavigationEnabled;
     if (['sport', 'all'].indexOf(raw.displayMode) >= 0) out.displayMode = raw.displayMode;
     if (['PS', 'kW'].indexOf(raw.powerUnit) >= 0) out.powerUnit = raw.powerUnit;
     if (['Nm', 'kgfm'].indexOf(raw.torqueUnit) >= 0) out.torqueUnit = raw.torqueUnit;
@@ -57,13 +59,13 @@ function settings(raw) {
             out[mode + 'HudOutput'] = raw.displayTarget === 'hud' ? 'redline' : 'stock';
         });
     }
-    ['cluster', 'hud'].forEach((target) => {
+    ['cluster', 'hud', 'hudNav'].forEach((target) => {
         ['OffsetX', 'OffsetY'].forEach((suffix) => {
             const key = target + suffix, value = raw[key];
             if (typeof value === 'number' && isFinite(value)) out[key] = Math.max(-1000, Math.min(1000, Math.round(value / 10) * 10));
         });
         ['WidthScale', 'HeightScale'].forEach((suffix) => {
-            const key = target + suffix, value = raw[key], max = target === 'hud' && suffix === 'HeightScale' ? 150 : 100;
+            const key = target + suffix, value = raw[key], max = target === 'hudNav' ? 200 : target === 'hud' && suffix === 'HeightScale' ? 150 : 100;
             if (typeof value === 'number' && isFinite(value)) out[key] = Math.max(20, Math.min(max, Math.round(value / 5) * 5));
             else if (target === 'cluster' && typeof raw.widgetScale === 'number') out[key] = out.widgetScale;
         });

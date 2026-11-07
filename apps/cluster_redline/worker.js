@@ -6,11 +6,12 @@ const path = require('path');
 const { ClusterRender } = require('./cluster_render_client');
 const { Outputs } = require('./outputs');
 const painter = require('./draw');
-const hudPainter = require('./hud-draw');
+const hudPainter = require('./hud-compose');
 const { settings, DEFAULTS } = require('./policy');
 const renderer = require('./renderer');
 const gear = require('./gear');
 const guidance = require('./guidance');
+const {NativeNavigation} = require('./native-navigation');
 const CDS = 'de.bmw.infotainment.vehicle.CDS';
 const FES = 'de.bmw.infotainment.drivingexcitement.FES';
 const MODE_FIELD = 'statusFESVehicleDynamicSwitchHMI';
@@ -26,7 +27,15 @@ function supportedRenderer() { return renderer.inspect(undefined, fs).compatible
 function start(ctx) {
     const log = ctx.log, signals = ctx.signals;
     const client = new ClusterRender('cluster-redline'), controller = new Outputs(client, painter, hudPainter);
-    const gearbox = new gear.GearState(), navigation = new guidance.GuidanceState();
+    const gearbox = new gear.GearState(), navigation = new guidance.GuidanceState(), maneuvers = new NativeNavigation();
+    const navigationFields = [], lastNavigationValues = {};
+    function navigationSample(field,value) {
+        if(stopped)return;
+        if(field!=='conclusiveDart' && lastNavigationValues[field]!==value){navigationRevision++;lastNavigationValues[field]=value;}
+        if(field===guidance.FIELD)navigation.sample(value,mono());
+        maneuvers.sample(field,value,mono());
+        if(navigation.read(mono(),true).blocked&&!maneuvers.read(mono(),true).visible)controller.hud.hide();
+    }
     let config = settings(), lastStatus = -Infinity, stopped = false, timer;
     let guidanceSub, lastGuidancePoll = -Infinity, guidancePending = false, navigationRevision = 0, nativeStatus = null;
     let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub, fesSub, programSub;
@@ -69,23 +78,21 @@ function start(ctx) {
         if (hasProgram) signals.watch(MDRIVE, '1', {
             dataDisplayGearbox: (v) => gearbox.sample('programme', v),
         }, log, { pollMs: 1000 }).then((s) => { programSub = s; keep(s); if (s.error) reportError('optional gearbox programme', s.error); }).catch((e) => reportError('optional gearbox programme', e));
-        // Only read OEM guidance state. No start/stop/route or menu methods.
-        let hasGuidance = false;
-        try { const cfg = signals.loadConfig(guidance.INTERFACE); hasGuidance = !!(cfg.fields && cfg.fields[guidance.FIELD] && cfg.fields[guidance.FIELD].getter); } catch (e) {}
-        if (hasGuidance) {
-            const handlers = {};
-            handlers[guidance.FIELD] = (value) => {
-                if (stopped) return;
-                navigationRevision++; navigation.sample(value, mono());
-                // Drop our HUD immediately on active/calculating/unknown events.
-                // Native linger and other clients remain the renderer's policy.
-                if (navigation.state !== 'inactive') controller.hud.hide();
-            };
-            signals.watch(guidance.INTERFACE, guidance.INSTANCE, handlers, log, {}).then((sub) => {
-                guidanceSub = sub; keep(sub);
-                if (sub.error) reportError('optional native guidance', sub.error);
-            }).catch((e) => reportError('optional native guidance', e));
-        } else reportError('optional native guidance', 'readable guidanceState unavailable; HUD released');
+        // Read the common native/projection guidance channel. Never set routes,
+        // call vehicle methods, or alter the BMW HUD/menu configuration.
+        try {
+            const cfg=signals.loadConfig(guidance.INTERFACE);
+            [guidance.FIELD,'guidingProvider','conclusiveDart'].forEach((field)=>{
+                if(cfg.fields&&cfg.fields[field]&&cfg.fields[field].getter)navigationFields.push(field);
+            });
+        } catch(e) {}
+        if(navigationFields.indexOf(guidance.FIELD)>=0) {
+            const handlers={};
+            navigationFields.forEach((field)=>{handlers[field]=(value)=>{if(field!=='conclusiveDart')navigationRevision++;navigationSample(field,value);};});
+            signals.watch(guidance.INTERFACE,guidance.INSTANCE,handlers,log,{}).then((sub)=>{
+                guidanceSub=sub;keep(sub);if(sub.error)reportError('optional native guidance',sub.error);
+            }).catch((e)=>reportError('optional native guidance',e));
+        } else reportError('optional native guidance','readable guidanceState unavailable; HUD released');
     }
     function stop() {
         if (stopped) return;
@@ -117,22 +124,29 @@ function start(ctx) {
             Object.keys(DEFAULTS).forEach((k) => { if (k !== 'frameRate') raw[k] = ctx.settings.get(k); });
             config = settings(raw);
             const navigationAvailable = !!(guidanceSub && guidanceSub.available === true && !guidanceSub.error);
-            if (!navigationAvailable) { navigationRevision++; navigation.clear(); }
+            if (!navigationAvailable) { navigationRevision++; navigation.clear(); maneuvers.clear(); }
             // Owned polling uses the existing worker timer; shutdown leaves no
             // independent interval and late reads cannot alter a stopped worker.
             if (navigationAvailable && guidanceSub.proxy && typeof guidanceSub.proxy.getValue === 'function' && !guidancePending && at - lastGuidancePoll >= 1000) {
                 lastGuidancePoll = at; guidancePending = true; const revision = navigationRevision;
                 try {
-                    Promise.resolve(guidanceSub.proxy.getValue(guidance.FIELD, 1000)).then((value) => {
-                        guidancePending = false;
-                        if (!stopped && revision === navigationRevision) navigation.sample(value, mono());
-                        if (!stopped && navigation.state !== 'inactive') controller.hud.hide();
-                    }, () => { guidancePending = false; if (!stopped && revision === navigationRevision) { navigation.clear(); controller.hud.hide(); } });
-                } catch (e) { guidancePending = false; navigation.clear(); controller.hud.hide(); }
+                    const reads=navigationFields.map((field)=>Promise.resolve().then(()=>guidanceSub.proxy.getValue(field,1000))
+                        .then((value)=>({field,value}),()=>({field,value:null})));
+                    Promise.all(reads).then((values)=>{
+                        guidancePending=false;
+                        if(stopped||revision!==navigationRevision)return;
+                        // Apply identity before its maneuver; asynchronous initial
+                        // reads cannot reinsert an arrow from a previous provider.
+                        values.forEach((item)=>navigationSample(item.field,item.value));
+                    },()=>{guidancePending=false;if(!stopped&&revision===navigationRevision){navigation.clear();maneuvers.clear();controller.hud.hide();}});
+                } catch(e) {guidancePending=false;navigation.clear();maneuvers.clear();controller.hud.hide();}
             }
-            const navigationState = navigation.read(at, navigationAvailable);
-            controller.hudBlocked = rendererInfo.hudGuidanceSafe === false || navigationState.blocked;
-            controller.hudBlockReason = rendererInfo.hudGuidanceSafe === false ? 'hud_safety' : navigationState.reason;
+            const navigationState=navigation.read(at,navigationAvailable);
+            const maneuverState=maneuvers.read(at,navigationAvailable);
+            controller.navigation=maneuverState;
+            const composed=config.hudNavigationEnabled&&maneuverState.visible;
+            controller.hudBlocked=rendererInfo.hudGuidanceSafe===false||(navigationState.blocked&&!composed);
+            controller.hudBlockReason=rendererInfo.hudGuidanceSafe===false?'hud_safety':navigationState.active&&config.hudNavigationEnabled?maneuverState.reason:navigationState.reason;
             const state = controller.tick(at, config);
             if (at - lastStatus >= 500) {
                 lastStatus = at;
@@ -142,7 +156,7 @@ function start(ctx) {
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
-                    outputs: state.outputs, navigation: navigationState, nativeStatus: nativeStatus,
+                    outputs: state.outputs, navigation: navigationState, maneuver: maneuverState, nativeStatus: nativeStatus,
                     renderer: rendererInfo, rendererBackend: client.backend || null, rendererTargets: client.targets || '', requestedSettings: raw,
                     profile: config.engineProfile, config: config,
                     errors: errors.slice(-8), source: live ? 'live-someip' : 'offline-disabled',

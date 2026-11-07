@@ -95,6 +95,7 @@ class Controller {
         d.guidanceRequested = cfg.displayTarget === 'map'; d.guidanceDisabled = !!target.guideDisabled;
         const panel = cfg.displayTarget === 'panel', hud = cfg.displayTarget === 'hud';
         const painter = hud ? this.hudPainter : this.painter;
+        d.navigation = hud ? this.navigation : null;
         const targetWidth = panel ? 1920 : hud ? 800 : 1088, targetHeight = panel ? 720 : 480;
         const geometry = cfg.displayTarget + ':' + targetWidth + 'x' + targetHeight;
         if (d.show && (!painter || cfg.displayTarget === 'unknown' || String(this.client.targets || '').split(',').indexOf(geometry) < 0)) {
@@ -114,7 +115,11 @@ class Controller {
             this.transitions = this.transitions.slice(-12); this.lastReason = d.reason;
         }
         if (!d.show) { this.hide(); return Object.assign(d, { requested: false, layerState: this.layerState }); }
-        const rect = placement(cfg, cfg.displayTarget, painter), placementKey = [rect.x, rect.y, rect.w, rect.h].join('|');
+        const rect = painter.fullTarget ? {x:0,y:0,w:targetWidth,h:targetHeight} : placement(cfg, cfg.displayTarget, painter);
+        const placementKey = [rect.x, rect.y, rect.w, rect.h].join('|');
+        const navContend = hud && cfg.hudNavigationEnabled && !!(d.navigation && d.navigation.visible);
+        if (this.ref && hud && this.navContend !== navContend) this.hide();
+        this.navContend = navContend;
         d.placement = rect;
         d.flash = d.shift && Math.floor(now / 250) % 2 === 0;
         if (this.ref && this.placementKey !== placementKey) {
@@ -139,9 +144,10 @@ class Controller {
                 // Follow the same guide hold as MapFeed on map only. The
                 // renderer limits this to its supported maneuver-panel slots,
                 // releases it with the map, and retains its guard/allowlist.
-                // Non-contending HUD layers let the native renderer release
-                // our scene for stock guidance newly parked behind it.
-                visible: false, prewarm: false, exclusive: !hud, contend: !panel && !hud, guide_hold: !panel && !hud, fps: d.config.frameRate });
+                // HUD contends only with a fresh decoded maneuver already in
+                // the composed frame. Missing data releases our image; native
+                // popup yielding and configured takeover limits still apply.
+                visible: false, prewarm: false, exclusive: !hud, contend: navContend || (!panel && !hud), guide_hold: !panel && !hud, fps: d.config.frameRate });
             if (!this.ref) { this.fail('layer', 'client did not create a layer'); d.show = false; d.reason = 'renderer_refused'; return d; }
             this.layerState = 'waiting';
             this.layerRate = d.config.frameRate;
@@ -150,7 +156,8 @@ class Controller {
         }
         // Do not repaint a whole canvas 60 times/s when no source value changed.
         // Keep freshness/mode checks above this cache so stale signals still hide.
-        const paintKey = [d.rpm, d.shift, d.flash, d.gear, d.torqueNm, d.powerPS, d.torquePeak, d.powerPeak, cfg.shiftRpm, cfg.redlineRpm, cfg.maxRpm, cfg.torqueScale, cfg.powerScale, cfg.torqueUnit, cfg.powerUnit].join('|');
+        const paintKey = [d.rpm, d.shift, d.flash, d.gear, d.torqueNm, d.powerPS, d.torquePeak, d.powerPeak, cfg.shiftRpm, cfg.redlineRpm, cfg.maxRpm, cfg.torqueScale, cfg.powerScale, cfg.torqueUnit, cfg.powerUnit,
+            hud ? JSON.stringify([d.navigation&&[d.navigation.visible,d.navigation.maneuver,d.navigation.distanceText,d.navigation.exitNumber,d.navigation.provider],cfg.hudNavigationEnabled,cfg.hudOffsetX,cfg.hudOffsetY,cfg.hudWidthScale,cfg.hudHeightScale,cfg.hudNavOffsetX,cfg.hudNavOffsetY,cfg.hudNavWidthScale,cfg.hudNavHeightScale]) : ''].join('|');
         if (this.previous && this.paintKey === paintKey) return Object.assign(d, { requested: true, layerState: this.layerState });
         if (this.previous && !this.upload.ready(now)) return Object.assign(d, { requested: true, layerState: this.layerState });
         if (!this.previous && !this.ownsUpload && !this.upload.ready(now)) return Object.assign(d, { requested: true, layerState: this.layerState });
