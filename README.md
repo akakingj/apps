@@ -57,7 +57,3 @@ The normal backup/restore path is retained. No separate mgu-deploy installation 
 
 [Full integration and installation guide](docs/JAM-INTEGRATION.ko.md).
 
-The one-time merge applies small guarded edits to upstream `kit/tools/build.py`
-and `deploy/mgu-app-install.sh` to preserve explicit app startup metadata.
-Normal apps, including Circuit, remain manually started; Cluster Redline starts in the background.
-Cluster Redline requires cluster-render 0.4.0+ and is still **not tested on a real vehicle**.
