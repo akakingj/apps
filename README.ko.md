@@ -1,5 +1,13 @@
 # iDrive 7 Jam 앱 모음
 
+만든이：jaimeen shim
+
+코딩나눔터(https://cafe.naver.com/codingbmw) : 서울||잼님
+
+네이버블로그(https://blog.naver.com/jaimeen77/224465347509)
+
+문의사항은 코딩나눔터나 네이버블로그를 통해 문의 주세요.
+
 1.0.3은 엔진 작동 후 신선한 0rpm에서도 화면을 유지합니다. HUD 색상·배치를 클러스터와 공유하고 위아래 M을 금속 질감으로 변경했습니다. HUD 높이는 비율에 맞게 353px로 바뀌었습니다. [변경 안내](docs/CLUSTER-REDLINE-1.0.3.ko.md).
 
 [English](README.md) | 한국어
