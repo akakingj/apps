@@ -84,7 +84,3 @@ KIT=dist/mgu-custom-apps-ko HU=root@<헤드유닛IP> KEY=<SSH키경로> deploy/p
 - Circuit: 기존처럼 앱 목록에서 직접 실행. 기본 주차 전용 설정 유지.
 - Cluster Redline: 백그라운드 자동 시작, 기본 화면 표시 OFF, 스포츠 모드에서만 표시 요청.
 - 앱 ID·설정 키는 유지하며 영어·한국어 패키지는 같은 앱의 언어별 빌드입니다.
-
-소스 저장소와 소스 ZIP은 공개 공유할 수 있습니다.
-빌드된 설치 키트·`.mgu`·`.tgz`에는 본인의 SDK가 포함되므로 공개 배포하지 마세요.
-Cluster Redline의 실차 자동 시작·절전·계기판 출력은 아직 검증하지 않았습니다.
