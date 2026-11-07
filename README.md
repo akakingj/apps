@@ -61,21 +61,3 @@ The one-time merge applies small guarded edits to upstream `kit/tools/build.py`
 and `deploy/mgu-app-install.sh` to preserve explicit app startup metadata.
 Normal apps, including Circuit, remain manually started; Cluster Redline starts in the background.
 Cluster Redline requires cluster-render 0.4.0+ and is still **not tested on a real vehicle**.
-
-Share source checkouts/ZIPs publicly. Your own BMW OAP SDK is required for installable builds;
-it is excluded here. Generated `.mgu`, `.tgz` and car kits contain that SDK and must remain private.
-See [validation](docs/VALIDATION.ko.md), [client attribution](NOTICE.cluster-redline.md), `LICENSE` and `LICENSES/`.
-
-[0.8.4: 실행 버전 확인 / Verify the running version](docs/CLUSTER-REDLINE-0.8.4.ko.md)
-
-[0.8.5 install fix: notifier-only gearbox programme](docs/CLUSTER-REDLINE-0.8.5.ko.md)
-
-[0.8.7: Larger settings text and touch controls](docs/CLUSTER-REDLINE-0.8.7.ko.md)
-
-## HUD and cluster settings (1.0.1)
-
-Use Advanced settings to select each output independently and adjust position/size. Stock HUD guidance has priority. [Current app guide](apps/cluster_redline/README.md).
-
-[1.0.1: HUD guidance, torque/power and recovery notes](docs/CLUSTER-REDLINE-1.0.1.ko.md)
-
-[1.0.2 install fix: request the native Guidance Main_Instance explicitly and omit this optional proxy when its instance/getter is unavailable. Vehicle installation still needs confirmation.](docs/CLUSTER-REDLINE-1.0.2.ko.md)
