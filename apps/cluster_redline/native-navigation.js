@@ -53,25 +53,103 @@ function dartFailure(value) {
     return 'direction_unavailable';
 }
 class NativeNavigation {
-    constructor(ttl) { this.ttl=ttl||TTL_MS;this.clear(); }
-    clear() { this.state=null;this.provider=null;this.dart=null;this.stateAt=this.providerAt=this.dartAt=null;this.dartDetail='not_received'; }
+    constructor(ttl) { this.ttl=typeof ttl==='number'&&isFinite(ttl)&&ttl>0?ttl:TTL_MS;this.clear(); }
+    clearGuidance() {
+        this.state=null;this.provider=null;this.dart=null;
+        this.stateAt=this.providerAt=this.dartAt=null;this.dartDetail='not_received';
+    }
+    clear() {
+        this.clearGuidance();this.projections={};
+        ['ANDROID_AUTO','CAR_PLAY'].forEach((provider)=>{
+            this.projections[provider]={available:false,active:null,activeAt:null,metadataAvailable:null,metadataAt:null};
+        });
+    }
+    clock(now) { return typeof now==='number'&&isFinite(now)&&now>=0; }
+    fresh(at,now) { return this.clock(now)&&at!==null&&now>=at&&now-at<=this.ttl; }
+    phone(provider) { return provider==='ANDROID_AUTO'||provider==='CAR_PLAY'; }
+    invalidate(reason) { this.dart=null;this.dartAt=null;this.dartDetail=reason; }
+    phoneActive(provider,now) {
+        const p=this.projections[provider];
+        return !!(p&&p.available===true&&p.active===true&&this.fresh(p.activeAt,now));
+    }
+    projectionAvailability(provider,available,now) {
+        const name=enumeration(provider,PROVIDERS),p=this.projections[name];
+        if(!p)return;
+        const before=this.phoneActive(name,now);
+        p.available=available===true&&this.clock(now);
+        if(!p.available){p.active=null;p.activeAt=null;p.metadataAvailable=null;p.metadataAt=null;}
+        if(name===this.provider&&(!before||!this.phoneActive(name,now)))this.invalidate(p.available?'projection_unconfirmed':'projection_unavailable');
+    }
+    projectionSample(provider,field,value,now) {
+        const name=enumeration(provider,PROVIDERS),p=this.projections[name];
+        if(!p)return;
+        if(!this.clock(now)){this.projectionAvailability(name,false,now);return;}
+        const before=this.phoneActive(name,now),flag=typeof value==='boolean'?value:null;
+        if(field==='projectedGuidanceActive'){p.active=flag;p.activeAt=now;}
+        else if(field==='projectedGuidanceMetadataAvailable'){p.metadataAvailable=flag;p.metadataAt=now;}
+        else return;
+        // An old route's arrow must not reappear on activation, reconnection,
+        // or the first confirmation after a gap in the source's live state.
+        if(name===this.provider&&(!before||!this.phoneActive(name,now)))this.invalidate(flag===false?'projection_inactive':'projection_unconfirmed');
+    }
+    projectedStatus(now) {
+        const out={};
+        Object.keys(this.projections).forEach((provider)=>{
+            const p=this.projections[provider],age=(at)=>at===null||!this.clock(now)?null:now-at;
+            out[provider]={available:p.available,active:p.active,activeFresh:p.available&&this.fresh(p.activeAt,now)&&p.active!==null,
+                metadataAvailable:p.metadataAvailable,metadataFresh:p.available&&this.fresh(p.metadataAt,now)&&p.metadataAvailable!==null,
+                activeAgeMs:age(p.activeAt),metadataAgeMs:age(p.metadataAt)};
+        });
+        return out;
+    }
+    context(now,available) {
+        const blocked=(reason)=>({active:false,known:false,needsStock:true,reason});
+        if(available!==true)return blocked('navigation_unavailable');
+        if(!this.provider||!this.fresh(this.providerAt,now))return blocked('navigation_provider_unknown');
+        const nativeKnown=this.state!==null&&this.fresh(this.stateAt,now);
+        const anotherPhoneActive=Object.keys(this.projections).some((provider)=>provider!==this.provider&&this.phoneActive(provider,now));
+        if(this.phone(this.provider)) {
+            const p=this.projections[this.provider];
+            if(!p.available)return blocked('projection_unavailable');
+            if(p.active===null||!this.fresh(p.activeAt,now))return blocked(p.activeAt===null?'projection_unknown':'projection_stale');
+            if(p.active===true)return {active:true,known:true,needsStock:true,reason:'projection_active'};
+            if(anotherPhoneActive)return blocked('navigation_provider_mismatch');
+            return {active:false,known:true,needsStock:!nativeKnown||this.state!=='INACTIVE',reason:'navigation_inactive'};
+        }
+        if(!nativeKnown)return blocked('navigation_unknown');
+        if(this.state==='ACTIVE')return {active:true,known:true,needsStock:true,reason:'guidance_active'};
+        if(anotherPhoneActive)return blocked('navigation_provider_mismatch');
+        return {active:false,known:true,needsStock:this.state!=='INACTIVE',reason:this.state==='INACTIVE'?'navigation_inactive':'navigation_calculating'};
+    }
     sample(field,value,now) {
-        if(typeof now!=='number'||!isFinite(now)||now<0){this.clear();return;}
-        if(field==='guidanceState') { const next=enumeration(value,STATES);if(this.state!==next||next!=='ACTIVE'){this.dart=null;this.dartAt=null;this.dartDetail=next==='ACTIVE'?'route_changed':'state_not_active';}this.state=next;this.stateAt=now; }
-        if(field==='guidingProvider') { const next=enumeration(value,PROVIDERS);if(this.provider!==null&&this.provider!==next){this.dart=null;this.dartAt=null;this.dartDetail='provider_changed';}this.provider=next;this.providerAt=now; }
-        if(field==='conclusiveDart') { this.dart=this.state==='ACTIVE'?decodeDart(value):null;this.dartAt=this.dart?now:null;this.dartDetail=this.dart?'decoded':this.state!=='ACTIVE'?'state_not_active':dartFailure(value); }
+        if(!this.clock(now)){this.clear();return;}
+        if(field==='guidanceState') {
+            const next=enumeration(value,STATES);
+            // This can remain INACTIVE during phone guidance; the matched
+            // phone manager supplies the projected route's active state.
+            if(!this.phone(this.provider)&&(this.state!==next||next!=='ACTIVE'))this.invalidate(next==='ACTIVE'?'route_changed':'state_not_active');
+            this.state=next;this.stateAt=now;
+        }
+        if(field==='guidingProvider') {
+            const next=enumeration(value,PROVIDERS);
+            if(this.provider!==next)this.invalidate('provider_changed');
+            this.provider=next;this.providerAt=now;
+        }
+        if(field==='conclusiveDart') {
+            const decoded=decodeDart(value),ctx=this.context(now,true);
+            this.dart=ctx.active?decoded:null;this.dartAt=this.dart?now:null;
+            this.dartDetail=this.dart?'decoded':decoded?ctx.reason:dartFailure(value);
+        }
     }
     read(now,available) {
-        const fresh=(at)=>typeof now==='number'&&isFinite(now)&&at!==null&&now>=at&&now-at<=this.ttl;
-        let reason='navigation_unavailable';
-        if(available===true) {
-            if(!fresh(this.stateAt)||!this.state)reason='navigation_unknown';
-            else if(this.state!=='ACTIVE')reason=this.state==='INACTIVE'?'navigation_inactive':'navigation_calculating';
-            else if(!this.provider||!fresh(this.providerAt))reason='navigation_provider_unknown';
-            else if(!this.dart||!fresh(this.dartAt))reason='navigation_maneuver_unknown';
-            else return Object.assign({visible:true,reason:'navigation_ready',provider:this.provider,ageMs:now-this.dartAt},this.dart);
+        const ctx=this.context(now,available);
+        if(!ctx.active) {
+            if(this.dart)this.invalidate(ctx.reason);
+            return Object.assign({visible:false,provider:this.provider,maneuver:null,distanceText:null,exitNumber:null,detail:this.dartDetail},ctx);
         }
-        return {visible:false,reason,provider:this.provider,maneuver:null,distanceText:null,exitNumber:null,detail:reason==='navigation_maneuver_unknown'?(this.dart?'maneuver_stale':this.dartDetail):null};
+        if(this.dart&&this.fresh(this.dartAt,now))return Object.assign({visible:true,reason:'navigation_ready',provider:this.provider,ageMs:now-this.dartAt,active:true,known:true,needsStock:true},this.dart);
+        if(this.dart)this.invalidate('maneuver_stale');
+        return {visible:false,reason:'navigation_maneuver_unknown',provider:this.provider,maneuver:null,distanceText:null,exitNumber:null,detail:this.dartDetail,active:true,known:true,needsStock:true};
     }
 }
 module.exports={NativeNavigation,decodeDart,distanceText,TTL_MS,DIRECTIONS,PROVIDERS};

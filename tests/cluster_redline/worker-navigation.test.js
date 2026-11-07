@@ -6,6 +6,7 @@ const { EventEmitter } = require('events');
 const { Outputs } = require('../../apps/cluster_redline/outputs');
 const policy = require('../../apps/cluster_redline/policy');
 const guidance = require('../../apps/cluster_redline/guidance');
+const {PROJECTED}=require('../../apps/cluster_redline/projection-config');
 const source = fs.readFileSync(path.join(__dirname, '../../apps/cluster_redline/worker.js'), 'utf8');
 const CDS = 'de.bmw.infotainment.vehicle.CDS', FES = 'de.bmw.infotainment.drivingexcitement.FES';
 const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
@@ -43,6 +44,7 @@ function harness(options) {
         if (name === './policy') return policy;
         if (name === './guidance') return guidance;
         if(name === './native-navigation')return require('../../apps/cluster_redline/native-navigation');
+        if(name === './projection-config')return {PROJECTED};
         if (name === './gear') return require('../../apps/cluster_redline/gear');
         if (name === './renderer') return { inspect: () => ({ compatible: true, version: '0.4.0', hudGuidanceSafe: true }) };
         throw new Error('Unexpected dependency ' + name);
@@ -58,10 +60,11 @@ function harness(options) {
             loads.push(iface);
             if (iface === guidance.INTERFACE) {
                 if (opt.missing) throw new Error('guidance absent');
-                const fields={guidanceState:opt.definition===undefined?{getter:{id:3}}:opt.definition};
+                const fields={guidanceState:opt.definition===undefined?{getter:{id:3}}:opt.definition,guidingProvider:{getter:{id:27}}};
                 if(opt.withManeuvers){fields.guidingProvider={getter:{id:27}};fields.conclusiveDart={getter:{id:28}};}return {fields};
             }
-            throw new Error('optional MDrive absent');
+            if(opt.phoneStatus&&Object.keys(PROJECTED).some(p=>PROJECTED[p].iface===iface))return {fields:{projectedGuidanceActive:{getter:{id:2}},projectedGuidanceMetadataAvailable:{getter:{id:3}}}};
+            throw new Error('optional interface absent');
         },
         watch(iface, instance, handlers, log, flags) {
             watches.push({ iface, instance, handlers, flags }); feeds[iface] = handlers;
@@ -69,13 +72,18 @@ function harness(options) {
             if (iface === guidance.INTERFACE) {
                 assert.strictEqual(iface, 'de.bmw.infotainment.navigation.guiding.Guidance');
                 assert.strictEqual(instance, 'Main_Instance');
-                assert.deepStrictEqual(Object.keys(handlers),opt.withManeuvers?['guidanceState','guidingProvider','conclusiveDart']:['guidanceState']);
+                assert.deepStrictEqual(Object.keys(handlers),opt.withManeuvers?['guidanceState','guidingProvider','conclusiveDart']:['guidanceState','guidingProvider']);
                 assert.strictEqual(Object.keys(flags).length, 0, 'guidance polling belongs to the worker timer');
                 sub.proxy = { getValue(field, timeout) {
-                    assert((opt.withManeuvers?['guidanceState','guidingProvider','conclusiveDart']:['guidanceState']).includes(field));assert.strictEqual(timeout,1000);
+                    assert((opt.withManeuvers?['guidanceState','guidingProvider','conclusiveDart']:['guidanceState','guidingProvider']).includes(field));assert.strictEqual(timeout,1000);
+                    if(field==='guidingProvider'&&!opt.withManeuvers)return Promise.resolve('NONE');
                     if (pollThrow) throw pollThrow;
                     const read = deferred(); polls.push(Object.assign(read, { field, timeout, at: time })); return read.promise;
                 }, setValue() { throw new Error('worker must not write native guidance'); }, callMethod() { throw new Error('worker must not control routing'); } };
+            } else if(Object.keys(PROJECTED).some(p=>PROJECTED[p].iface===iface)) {
+                const provider=Object.keys(PROJECTED).find(p=>PROJECTED[p].iface===iface);assert.strictEqual(instance,PROJECTED[provider].instance);
+                sub.proxy={getValue:(field)=>Promise.resolve(sub.phoneValues&&sub.phoneValues[field]===true)};
+                for(const field of Object.keys(handlers)){const callback=handlers[field];handlers[field]=(value)=>{sub.phoneValues=sub.phoneValues||{};sub.phoneValues[field]=value;callback(value);};}
             } else {
                 assert.strictEqual(instance, '1'); assert.strictEqual(flags.pollMs, 1000);
             }
@@ -93,7 +101,7 @@ function harness(options) {
         assert(at >= time); time = at; vehicle(); assert(timer, 'a live worker must schedule its next tick');
         const fn = timer; timer = null; fn();
     }
-    function navigate(value, at) { if (at !== undefined) { assert(at >= time); time = at; } feeds[guidance.INTERFACE].guidanceState(value); }
+    function navigate(value, at) { if (at !== undefined) { assert(at >= time); time = at; } if(!opt.withManeuvers)feeds[guidance.INTERFACE].guidingProvider('NONE');feeds[guidance.INTERFACE].guidanceState(value); }
     function both() { assert(worker.controller.cluster.ref, 'cluster remains requested'); assert(worker.controller.hud.ref, 'fresh inactive guidance permits a HUD layer request'); }
     function onlyCluster(reason) {
         assert(worker.controller.cluster.ref, 'guidance must never suppress cluster output'); assert.strictEqual(worker.controller.hud.ref, 0);
@@ -117,7 +125,7 @@ async function eventYield() {
             h.navigate(value, 1100);
             assert.strictEqual(h.worker.controller.hud.ref, 0, 'guidance events drop HUD before the next worker tick');
             assert.strictEqual(h.worker.controller.cluster.ref, cluster); assert(h.events.some(e => e[0] === 'drop' && e[1] === hud));
-            h.tick(1150); h.onlyCluster(reason==='guidance_active'?'navigation_provider_unknown':reason==='guidance_calculating'?'navigation_calculating':reason);
+            h.tick(1150); h.onlyCluster(reason==='guidance_active'?'navigation_maneuver_unknown':reason==='guidance_calculating'?'navigation_calculating':reason);
             h.navigate('INACTIVE', 1200); h.client.emit('target', 'hud', 'idle', '', '', false); h.tick(1250); h.both();
             assert.strictEqual(h.worker.controller.cluster.ref, cluster, 'HUD yield/recovery must not churn cluster acquisition');
             assert.strictEqual(h.loads.filter(x => x === guidance.INTERFACE).length, 1);
@@ -155,7 +163,7 @@ async function pollingAndRaces() {
         h.tick(2000); await flush(); assert.strictEqual(h.polls.length, 2);
         h.tick(3000); h.tick(4000); assert.strictEqual(h.polls.length, 2, 'one unresolved getter must not spawn additional reads');
         h.navigate('ACTIVE', 4050); assert.strictEqual(h.worker.controller.hud.ref, 0);
-        h.polls[1].resolve('INACTIVE'); await flush(); h.tick(4100); await flush(); h.onlyCluster('navigation_provider_unknown');
+        h.polls[1].resolve('INACTIVE'); await flush(); h.tick(4100); await flush(); h.onlyCluster('navigation_maneuver_unknown');
         assert.strictEqual(h.polls.length, 3, 'a completed old read frees the next poll without overwriting the newer event');
         h.polls[2].resolve('INACTIVE'); await flush(); h.tick(4150); h.both();
         h.tick(5100); await flush(); assert.strictEqual(h.polls.length, 4);
@@ -200,10 +208,11 @@ async function lateReadsAndSubscriptions() {
     assert.strictEqual(early.events.filter(e => e[0] === 'image').length, 0);
 }
 async function composedNavigation() {
-    const h=harness({withManeuvers:true});
+    const h=harness({withManeuvers:true,phoneStatus:true});
     const dart={maneuver:{intersection:{direction:'RIGHT',unreliable:false,formattedDistance:{distance:'300',unit:'METER'}}}};
     try {
         await flush();h.navigate('ACTIVE');
+        h.feeds[PROJECTED.ANDROID_AUTO.iface].projectedGuidanceActive(true);h.feeds[PROJECTED.ANDROID_AUTO.iface].projectedGuidanceMetadataAvailable(true);
         h.feeds[guidance.INTERFACE].guidingProvider('ANDROID_AUTO');
         h.feeds[guidance.INTERFACE].conclusiveDart(dart);
         h.tick(1000);await flush();h.both();
@@ -214,18 +223,20 @@ async function composedNavigation() {
         h.feeds[guidance.INTERFACE].conclusiveDart({maneuver:{placeholderElement:{type:'GAP'}}});
         assert.strictEqual(h.worker.controller.hud.ref,0);h.tick(1250);h.onlyCluster('navigation_maneuver_unknown');
         h.feeds[guidance.INTERFACE].conclusiveDart(dart);h.tick(1300);h.both();
+        h.feeds[PROJECTED.CAR_PLAY.iface].projectedGuidanceActive(true);
         h.feeds[guidance.INTERFACE].guidingProvider('CAR_PLAY');
         assert.strictEqual(h.worker.controller.hud.ref,0,'new provider must wait for its own maneuver');
         h.feeds[guidance.INTERFACE].conclusiveDart(dart);h.tick(1350);h.both();
-        h.navigate('INACTIVE',1400);h.tick(1450);h.both();
+        h.feeds[PROJECTED.ANDROID_AUTO.iface].projectedGuidanceActive(false);h.feeds[PROJECTED.CAR_PLAY.iface].projectedGuidanceActive(false);h.navigate('INACTIVE',1400);h.tick(1450);h.both();
         assert(!h.worker.controller.navigation.visible);assert.strictEqual(h.client.active.get(h.worker.controller.hud.ref).contend,false);
     } finally {h.worker.stop();h.stopped();}
 }
 async function repeatedNotificationsWhilePolling() {
-    const h=harness({withManeuvers:true});
+    const h=harness({withManeuvers:true,phoneStatus:true});
     const dart=(direction,distance)=>({maneuver:{intersection:{direction,unreliable:false,formattedDistance:{distance,unit:'METER'}}}});
     try {
         await flush();h.navigate('ACTIVE');
+        h.feeds[PROJECTED.ANDROID_AUTO.iface].projectedGuidanceActive(true);h.feeds[PROJECTED.ANDROID_AUTO.iface].projectedGuidanceMetadataAvailable(true);
         h.feeds[guidance.INTERFACE].guidingProvider('ANDROID_AUTO');
         h.feeds[guidance.INTERFACE].conclusiveDart(dart('LEFT','300'));
         h.tick(1000);await flush();h.both();
@@ -243,7 +254,35 @@ async function repeatedNotificationsWhilePolling() {
         assert.strictEqual(h.worker.controller.navigation.distanceText,'150 m');
     } finally {h.worker.stop();h.stopped();}
 }
+async function reportedProjectedGuidanceWithNativeInactive() {
+    for(const provider of ['ANDROID_AUTO','CAR_PLAY']) {
+        const h=harness({withManeuvers:true,phoneStatus:true}),definition=PROJECTED[provider];
+        const dart=(direction,distance)=>({maneuver:{intersection:{direction,unreliable:false,formattedDistance:{distance,unit:'METER'}}}});
+        try {
+            await flush();h.navigate('INACTIVE');
+            h.feeds[definition.iface].projectedGuidanceActive(true);
+            h.feeds[definition.iface].projectedGuidanceMetadataAvailable(true);
+            h.feeds[guidance.INTERFACE].guidingProvider(provider);
+            h.feeds[guidance.INTERFACE].conclusiveDart(dart('RIGHT','300'));
+            h.tick(1000);await flush();h.both();
+            assert.strictEqual(h.worker.controller.navigation.visible,true,'reported native INACTIVE must not hide active phone guidance');
+            h.navigate('INACTIVE',1100);h.tick(1150);h.both();
+            assert.strictEqual(h.worker.controller.navigation.distanceText,'300 m','repeated native INACTIVE must not erase the phone arrow');
+            h.subscriptions[definition.iface].available=false;h.tick(1200);h.onlyCluster('projection_unavailable');
+            h.subscriptions[definition.iface].available=true;h.tick(1250);assert.strictEqual(h.worker.controller.hud.ref,0);
+            h.feeds[definition.iface].projectedGuidanceActive(true);
+            h.tick(1300);assert.strictEqual(h.worker.controller.hud.ref,0,'reconnected phone cannot replay the old route arrow');
+            h.feeds[guidance.INTERFACE].conclusiveDart(dart('LEFT','150'));h.tick(1350);h.both();
+            for(const read of h.polls)read.resolve(read.field==='guidanceState'?'INACTIVE':read.field==='guidingProvider'?provider:dart('RIGHT','999'));
+            await flush();h.tick(1400);h.both();
+            assert.strictEqual(h.worker.controller.navigation.distanceText,'150 m','pre-reconnect read cannot reinsert the old arrow');
+            h.feeds[definition.iface].projectedGuidanceActive(false);h.tick(1450);h.both();
+            assert.strictEqual(h.worker.controller.navigation.visible,false,'phone route end clears the arrow even with native INACTIVE unchanged');
+            assert.strictEqual(h.client.active.get(h.worker.controller.hud.ref).contend,false);
+        } finally {h.worker.stop();h.stopped();}
+    }
+}
 (async () => {
-    await repeatedNotificationsWhilePolling();await composedNavigation();await eventYield(); await optionalReadSafety(); await pollingAndRaces(); await providerReconnectRace(); await lateReadsAndSubscriptions();
+    await reportedProjectedGuidanceWithNativeInactive();await repeatedNotificationsWhilePolling();await composedNavigation();await eventYield(); await optionalReadSafety(); await pollingAndRaces(); await providerReconnectRace(); await lateReadsAndSubscriptions();
     console.log('PASS: actual worker native-guidance getter gating/instance, immediate HUD-only yield, fresh recovery, optional/stale/provider safety, bounded polling, event/read/provider-reconnect races and complete late-work shutdown');
 })().catch(error => { console.error(error); process.exitCode = 1; });

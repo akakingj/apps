@@ -70,7 +70,7 @@ JAM_METADATA
 OPTIONAL_GUIDANCE_MARKER = '// Jam optional guidance fields v3'
 
 
-def optional_guidance_source(text):
+def _optional_guidance_source_v3(text):
     if OPTIONAL_GUIDANCE_MARKER in text:
         if '// Jam optional guidance field persistence v3' in text:
             return text
@@ -109,8 +109,52 @@ def optional_guidance_source(text):
         start=text.index('        // Jam optional guidance instance v2')
         end=text.index('        for (const i of Object.keys(opt)) if (!supportsOptional(i)) { missing[i] = opt[i]; delete m.proxies[i]; }',start)
         end+=len('        for (const i of Object.keys(opt)) if (!supportsOptional(i)) { missing[i] = opt[i]; delete m.proxies[i]; }')
-        return optional_guidance_source(text[:start]+after+text[end:])
-    return optional_guidance_source(replace_once(text, prior if '// Jam optional guidance getter v1' in text else original, after))
+        return _optional_guidance_source_v3(text[:start]+after+text[end:])
+    return _optional_guidance_source_v3(replace_once(text, prior if '// Jam optional guidance getter v1' in text else original, after))
+
+
+OPTIONAL_PROJECTION_MARKER = '// Jam optional projection managers v4'
+
+
+def optional_guidance_source(text):
+    text = _optional_guidance_source_v3(text)
+    if OPTIONAL_PROJECTION_MARKER in text:
+        return text
+    projection = r"""        // Jam optional projection managers v4: named phone guidance inputs.
+        // Keep this whitelist here; do not execute app-provided JS as root.
+        const projected = [
+            ["de.bmw.infotainment.sdi.aap.androidautoprojectedmanager.AndroidAutoProjectedManager", "AndroidAutoProjectedManagerInst1"],
+            ["de.bmw.infotainment.a4a.carplay.CarPlayManager", "CarPlayManagerInst1"]
+        ];
+        const projectionGetter = (v) => typeof v === "number" && isFinite(v) && Math.floor(v) === v && v > 0 && v < 0x8000;
+        const projectionNotifier = (v) => v && typeof v.id === "number" && isFinite(v.id) && Math.floor(v.id) === v.id && v.id >= 0x8000 && v.id <= 0xffff;
+        projected.forEach((entry) => {
+            const name = entry[0], instanceName = entry[1], proxy = m.proxies[name];
+            if (!opt[name] || !proxy) return;
+            const fields = have[name] && have[name].fields || {}, active = fields.projectedGuidanceActive;
+            const named = all.instanceIDs && all.instanceIDs[name];
+            const instance = named && Object.prototype.hasOwnProperty.call(named, instanceName) ? named[instanceName] : null;
+            const attributes = proxy.attributes || {}, flags = attributes.projectedGuidanceActive;
+            if (!active || !active.getter || !projectionGetter(active.getter.id) || typeof instance !== "number" ||
+                !isFinite(instance) || Math.floor(instance) !== instance || instance < 0 || instance > 0xffff ||
+                typeof flags !== "string" || flags.indexOf("r") < 0) {
+                missing[name] = opt[name]; delete m.proxies[name]; return;
+            }
+            ["projectedGuidanceActive", "projectedGuidanceMetadataAvailable"].forEach((key) => {
+                const field = fields[key], requested = attributes[key];
+                if (requested === undefined) return;
+                if (!field || !field.getter || !projectionGetter(field.getter.id) || typeof requested !== "string") {
+                    delete attributes[key]; return;
+                }
+                const readable = requested.replace(/w/g, "");
+                const supported = projectionNotifier(field.notifier) ? readable : readable.replace(/s/g, "");
+                if (supported) attributes[key] = supported;
+                else delete attributes[key];
+            });
+        });
+"""
+    anchor = '        // Jam optional guidance field persistence v3'
+    return replace_once(text, anchor, projection + anchor)
 
 
 def installer_source(text):

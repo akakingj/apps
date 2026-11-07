@@ -51,5 +51,8 @@ for suffix in ('', '-ko.1'):
         assert manifest['proxies'][iface]['attributes'][field] == 's', str(package)
         assert manifest['proxies'][nav]['instances'] == 'Main_Instance', str(package)
         assert all(manifest['proxies'][nav]['attributes'][key]=='rs' for key in ['guidanceState','guidingProvider','conclusiveDart']), str(package)
+        for name, instance in [('de.bmw.infotainment.sdi.aap.androidautoprojectedmanager.AndroidAutoProjectedManager','AndroidAutoProjectedManagerInst1'),('de.bmw.infotainment.a4a.carplay.CarPlayManager','CarPlayManagerInst1')]:
+            assert manifest['proxies'][name]['instances']==instance,str(package)
+            assert all(manifest['proxies'][name]['attributes'][key]=='rs' for key in ['projectedGuidanceActive','projectedGuidanceMetadataAvailable']),str(package)
 
 print('PASS: upstream getter regression; all four language artifacts preserve notifier-only gearbox and read-only Guidance/Main_Instance')

@@ -26,6 +26,10 @@ const REASONS = {
     navigation_maneuver_unknown: 'Waiting for navigation data · stock HUD preserved',
     navigation_provider_unknown: 'Waiting for navigation data · stock HUD preserved',
     navigation_calculating: 'Calculating route · HUD released',
+    projection_unavailable: 'Waiting for phone guidance state · stock HUD preserved',
+    projection_unknown: 'Waiting for phone guidance state · stock HUD preserved',
+    projection_stale: 'Phone guidance state stale · stock HUD preserved',
+    navigation_provider_mismatch: 'Waiting for phone guidance state · stock HUD preserved',
     renderer_recovering: 'Recovering renderer layer',
 };
 mgu.run({ async start(ctx) {

@@ -1,5 +1,7 @@
-# Cluster Redline 1.0.5
+# Cluster Redline 1.0.6
 ## 1.0.1
+1.0.6 uses Android Auto/CarPlay guidance-active flags rather than requiring native Guidance to be ACTIVE. Fresh received turns can be shown while native navigation remains INACTIVE. [Fix notes](../../docs/CLUSTER-REDLINE-1.0.6.ko.md).
+
 1.0.5 fixes guidance polling starvation on repeated state notifications and prevents older reads overwriting newer turns. [Fix notes](../../docs/CLUSTER-REDLINE-1.0.5.ko.md).
 
 

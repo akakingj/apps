@@ -20,6 +20,7 @@ original = (project / 'deploy/mgu-app-install.sh').read_text()
 patched = integration.installer_source(original)
 assert integration.INSTALL_MARKER in patched
 assert patched.count(integration.OPTIONAL_GUIDANCE_MARKER) == 1
+assert patched.count(integration.OPTIONAL_PROJECTION_MARKER) == 1
 assert integration.installer_source(patched) == patched
 # The new optional edit also works before the older metadata integration.
 assert integration.optional_guidance_source(integration.optional_guidance_source(original)) == integration.optional_guidance_source(original)
@@ -143,4 +144,83 @@ with tempfile.TemporaryDirectory(prefix='redline-optional-guidance-') as temp:
         for result in [desktop,store]:
             assert result['proxies'][NAV]['attributes']==expected,(label,result['proxies'][NAV])
             assert result['proxies'][NAV]['instances']=='Main_Instance'
-print('PASS: named Main_Instance requirements, missing/empty/invalid getter metadata, actual desktop/Store optional Guidance filtering (missing interface/field/getter, notifier-only, getter-only, both), mandatory preservation, read-only flags/catalog, prior Jam-marker upgrade and idempotency')
+    # Phone managers use different explicit instance names. An unavailable
+    # phone capability must never prevent the RPM app itself installing.
+    projected = [
+        ('de.bmw.infotainment.sdi.aap.androidautoprojectedmanager.AndroidAutoProjectedManager', 'AndroidAutoProjectedManagerInst1'),
+        ('de.bmw.infotainment.a4a.carplay.CarPlayManager', 'CarPlayManagerInst1'),
+    ]
+    def phone_field(getter=2, notifier=32770):
+        result = {}
+        if getter is not None: result['getter'] = {'id': getter}
+        if notifier is not None: result['notifier'] = {'id': notifier}
+        return result
+    phone_variants = [
+        ('absent interface', None, 'named', None),
+        ('missing active getter', {}, 'named', None),
+        ('notifier only active', {'projectedGuidanceActive': phone_field(None)}, 'named', None),
+        ('zero active getter', {'projectedGuidanceActive': phone_field(0)}, 'named', None),
+        ('string active getter', {'projectedGuidanceActive': phone_field('2')}, 'named', None),
+        ('boolean active getter', {'projectedGuidanceActive': phone_field(True)}, 'named', None),
+        ('method ID in event range', {'projectedGuidanceActive': phone_field(32768)}, 'named', None),
+        ('missing named instance', {'projectedGuidanceActive': phone_field()}, 'missing', None),
+        ('wrong named instance', {'projectedGuidanceActive': phone_field()}, 'wrong', None),
+        ('null named instance', {'projectedGuidanceActive': phone_field()}, 'null', None),
+        ('string named instance', {'projectedGuidanceActive': phone_field()}, 'string', None),
+        ('full capability', {'projectedGuidanceActive': phone_field(), 'projectedGuidanceMetadataAvailable': phone_field(3,32771)}, 'named', {'projectedGuidanceActive':'rs','projectedGuidanceMetadataAvailable':'rs'}),
+        ('getter only', {'projectedGuidanceActive': phone_field(2,None), 'projectedGuidanceMetadataAvailable': phone_field(3,None)}, 'named', {'projectedGuidanceActive':'r','projectedGuidanceMetadataAvailable':'r'}),
+        ('metadata absent', {'projectedGuidanceActive': phone_field()}, 'named', {'projectedGuidanceActive':'rs'}),
+        ('metadata notifier only', {'projectedGuidanceActive': phone_field(), 'projectedGuidanceMetadataAvailable': phone_field(None,32771)}, 'named', {'projectedGuidanceActive':'rs'}),
+        ('invalid metadata getter', {'projectedGuidanceActive': phone_field(), 'projectedGuidanceMetadataAvailable': phone_field(-1,32771)}, 'named', {'projectedGuidanceActive':'rs'}),
+        ('invalid notifier IDs', {'projectedGuidanceActive': phone_field(2,0), 'projectedGuidanceMetadataAvailable': phone_field(3,'32771')}, 'named', {'projectedGuidanceActive':'r','projectedGuidanceMetadataAvailable':'r'}),
+    ]
+    for phone, instance_name in projected:
+        for label, fields, instance_mode, expected_attrs in phone_variants:
+            for marked_optional in [True, False]:
+                catalog = {'interfaces': {
+                    MANDATORY:{'fields':{'statusEngineSpeed2':phone_field()}},
+                    MDRIVE:{'fields':{'dataDisplayGearbox':{'notifier':{'id':32769}}}},
+                    NAV:{'fields':{'guidanceState':phone_field()}},
+                }, 'instanceIDs': {NAV:{'Main_Instance':128}}}
+                if fields is not None:
+                    catalog['interfaces'][phone] = {'fields': copy.deepcopy(fields)}
+                instance_value = None if instance_mode == 'null' else '128' if instance_mode == 'string' else 128
+                if instance_mode != 'missing':
+                    catalog['instanceIDs'][phone] = {'Main_Instance' if instance_mode == 'wrong' else instance_name:instance_value}
+                requested = copy.deepcopy(manifest)
+                requested['proxies'][phone] = {'instances':instance_name,'attributes':{'projectedGuidanceActive':'rs','projectedGuidanceMetadataAvailable':'rs'}}
+                optional = {NAV:'native guidance'}
+                if marked_optional: optional[phone] = 'phone guidance'
+                catalog_file.write_text(json.dumps(catalog))
+                catalog_hash = hashlib.sha256(catalog_file.read_bytes()).digest()
+                (stage/'meta.json').write_text(json.dumps({'id':'cluster_redline','optional':optional}))
+                target.write_text(json.dumps(requested))
+                # A staged app module is deliberately unusable. The root
+                # installer filters metadata inline and must not execute it.
+                (stage/'source/javascript/projection-config.js').write_text('throw new Error("must not execute staged app code");')
+                missing = stage/'source/javascript/kit/missing-interfaces.json'
+                missing.unlink(missing_ok=True)
+                subprocess.run(['sh',str(harness),node,str(catalog_file),str(stage)],check=True,capture_output=True,text=True)
+                desktop = json.loads(target.read_text())
+                store_input.write_text(json.dumps({'manifest':requested,'catalog':catalog,'optional':optional}))
+                store = json.loads(subprocess.check_output([node,'-e',store_js,str(ROOT/'tools/store-build.js'),str(store_input)],text=True))
+                for result in [desktop,store]:
+                    assert result['proxies'][MANDATORY] == manifest['proxies'][MANDATORY], (phone,label)
+                    assert result['proxies'][NAV] == manifest['proxies'][NAV], (phone,label)
+                    assert result['proxies'][MDRIVE] == manifest['proxies'][MDRIVE], (phone,label)
+                    present = expected_attrs is not None or not marked_optional
+                    assert (phone in result['proxies']) == present, (phone,label,marked_optional,result)
+                    if present:
+                        expected = expected_attrs if marked_optional else requested['proxies'][phone]['attributes']
+                        assert result['proxies'][phone]['attributes'] == expected, (phone,label,marked_optional,result['proxies'][phone])
+                        assert result['proxies'][phone]['instances'] == instance_name
+                assert desktop == store, (phone,label,marked_optional)
+                assert hashlib.sha256(catalog_file.read_bytes()).digest() == catalog_hash
+                assert missing.exists() == (marked_optional and expected_attrs is None)
+                if missing.exists(): assert phone in json.loads(missing.read_text())
+    # Shared Store tooling must still run for Circuit without any Redline tree.
+    circuit = folder/'circuit-only'
+    (circuit/'tools').mkdir(parents=True)
+    shutil.copy2(ROOT/'tools/store-build.js',circuit/'tools/store-build.js')
+    subprocess.run([node,'-e',"const b=require(process.argv[1]);const m={proxies:{}};if(b.filterOptionalProxies(m,{},{})!==m)throw Error('manifest changed');",str(circuit/'tools/store-build.js')],check=True,capture_output=True,text=True)
+print('PASS: Android Auto/CarPlay optional-manager parity and strict named/getter filtering, safe downgrade/metadata omission, no staged code execution, Circuit shared-tool compatibility; named Main_Instance requirements, missing/empty/invalid getter metadata, actual desktop/Store optional Guidance filtering (missing interface/field/getter, notifier-only, getter-only, both), mandatory preservation, read-only flags/catalog, prior Jam-marker upgrade and idempotency')

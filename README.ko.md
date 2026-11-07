@@ -1,5 +1,7 @@
 # iDrive 7 Jam 앱 모음
 
+계기판 레드라인 **1.0.6**: 순정 내비 상태와 Android Auto·CarPlay 안내 활성 상태를 분리했습니다. [수정 안내](docs/CLUSTER-REDLINE-1.0.6.ko.md).
+
 계기판 레드라인 **1.0.5**: 반복 알림에 의한 길안내 읽기 누락과 이전 응답이 최신 화살표를 덮는 오류를 수정했습니다. [수정 안내](docs/CLUSTER-REDLINE-1.0.5.ko.md).
 
 계기판 레드라인 **1.0.4**: 이전 HUD 배치·토크/마력 크기 복원, 공통 RPM 색상과 HUD 길안내·별도 위치/크기 조절을 추가했습니다. [변경 안내](docs/CLUSTER-REDLINE-1.0.4.ko.md).

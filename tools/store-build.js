@@ -63,6 +63,11 @@ function filterOptionalProxies(manifest, catalog, optional) {
             else if(attrs[key]&&(!item.notifier||!item.notifier.id))attrs[key]=attrs[key].replace(/s/g,'');
         });
     }
+    // Circuit builds do not download the Redline sources. Only load its
+    // projection helper when this app actually requests an optional manager.
+    if (optional && Object.keys(optional).some((name) => /\.(AndroidAutoProjectedManager|CarPlayManager)$/.test(name))) {
+        require('../apps/cluster_redline/projection-config').filterProjections(manifest, catalog, optional);
+    }
     return manifest;
 }
 function build(options) {

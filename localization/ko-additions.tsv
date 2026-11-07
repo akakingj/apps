@@ -170,3 +170,5 @@ HUD navigation shows received turn guidance; unavailable data preserves stock gu
 Navigation width	길안내 가로 크기
 Navigation height	길안내 세로 크기
 Waiting for navigation data · stock HUD preserved	길안내 데이터 대기 · 순정 HUD 유지
+Waiting for phone guidance state · stock HUD preserved	휴대폰 안내 상태 대기 · 순정 HUD 유지
+Phone guidance state stale · stock HUD preserved	휴대폰 안내 상태 만료 · 순정 HUD 유지

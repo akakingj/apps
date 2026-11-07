@@ -12,6 +12,7 @@ const renderer = require('./renderer');
 const gear = require('./gear');
 const guidance = require('./guidance');
 const {NativeNavigation} = require('./native-navigation');
+const {PROJECTED} = require('./projection-config');
 const CDS = 'de.bmw.infotainment.vehicle.CDS';
 const FES = 'de.bmw.infotainment.drivingexcitement.FES';
 const MODE_FIELD = 'statusFESVehicleDynamicSwitchHMI';
@@ -28,6 +29,7 @@ function start(ctx) {
     const log = ctx.log, signals = ctx.signals;
     const client = new ClusterRender('cluster-redline'), controller = new Outputs(client, painter, hudPainter);
     const gearbox = new gear.GearState(), navigation = new guidance.GuidanceState(), maneuvers = new NativeNavigation();
+    const projectionSubs={},projectionFields={},projectionPending={},projectionLastPoll={},projectionEpoch={},projectionEvents={};
     const navigationFields = [], lastNavigationValues = {}, navigationEventRevisions = {}, navigationSeenAt = {}, navigationReadState = {};
     function navigationSample(field,value,readState) {
         if(stopped)return;
@@ -35,7 +37,19 @@ function start(ctx) {
         if(field!=='conclusiveDart' && lastNavigationValues[field]!==value){navigationRevision++;lastNavigationValues[field]=value;}
         if(field===guidance.FIELD)navigation.sample(value,mono());
         maneuvers.sample(field,value,mono());
-        if(navigation.read(mono(),true).blocked&&!maneuvers.read(mono(),true).visible)controller.hud.hide();
+        protectGuidance();
+    }
+    function protectGuidance() {
+        const now=mono(),m=maneuvers.read(now,true);
+        if((navigation.read(now,true).blocked||m.needsStock)&&!m.visible)controller.hud.hide();
+    }
+    function projectionSample(provider,field,value) {
+        if(stopped)return;
+        if(field==='projectedGuidanceActive') {
+            const last=projectionEvents[provider].value;
+            if(last!==value){projectionEpoch[provider]++;projectionEvents[provider].value=value;if(!Object.prototype.hasOwnProperty.call(PROJECTED,maneuvers.provider)||maneuvers.provider===provider)navigationRevision++;}
+        }
+        maneuvers.projectionSample(provider,field,value,mono());protectGuidance();
     }
     let config = settings(), lastStatus = -Infinity, stopped = false, timer;
     let guidanceSub, lastGuidancePoll = -Infinity, guidancePending = false, navigationRevision = 0, nativeStatus = null;
@@ -94,6 +108,29 @@ function start(ctx) {
                 guidanceSub=sub;keep(sub);if(sub.error)reportError('optional native guidance',sub.error);
             }).catch((e)=>reportError('optional native guidance',e));
         } else reportError('optional native guidance','readable guidanceState unavailable; HUD released');
+        Object.keys(PROJECTED).forEach((provider)=>{
+            const definition=PROJECTED[provider],fields=[];
+            projectionEpoch[provider]=0;projectionEvents[provider]={};projectionLastPoll[provider]=-Infinity;
+            try {
+                const cfg=signals.loadConfig(definition.iface);
+                ['projectedGuidanceActive','projectedGuidanceMetadataAvailable'].forEach((field)=>{
+                    if(cfg.fields&&cfg.fields[field]&&cfg.fields[field].getter)fields.push(field);
+                });
+            } catch(e) {}
+            if(fields.indexOf('projectedGuidanceActive')<0)return;
+            projectionFields[provider]=fields;
+            const callbacks={};
+            fields.forEach((field)=>{callbacks[field]=(value)=>{
+                if(stopped)return;
+                projectionEvents[provider][field]=(projectionEvents[provider][field]||0)+1;
+                projectionSample(provider,field,value);
+            };});
+            signals.watch(definition.iface,definition.instance,callbacks,log,{}).then((sub)=>{
+                projectionSubs[provider]=sub;keep(sub);
+                if(!stopped){const available=sub.available===true&&!sub.error;if(maneuvers.projectedStatus(mono())[provider].available!==available&&(!Object.prototype.hasOwnProperty.call(PROJECTED,maneuvers.provider)||maneuvers.provider===provider))navigationRevision++;maneuvers.projectionAvailability(provider,available,mono());}
+                if(sub.error)reportError(provider+' guidance status',sub.error);
+            }).catch((e)=>reportError(provider+' guidance status',e));
+        });
     }
     function stop() {
         if (stopped) return;
@@ -125,7 +162,25 @@ function start(ctx) {
             Object.keys(DEFAULTS).forEach((k) => { if (k !== 'frameRate') raw[k] = ctx.settings.get(k); });
             config = settings(raw);
             const navigationAvailable = !!(guidanceSub && guidanceSub.available === true && !guidanceSub.error);
-            if (!navigationAvailable) { navigationRevision++; navigation.clear(); maneuvers.clear(); }
+            if (!navigationAvailable) { navigationRevision++; navigation.clear(); maneuvers.clearGuidance(); }
+            Object.keys(PROJECTED).forEach((provider)=>{
+                const sub=projectionSubs[provider],available=!!(sub&&sub.available===true&&!sub.error);
+                const before=maneuvers.projectedStatus(at)[provider].available;
+                if(before!==available){projectionEpoch[provider]=(projectionEpoch[provider]||0)+1;if(!Object.prototype.hasOwnProperty.call(PROJECTED,maneuvers.provider)||maneuvers.provider===provider)navigationRevision++;}
+                maneuvers.projectionAvailability(provider,available,at);
+                if(!available||!sub.proxy||typeof sub.proxy.getValue!=='function'||projectionPending[provider]||at-projectionLastPoll[provider]<1000)return;
+                projectionPending[provider]=true;projectionLastPoll[provider]=at;
+                const epoch=projectionEpoch[provider],events=Object.assign({},projectionEvents[provider]);
+                const reads=projectionFields[provider].map((field)=>Promise.resolve().then(()=>sub.proxy.getValue(field,1000))
+                    .then((value)=>({field,value}),()=>({field,value:null})));
+                Promise.all(reads).then((values)=>{
+                    projectionPending[provider]=false;
+                    if(stopped||epoch!==projectionEpoch[provider])return;
+                    values.forEach((item)=>{
+                        if((projectionEvents[provider][item.field]||0)===(events[item.field]||0))projectionSample(provider,item.field,item.value);
+                    });
+                },()=>{projectionPending[provider]=false;if(!stopped&&epoch===projectionEpoch[provider]){maneuvers.projectionAvailability(provider,false,mono());protectGuidance();}});
+            });
             // Owned polling uses the existing worker timer; shutdown leaves no
             // independent interval and late reads cannot alter a stopped worker.
             if (navigationAvailable && guidanceSub.proxy && typeof guidanceSub.proxy.getValue === 'function' && !guidancePending && at - lastGuidancePoll >= 1000) {
@@ -139,12 +194,12 @@ function start(ctx) {
                         if(stopped||revision!==navigationRevision)return;
                         // Apply identity before its maneuver; asynchronous initial
                         // reads cannot reinsert an arrow from a previous provider.
-                        values.forEach((item)=>{
-                            // A newer notification supersedes only its own
-                            // getter. Repeated identical state/provider events
-                            // must not starve unrelated direction/distance reads.
-                            if((navigationEventRevisions[item.field]||0)===(eventRevisions[item.field]||0))navigationSample(item.field,item.value,item.failed?'read_failed':'read_ok');
-                        });
+                        const identityBefore=navigationRevision;
+                        const current=(item)=>(navigationEventRevisions[item.field]||0)===(eventRevisions[item.field]||0);
+                        values.filter((item)=>item.field!=='conclusiveDart').forEach((item)=>{if(current(item))navigationSample(item.field,item.value,item.failed?'read_failed':'read_ok');});
+                        // A getter started before a source/lifecycle change
+                        // cannot introduce that source's first arrow. Repoll it.
+                        if(identityBefore===navigationRevision)values.filter((item)=>item.field==='conclusiveDart').forEach((item)=>{if(current(item))navigationSample(item.field,item.value,item.failed?'read_failed':'read_ok');});
                     },()=>{guidancePending=false;if(!stopped&&revision===navigationRevision){navigation.clear();maneuvers.clear();controller.hud.hide();}});
                 } catch(e) {guidancePending=false;navigation.clear();maneuvers.clear();controller.hud.hide();}
             }
@@ -152,8 +207,8 @@ function start(ctx) {
             const maneuverState=maneuvers.read(at,navigationAvailable);
             controller.navigation=maneuverState;
             const composed=config.hudNavigationEnabled&&maneuverState.visible;
-            controller.hudBlocked=rendererInfo.hudGuidanceSafe===false||(navigationState.blocked&&!composed);
-            controller.hudBlockReason=rendererInfo.hudGuidanceSafe===false?'hud_safety':navigationState.active&&config.hudNavigationEnabled?maneuverState.reason:navigationState.reason;
+            controller.hudBlocked=rendererInfo.hudGuidanceSafe===false||((navigationState.blocked||maneuverState.needsStock)&&!composed);
+            controller.hudBlockReason=rendererInfo.hudGuidanceSafe===false?'hud_safety':(navigationState.active||Object.prototype.hasOwnProperty.call(PROJECTED,maneuverState.provider))&&config.hudNavigationEnabled?maneuverState.reason:navigationState.reason;
             const state = controller.tick(at, config);
             if (at - lastStatus >= 500) {
                 lastStatus = at;
@@ -163,7 +218,7 @@ function start(ctx) {
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
-                    outputs: state.outputs, navigation: navigationState, maneuver: maneuverState,
+                    outputs: state.outputs, navigation: navigationState, maneuver: maneuverState, projectedNavigation: maneuvers.projectedStatus(at),
                     navigationInputs: {fields:navigationFields.slice(),available:navigationAvailable,pending:guidancePending,reads:Object.assign({},navigationReadState),
                         agesMs:navigationFields.reduce((out,field)=>{out[field]=navigationSeenAt[field]===undefined?null:Math.max(0,at-navigationSeenAt[field]);return out;},{})}, nativeStatus: nativeStatus,
                     renderer: rendererInfo, rendererBackend: client.backend || null, rendererTargets: client.targets || '', requestedSettings: raw,
