@@ -17,3 +17,8 @@
 
 No BMW SDK is included in the source distribution. A private install bundle
 may vendor the SDK the vehicle owner provided, as the original kit does.
+
+The optional native parked-recovery patch in patches/ is a modification of the
+GPL-3.0-or-later cluster-render SlotManager from robertnisipeanu/idrive-apps (Robert Nisipeanu).
+It is provided as corresponding source for review; the app does not install it.
+Native patch license text: LICENSES/GPL-3.0-or-later.txt.

@@ -4,6 +4,8 @@
 function mapStatus(state) {
     if (!state || !state.requested || state.targetName !== 'map') return null;
     if (state.targetState === 'shown') return state.guidanceDisabled ? 'Guidance hide unavailable' : 'Map slot acquired';
+    if (state.targetHolder === 'foreign') return 'Waiting for other display release';
+    if (state.targetState === 'unavailable') return 'Native display service unavailable';
     if (state.targetState === 'parked' || state.targetHolder === 'stock') return 'Waiting for stock map release';
     return 'Waiting for map acquisition';
 }

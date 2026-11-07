@@ -42,6 +42,19 @@ function uuidFor(id, original) {
     b[6] = (b[6] & 15) | 0x50; b[8] = (b[8] & 63) | 0x80;
     const h = b.toString('hex'); return [h.slice(0, 8), h.slice(8, 12), h.slice(12, 16), h.slice(16, 20), h.slice(20)].join('-');
 }
+// Optional read-only inputs must be supported by this unit's catalog.
+// Mutate only our app manifest; the vehicle catalog is never changed or copied.
+function filterOptionalProxies(manifest, catalog, optional) {
+    const proxies = manifest.proxies || {}, interfaces = catalog.interfaces || {};
+    const program = 'de.bmw.infotainment.misc.MDrive';
+    const guidance = 'de.bmw.infotainment.navigation.guiding.Guidance';
+    const field = (name, key) => interfaces[name] && interfaces[name].fields && interfaces[name].fields[key];
+    const gearbox = field(program, 'dataDisplayGearbox');
+    if (!gearbox || !gearbox.notifier) delete proxies[program];
+    const route = field(guidance, 'guidanceState');
+    if (optional && optional[guidance] && (!route || !route.getter)) delete proxies[guidance];
+    return manifest;
+}
 function build(options) {
     const template = options.template, id = options.id, version = options.version;
     const language = options.language || 'ko';
@@ -113,23 +126,19 @@ function build(options) {
         const ready = JSON.parse(fs.readFileSync(packageFile, 'utf8'));
         ready.name = id; ready.version = version; ready.mguHmi = ['ID7']; ready.mguLocalOnly = true;
         fs.writeFileSync(packageFile, JSON.stringify(ready, null, 2) + '\n');
-        // MDrive is not present in every firmware. Only request its optional
-        // S/M notifier when the vehicle catalog actually contains it; never embed
-        // any catalog data in a public package. Host builds omit it by default.
-        const optionalProgram = 'de.bmw.infotainment.misc.MDrive';
-        let hasProgram = false;
-        try {
-            const catalog = JSON.parse(fs.readFileSync(options.catalog || '/etc/oap/someip/someip-interfaces.json', 'utf8'));
-            const iface = catalog.interfaces && catalog.interfaces[optionalProgram];
-            const field = iface && iface.fields && iface.fields.dataDisplayGearbox;
-            hasProgram = !!(field && field.notifier);
-        } catch (e) { if (options.catalog) throw e; }
-        if (!hasProgram) {
-            const manifestFile = path.join(stage, 'manifest.json');
-            const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
-            if (manifest.proxies) delete manifest.proxies[optionalProgram];
-            fs.writeFileSync(manifestFile, JSON.stringify(manifest, null, 2) + '\n');
-        }
+        // Missing optional inputs must not prevent installing the app. Native
+        // navigation uses a getter only; a notifier-only field cannot establish
+        // fresh inactive state for safe HUD recovery.
+        let catalog = {};
+        try { catalog = JSON.parse(fs.readFileSync(options.catalog || '/etc/oap/someip/someip-interfaces.json', 'utf8')); }
+        catch (e) { if (options.catalog) throw e; }
+        const optional = {};
+        Object.keys(sourceSpec.signals || {}).forEach((name) => {
+            if (sourceSpec.signals[name]._optional) optional[name] = true;
+        });
+        const manifestFile = path.join(stage, 'manifest.json');
+        const manifest = filterOptionalProxies(JSON.parse(fs.readFileSync(manifestFile, 'utf8')), catalog, optional);
+        fs.writeFileSync(manifestFile, JSON.stringify(manifest, null, 2) + '\n');
         const target = path.join(out, id + '@' + version + '.tgz');
         cp.execFileSync('tar', ['-czf', target, '-C', work, 'package']);
         console.log('Built ' + language + ' Store app (SDK-free): ' + target);
@@ -145,4 +154,4 @@ function cli(args) {
     build(options);
 }
 if (require.main === module) { try { cli(process.argv.slice(2)); } catch (e) { console.error(e.message); process.exitCode = 1; } }
-module.exports = { build, canonical, fingerprint, uuidFor };
+module.exports = { build, canonical, fingerprint, uuidFor, filterOptionalProxies };

@@ -10,6 +10,7 @@ const hudPainter = require('./hud-draw');
 const { settings, DEFAULTS } = require('./policy');
 const renderer = require('./renderer');
 const gear = require('./gear');
+const guidance = require('./guidance');
 const CDS = 'de.bmw.infotainment.vehicle.CDS';
 const FES = 'de.bmw.infotainment.drivingexcitement.FES';
 const MODE_FIELD = 'statusFESVehicleDynamicSwitchHMI';
@@ -25,8 +26,9 @@ function supportedRenderer() { return renderer.inspect(undefined, fs).compatible
 function start(ctx) {
     const log = ctx.log, signals = ctx.signals;
     const client = new ClusterRender('cluster-redline'), controller = new Outputs(client, painter, hudPainter);
-    const gearbox = new gear.GearState();
+    const gearbox = new gear.GearState(), navigation = new guidance.GuidanceState();
     let config = settings(), lastStatus = -Infinity, stopped = false, timer;
+    let guidanceSub, lastGuidancePoll = -Infinity, guidancePending = false, navigationRevision = 0, nativeStatus = null;
     let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub, fesSub, programSub;
     const subs = [], errors = [];
     function keep(s) { if (stopped) s.shutdown(); else subs.push(s); }
@@ -67,6 +69,23 @@ function start(ctx) {
         if (hasProgram) signals.watch(MDRIVE, '1', {
             dataDisplayGearbox: (v) => gearbox.sample('programme', v),
         }, log, { pollMs: 1000 }).then((s) => { programSub = s; keep(s); if (s.error) reportError('optional gearbox programme', s.error); }).catch((e) => reportError('optional gearbox programme', e));
+        // Only read OEM guidance state. No start/stop/route or menu methods.
+        let hasGuidance = false;
+        try { const cfg = signals.loadConfig(guidance.INTERFACE); hasGuidance = !!(cfg.fields && cfg.fields[guidance.FIELD] && cfg.fields[guidance.FIELD].getter); } catch (e) {}
+        if (hasGuidance) {
+            const handlers = {};
+            handlers[guidance.FIELD] = (value) => {
+                if (stopped) return;
+                navigationRevision++; navigation.sample(value, mono());
+                // Drop our HUD immediately on active/calculating/unknown events.
+                // Native linger and other clients remain the renderer's policy.
+                if (navigation.state !== 'inactive') controller.hud.hide();
+            };
+            signals.watch(guidance.INTERFACE, guidance.INSTANCE, handlers, log, {}).then((sub) => {
+                guidanceSub = sub; keep(sub);
+                if (sub.error) reportError('optional native guidance', sub.error);
+            }).catch((e) => reportError('optional native guidance', e));
+        } else reportError('optional native guidance', 'readable guidanceState unavailable; HUD released');
     }
     function stop() {
         if (stopped) return;
@@ -80,7 +99,8 @@ function start(ctx) {
         const at = mono();
         try {
             if (live && at - lastRendererCheck >= 1000) {
-                lastRendererCheck = at; rendererInfo = renderer.inspect(undefined, fs);
+                lastRendererCheck = at;
+                try { nativeStatus = fs.readFileSync('/run/cluster-render/status.txt', 'utf8').slice(0, 24576); } catch (e) { nativeStatus = null; } rendererInfo = renderer.inspect(undefined, fs);
                 if (rendererInfo.compatible && !connectionStarted) { connectionStarted = true; client.connect(); }
                 else if (!rendererInfo.compatible) {
                     reportError('cluster-render', rendererInfo.reason);
@@ -96,7 +116,23 @@ function start(ctx) {
             const raw = {};
             Object.keys(DEFAULTS).forEach((k) => { if (k !== 'frameRate') raw[k] = ctx.settings.get(k); });
             config = settings(raw);
-            controller.hudBlocked = rendererInfo.hudGuidanceSafe === false;
+            const navigationAvailable = !!(guidanceSub && guidanceSub.available === true && !guidanceSub.error);
+            if (!navigationAvailable) { navigationRevision++; navigation.clear(); }
+            // Owned polling uses the existing worker timer; shutdown leaves no
+            // independent interval and late reads cannot alter a stopped worker.
+            if (navigationAvailable && guidanceSub.proxy && typeof guidanceSub.proxy.getValue === 'function' && !guidancePending && at - lastGuidancePoll >= 1000) {
+                lastGuidancePoll = at; guidancePending = true; const revision = navigationRevision;
+                try {
+                    Promise.resolve(guidanceSub.proxy.getValue(guidance.FIELD, 1000)).then((value) => {
+                        guidancePending = false;
+                        if (!stopped && revision === navigationRevision) navigation.sample(value, mono());
+                        if (!stopped && navigation.state !== 'inactive') controller.hud.hide();
+                    }, () => { guidancePending = false; if (!stopped && revision === navigationRevision) { navigation.clear(); controller.hud.hide(); } });
+                } catch (e) { guidancePending = false; navigation.clear(); controller.hud.hide(); }
+            }
+            const navigationState = navigation.read(at, navigationAvailable);
+            controller.hudBlocked = rendererInfo.hudGuidanceSafe === false || navigationState.blocked;
+            controller.hudBlockReason = rendererInfo.hudGuidanceSafe === false ? 'hud_safety' : navigationState.reason;
             const state = controller.tick(at, config);
             if (at - lastStatus >= 500) {
                 lastStatus = at;
@@ -106,7 +142,7 @@ function start(ctx) {
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
-                    outputs: state.outputs,
+                    outputs: state.outputs, navigation: navigationState, nativeStatus: nativeStatus,
                     renderer: rendererInfo, rendererBackend: client.backend || null, rendererTargets: client.targets || '', requestedSettings: raw,
                     profile: config.engineProfile, config: config,
                     errors: errors.slice(-8), source: live ? 'live-someip' : 'offline-disabled',

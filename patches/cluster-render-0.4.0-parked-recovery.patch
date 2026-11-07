@@ -1,0 +1,70 @@
+--- a/native/cluster-render/src/slots.h
++++ b/native/cluster-render/src/slots.h
+@@ -398,6 +398,11 @@
+         int64_t check_ms = 0;        /* Checking since */
+         int recoveries = 0;          /* releases for not rendering since it was last rendered */
+         int64_t since_ms = 0;        /* entered the current state */
++        /* Only the ordinary ID7 map: repeated explicit empty/free slot
++         * reports can reconcile a parked mapping whose loss callback went
++         * missing. Unrelated partial reports are not evidence. */
++        int64_t parked_empty_since_ms = -1, parked_empty_last_ms = -1;
++        int parked_empty_reports = 0;
+         int64_t last_request_ms = -1000000;
+         int ladder = 0;
+         /* Lost while the table named our own scene id: who holds the slot
+--- a/native/cluster-render/src/slots.cpp
++++ b/native/cluster-render/src/slots.cpp
+@@ -418,6 +418,10 @@
+                  rows_text(specs_[i].slot).c_str());
+     if (st.state != s)
+         t_[i].since_ms = now_ms;
++    if (s != TargetState::Parked) {
++        t_[i].parked_empty_since_ms = t_[i].parked_empty_last_ms = -1;
++        t_[i].parked_empty_reports = 0;
++    }
+     st.state = s;
+     st.holder = h;
+     st.reason = reason;
+@@ -965,6 +969,42 @@
+             const Holder h = other_holder((int)i);
+             if (h != st.holder)
+                 set((int)i, TargetState::Parked, h, parked_reason(h), now_ms);
++            // A parked scene ordinarily returns through on_shown/on_lost.
++            // If the loss callback is missing, do not remain parked forever
++            // after the display explicitly reports this slot free and empty.
++            // Restrict reconciliation to the known ordinary ID7 map; never
++            // reinterpret another mapping, a lock, a HUD or a guarded hold.
++            const TargetSpec &spec = specs_[i];
++            if (spec.slot == 0x100 && spec.scene_id == 0x010004f0 &&
++                spec.follows.empty() && t.requested && t.wanted && !t.disabled &&
++                rows.count(spec.slot)) {
++                const auto &current = slots_[spec.slot];
++                const bool empty = !current.empty() &&
++                    std::all_of(current.begin(), current.end(), [](const SlotInfo &r) {
++                        return r.status == 1 && r.content == 0 && r.map_status == 0;
++                    });
++                if (!empty) {
++                    t.parked_empty_since_ms = t.parked_empty_last_ms = -1;
++                    t.parked_empty_reports = 0;
++                } else {
++                    if (t.parked_empty_since_ms < 0 ||
++                        now_ms - t.parked_empty_last_ms > 2 * kSlotPollMs) {
++                        t.parked_empty_since_ms = now_ms;
++                        t.parked_empty_reports = 0;
++                    }
++                    t.parked_empty_last_ms = now_ms;
++                    ++t.parked_empty_reports;
++                    if (t.parked_empty_reports >= 3 &&
++                        now_ms - t.parked_empty_since_ms >= kVerifyMs) {
++                        log_warn("target %s: parked scene absent from %d free-slot reports over %lld ms; reconciling its loss",
++                                 spec.name.c_str(), t.parked_empty_reports,
++                                 (long long)(now_ms - t.parked_empty_since_ms));
++                        // Existing loss handling releases only our stale map,
++                        // then observes confirmation, request gap and ladder.
++                        on_lost(spec.scene_id, "parked scene absent from free-slot reports", now_ms);
++                    }
++                }
++            }
+             continue;
+         }
+         auto d = disabled.find(specs_[i].slot);

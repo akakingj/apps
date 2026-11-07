@@ -4,7 +4,7 @@ English | [한국어](README.ko.md)
 
 Two ordinary apps for the existing [idrive7-apps](https://github.com/cauliflowermossgrape/idrive7-apps) build and deployment workflow.
 
-Cluster Redline **1.0.0** adds independent HUD/cluster output choices per Sport/all mode, live position and size controls, a compact color-changing HUD and a 5500 rpm petrol preset. It fixes the contending HUD request that could block stock guidance. Same-slot stock navigation and Redline cannot yet be composed together. [Change and validation notes](docs/CLUSTER-REDLINE-1.0.0.ko.md).
+Cluster Redline **1.0.1** adds independent HUD/cluster output choices per Sport/all mode, live position and size controls, a compact color-changing HUD and a 5500 rpm petrol preset. It fixes the contending HUD request that could block stock guidance. Same-slot stock navigation and Redline cannot yet be composed together. [Change and validation notes](docs/CLUSTER-REDLINE-1.0.0.ko.md).
 
 | App | English guide | 한국어 설명서 |
 |---|---|---|
@@ -70,6 +70,8 @@ See [validation](docs/VALIDATION.ko.md), [client attribution](NOTICE.cluster-red
 
 [0.8.7: Larger settings text and touch controls](docs/CLUSTER-REDLINE-0.8.7.ko.md)
 
-## HUD and cluster settings (1.0.0)
+## HUD and cluster settings (1.0.1)
 
 Use Advanced settings to select each output independently and adjust position/size. Stock HUD guidance has priority. [Current app guide](apps/cluster_redline/README.md).
+
+[1.0.1: HUD guidance, torque/power and recovery notes](docs/CLUSTER-REDLINE-1.0.1.ko.md)

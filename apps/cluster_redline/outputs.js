@@ -54,7 +54,7 @@ class Outputs {
             const blocked=name==='hud' && this.hudBlocked;
             states[name] = out.tick(now, Object.assign({}, cfg, { displayTarget: name === 'hud' ? 'hud' : 'map', appEnabled: cfg.appEnabled && selected === 'redline' && !blocked }));
             if (selected === 'stock' && cfg.appEnabled) states[name].reason = 'stock';
-            else if(blocked && cfg.appEnabled)states[name].reason='hud_safety';
+            else if(blocked && cfg.appEnabled)states[name].reason=this.hudBlockReason || 'hud_safety';
         });
         const active = states.cluster.requested ? states.cluster : states.hud.requested ? states.hud :
             (cfg[prefix+'ClusterOutput'] === 'redline' ? states.cluster : states.hud);

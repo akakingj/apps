@@ -1,0 +1,22 @@
+'use strict';
+const assert = require('assert');
+const { INTERFACE, INSTANCE, FIELD, TTL_MS, decode, GuidanceState } = require('../../apps/cluster_redline/guidance');
+assert.strictEqual(INTERFACE, 'de.bmw.infotainment.navigation.guiding.Guidance');
+assert.strictEqual(INSTANCE, 'Main_Instance'); assert.strictEqual(FIELD, 'guidanceState'); assert.strictEqual(TTL_MS, 5000);
+for (const v of [null, undefined, '', 0, 1, 2, true, 'Active', 'Inactive', 'off', {}, { guidanceState: 'INACTIVE' }]) assert.strictEqual(decode(v), null, 'unsupported scalar/shape cannot report navigation inactive');
+assert.strictEqual(decode('ACTIVE'), 'active'); assert.strictEqual(decode('INACTIVE'), 'inactive'); assert.strictEqual(decode('CALCULATING_ROUTE'), 'calculating');
+const g = new GuidanceState();
+assert(g.read(100, true).blocked); assert.strictEqual(g.read(100, true).reason, 'guidance_unknown');
+g.sample('INACTIVE', 100); assert.strictEqual(g.read(100, true).blocked, false);
+assert.strictEqual(g.read(5100, true).blocked, false, 'polling TTL includes its boundary');
+assert.strictEqual(g.read(5101, true).reason, 'guidance_stale'); assert(g.read(5101, true).blocked);
+assert.strictEqual(g.read(200, false).reason, 'guidance_unavailable'); assert(g.read(200, false).blocked);
+assert(g.read(200).blocked, 'availability must be explicit');
+g.sample('CALCULATING_ROUTE', 6000); assert(g.read(6000, true).blocked && g.read(6000, true).active, 'release HUD before route guidance becomes active');
+g.sample('ACTIVE', 7000); assert(g.read(7000, true).blocked && g.read(7000, true).active);
+g.sample('INACTIVE', 8000); assert.strictEqual(g.read(8000, true).blocked, false, 'explicit route end permits Redline recovery');
+g.sample('UNRECOGNIZED', 9000); assert(g.read(9000, true).blocked && !g.read(9000, true).known, 'bad sample invalidates an earlier inactive sample');
+g.sample('INACTIVE', 10000); assert(g.read(9999, true).blocked, 'clock reversal cannot make an old state fresh');
+g.clear(); assert(g.read(10001, true).blocked);
+for (const stamp of [undefined, null, NaN, Infinity, -1, '100']) { g.sample('INACTIVE', stamp); assert(g.read(10000, true).blocked); }
+console.log('PASS: exact native guidance enum/instance, early route release, explicit inactive recovery, TTL/provider loss and conservative unknown handling');

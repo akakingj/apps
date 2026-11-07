@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Independent stock/Redline cluster and HUD outputs, adjustable placement and native-guidance priority",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
@@ -23,6 +23,10 @@
     "de.bmw.infotainment.misc.MDrive": {
       "_optional": "S/M programme; regular gear, RPM and shift alerts work without it",
       "dataDisplayGearbox": "s"
+    },
+    "de.bmw.infotainment.navigation.guiding.Guidance": {
+      "_optional": "Read-only native navigation state; HUD stays released when guidance state cannot be checked",
+      "guidanceState": "r"
     }
   },
   "screens": [
@@ -133,7 +137,7 @@
         ],
         [
           "kgfm",
-          "kgf\u00b7m"
+          "kgf·m"
         ]
       ]
     },

@@ -4,6 +4,15 @@ const gear = require('./gear');
 const { Telemetry } = require('./telemetry');
 const { UploadPacer } = require('./upload');
 const { placement } = require('./layout');
+// Only these exact server contracts describe a lost layer or temporary
+// resource/attachment failure. Malformed frames, unsupported targets, native
+// slot refusals and guard decisions must not become retry loops.
+const RETRY_MS = [2000, 5000, 10000];
+function transientFailure(op, reason) {
+    return ((op === 'frame' || op === 'set') && reason === 'no such layer') ||
+        (op === 'layer' && (reason === 'too many layers' || reason === "the service's pixel memory is full")) ||
+        (op === 'layer-state' && reason === 'image buffer or quad refused');
+}
 class Controller {
     constructor(client, painter, hudPainter, options) {
         options = options || {};
@@ -16,10 +25,22 @@ class Controller {
         this.transitions = []; this.lastReason = null;
         client.on('budget', (cap) => this.upload.budget(cap));
         this.targetName = null; this.targetStates = {}; this.paintKey = null;
-        client.on('disconnected', () => { this.hide(); this.policy.reset(); this.telemetry.clear(); this.gear = '--'; this.gearMode = null; });
-        client.on('refused', () => { this.hide(); this.refused = true; });
-        client.on('ready', () => { this.hide(); this.policy.reset(); this.refused = false; });
-        client.on('layer', (ref, state) => { if (ref === this.ref) this.layerState = state; });
+        this.now = 0; this.failure = null; this.healthySince = null; this.layerReason = '';
+        client.on('disconnected', () => { this.hide(); this.targetStates = {}; this.policy.reset(); this.telemetry.clear(); this.gear = '--'; this.gearMode = null; });
+        client.on('refused', (op, ref, reason) => {
+            // Delayed answers about an already dropped layer (including its
+            // drop acknowledgement) cannot disable a newer live layer.
+            if (op === 'drop' || (ref && ref !== this.ref)) return;
+            this.fail(op, reason);
+        });
+        client.on('ready', () => { this.hide(); this.targetStates = {}; this.policy.reset(); this.refused = false; this.failure = null; });
+        client.on('layer', (ref, state, reason) => {
+            if (ref !== this.ref) return;
+            this.layerState = state; this.layerReason = reason || '';
+            if (state === 'error') this.fail('layer-state', this.layerReason);
+            else if (state === 'shown') this.healthySince = this.now;
+            else this.healthySince = null;
+        });
         client.on('target', (target, state, holder, reason, guideDisabled) => {
             if (target !== 'map' && target !== 'panel' && target !== 'hud') return;
             this.targetStates[target] = { state: state, holder: holder || '', reason: reason || '', guideDisabled: !!guideDisabled };
@@ -30,20 +51,46 @@ class Controller {
         this.ref = 0; this.previous = null; this.paintKey = null; this.layerState = 'hidden';
         if (this.ownsUpload) this.upload.reset();
         this.placementKey = null;
-        this.targetName = null; this.targetStates = {};
+        this.targetName = null; this.layerReason = ''; this.healthySince = null;
+        // Target events describe the renderer's global slot, not this ref.
+        // Keep the latest ownership through a drop: a new layer need not
+        // produce another target event if the native slot has not changed.
+    }
+    fail(op, reason) {
+        const attempts = this.failure ? this.failure.attempts : 0;
+        const retryable = transientFailure(op, reason || '');
+        this.failure = { op: op || '', reason: reason || '', retryable: retryable,
+            attempts: attempts, exhausted: retryable && attempts >= RETRY_MS.length,
+            nextAt: retryable && attempts < RETRY_MS.length ? this.now + RETRY_MS[attempts] : null };
+        this.hide(); this.refused = true;
     }
     tick(now, config) {
+        this.now = now;
         const cfg = settings(config);
         if (this.profile !== null && this.profile !== cfg.engineProfile) {
             this.hide(); this.policy.reset();
             this.telemetry.clear();
         } else if (this.ref && (this.layerRate !== cfg.frameRate || this.targetName !== cfg.displayTarget || (!this.liveLayout && this.layerScale !== cfg.widgetScale))) this.hide();
         this.profile = cfg.engineProfile;
+        const targetBefore = this.targetStates[cfg.displayTarget] || {};
+        const otherOwns = targetBefore.holder === 'stock' || targetBefore.holder === 'foreign';
+        // Rebuild only our failed image, with fresh live data and a bounded
+        // backoff. Native acquisition/parking/lock recovery stays native; no
+        // periodic layer churn, service restart or guard reset is performed.
+        if (this.refused && this.failure && this.failure.retryable && !this.failure.exhausted &&
+            now >= this.failure.nextAt && !otherOwns && this.policy.evaluate(now, this.client.ready, cfg).show) {
+            this.refused = false; this.failure.attempts++; this.failure.nextAt = null;
+        }
+        if (this.failure && !this.refused && this.healthySince !== null && now - this.healthySince >= 30000)
+            this.failure = null;
         const d = this.policy.evaluate(now, this.client.ready && !this.refused, cfg);
+        if (this.refused && this.failure && d.reason === 'renderer_unavailable') d.reason = this.failure.retryable && !this.failure.exhausted ? 'renderer_recovering' : 'renderer_refused';
+        d.recovery = this.failure ? Object.assign({ state: this.refused ? this.failure.retryable && !this.failure.exhausted ? 'waiting' : 'failed' : 'retrying' }, this.failure) : null;
         d.gear = gear.display(this.gear, this.gearMode, 'auto');
         Object.assign(d, this.telemetry.read(d.rpm, now));
         d.targetName = cfg.displayTarget;
         const target = this.targetStates[cfg.displayTarget] || {};
+        d.layerReason = this.layerReason;
         d.targetState = target.state || 'idle'; d.targetHolder = target.holder || ''; d.targetReason = target.reason || '';
         d.guidanceRequested = cfg.displayTarget === 'map'; d.guidanceDisabled = !!target.guideDisabled;
         const panel = cfg.displayTarget === 'panel', hud = cfg.displayTarget === 'hud';
@@ -95,7 +142,7 @@ class Controller {
                 // Non-contending HUD layers let the native renderer release
                 // our scene for stock guidance newly parked behind it.
                 visible: false, prewarm: false, exclusive: !hud, contend: !panel && !hud, guide_hold: !panel && !hud, fps: d.config.frameRate });
-            if (!this.ref) { this.refused = true; d.show = false; d.reason = 'renderer_refused'; return d; }
+            if (!this.ref) { this.fail('layer', 'client did not create a layer'); d.show = false; d.reason = 'renderer_refused'; return d; }
             this.layerState = 'waiting';
             this.layerRate = d.config.frameRate;
             this.layerScale = cfg.widgetScale;

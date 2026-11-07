@@ -18,6 +18,12 @@ const REASONS = {
     all_modes: 'All drive modes · display requested', stopped: 'Background app stopped',
     stock: 'Stock display',
     hud_safety: 'Check HUD guidance-yield settings',
+    guidance_active: 'Stock navigation active · HUD released',
+    guidance_calculating: 'Calculating route · HUD released',
+    guidance_unknown: 'Waiting for navigation state · HUD released',
+    guidance_stale: 'Navigation state stale · HUD released',
+    guidance_unavailable: 'Navigation state unavailable · HUD released',
+    renderer_recovering: 'Recovering renderer layer',
 };
 mgu.run({ async start(ctx) {
     configure(ctx);

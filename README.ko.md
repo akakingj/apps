@@ -4,7 +4,7 @@
 
 기존 `idrive7-apps`의 **빌드·언어 선택·전체 앱 배포 방식**에 맞춘 추가 앱입니다.
 
-계기판 레드라인 **1.0.0**: 스포츠/전체 모드별 HUD·계기판 출력 선택, 위치·가로·세로 크기 조절, 색이 변하는 HUD와 가솔린 기본 알림 5500rpm을 반영했습니다. 순정 HUD 안내를 막을 수 있던 경쟁 요청을 수정했습니다. 같은 HUD 슬롯에서 순정 안내와 레드라인 동시 합성은 아직 지원하지 않습니다. [변경·검사 안내](docs/CLUSTER-REDLINE-1.0.0.ko.md).
+계기판 레드라인 **1.0.1**: 스포츠/전체 모드별 HUD·계기판 출력 선택, 위치·가로·세로 크기 조절, 색이 변하는 HUD와 가솔린 기본 알림 5500rpm을 반영했습니다. 순정 HUD 안내를 막을 수 있던 경쟁 요청을 수정했습니다. 같은 HUD 슬롯에서 순정 안내와 레드라인 동시 합성은 아직 지원하지 않습니다. [변경·검사 안내](docs/CLUSTER-REDLINE-1.0.0.ko.md).
 
 | 앱 | 한국어 설명서 | 영문 설명서 |
 |---|---|---|
@@ -91,6 +91,8 @@ Circuit과 기존 앱은 수동 실행을 유지하고, Cluster Redline만 백�
 
 [0.8.7: 큰 설정 글자·터치 버튼 / Larger settings controls](docs/CLUSTER-REDLINE-0.8.7.ko.md)
 
-## HUD·계기판 설정 (1.0.0)
+## HUD·계기판 설정 (1.0.1)
 
 상세설정에서 HUD·계기판 출력을 각각 선택하고 위치·크기를 조절합니다. 순정 HUD 안내가 우선입니다. [현재 앱 설명서](apps/cluster_redline/README.ko.md).
+
+[1.0.1: HUD guidance, torque/power and recovery notes](docs/CLUSTER-REDLINE-1.0.1.ko.md)

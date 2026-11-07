@@ -67,7 +67,26 @@ JAM_METADATA
 '''
 
 
+OPTIONAL_GUIDANCE_MARKER = '// Jam optional guidance getter v1'
+
+
+def optional_guidance_source(text):
+    if OPTIONAL_GUIDANCE_MARKER in text:
+        return text
+    before = '        for (const i of Object.keys(opt)) if (!have[i]) { missing[i] = opt[i]; delete m.proxies[i]; }'
+    after = """        // Jam optional guidance getter v1: polling needs a getter, not only a notifier.
+        const supportsOptional = (i) => {
+            if (!have[i]) return false;
+            if (i !== "de.bmw.infotainment.navigation.guiding.Guidance") return true;
+            const field = have[i].fields && have[i].fields.guidanceState;
+            return !!(field && field.getter);
+        };
+        for (const i of Object.keys(opt)) if (!supportsOptional(i)) { missing[i] = opt[i]; delete m.proxies[i]; }"""
+    return replace_once(text, before, after)
+
+
 def installer_source(text):
+    text = optional_guidance_source(text)
     if INSTALL_MARKER in text:
         if 'Jam renderer discovery v2' not in text:
             text = replace_once(text, "        const component = JSON.parse(fs.readFileSync('/var/opt/cluster-render/current/component.json', 'utf8'));", """        // Jam renderer discovery v2: prefer active metadata; old layouts store it at the tool root.

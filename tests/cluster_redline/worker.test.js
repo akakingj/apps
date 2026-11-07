@@ -39,6 +39,7 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
         if (name === './hud-draw') return Object.assign({}, painter, { W: 800, H: 240 });
         if (name === './policy') return require('../../apps/cluster_redline/policy');
         if (name === './renderer') return require('../../apps/cluster_redline/renderer');
+        if (name === './guidance') return require('../../apps/cluster_redline/guidance');
         if (name === './gear') return require('../../apps/cluster_redline/gear');
         throw new Error('Unexpected dependency ' + name);
     }, process: { hrtime: () => [Math.floor(time / 1000), Math.floor((time % 1000) * 1000000)], once() {}, removeListener() {} },
@@ -47,8 +48,10 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
     const worker = box.module.exports.start({
         dataDir: '/data', app: app,
         settings: { get: (k) => config[k] }, log: { warn() {} },
-        signals: { hasNative: () => live, loadConfig: () => { if (!withProgram) throw new Error('optional MDrive absent'); return { fields: { dataDisplayGearbox: {} } }; }, watch: (iface, instance, handlers, log, options) => {
-            assert.strictEqual(instance, '1'); assert.strictEqual(options.pollMs, 1000);
+        signals: { hasNative: () => live, loadConfig: (iface) => { if (iface==='de.bmw.infotainment.navigation.guiding.Guidance') return {fields:{guidanceState:{getter:{id:1}}}}; if (!withProgram) throw new Error('optional MDrive absent'); return { fields: { dataDisplayGearbox: {} } }; }, watch: (iface, instance, handlers, log, options) => {
+            const navigation = iface === 'de.bmw.infotainment.navigation.guiding.Guidance';
+            assert.strictEqual(instance, navigation ? 'Main_Instance' : '1'); assert.strictEqual(options.pollMs, navigation ? undefined : 1000);
+            if(navigation)handlers.guidanceState('INACTIVE');
             feeds[iface] = handlers; watches++;
             const sub = { available: true, shutdown() { shutdowns++; } }; subscriptions[iface] = sub;
             return Promise.resolve(sub);
@@ -70,7 +73,8 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
         assert.strictEqual(watches, 0); assert.strictEqual(calls.indexOf('connect'), -1);
         tick(1000); assert.strictEqual(status().source, 'offline-disabled');
     } else {
-        assert.strictEqual(watches, withProgram ? 4 : 3);
+        assert.strictEqual(watches, withProgram ? 5 : 4);
+        feeds['de.bmw.infotainment.navigation.guiding.Guidance'].guidanceState('INACTIVE');
         const rpm = feeds['de.bmw.infotainment.vehicle.CDS'].statusEngineSpeed2;
         const mode = feeds['de.bmw.infotainment.drivingexcitement.FES'].statusFESVehicleDynamicSwitchHMI;
         assert.strictEqual(typeof rpm, 'function'); assert.strictEqual(typeof mode, 'function');
