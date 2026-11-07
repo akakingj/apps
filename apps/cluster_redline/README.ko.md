@@ -1,4 +1,4 @@
-# 계기판 레드라인 1.0.1
+# 계기판 레드라인 1.0.2
 ## 1.0.1
 
 순정 길안내 상태를 읽어 경로 계산·안내 중 HUD를 해제합니다. 내비 상태가 불명/오래됨/제공되지 않는 경우도 순정을 유지합니다. RPM 양옆 토크·마력 미니 게이지와 제한된 일시 오류 복구를 추가했습니다. 별도의 native 복귀 소스 패치는 **앱 업데이트에 포함돼 설치되는 패치가 아닙니다.** 실차 복귀 원인은 로그 확인이 필요합니다. [변경·검사 안내](../../docs/CLUSTER-REDLINE-1.0.1.ko.md).
@@ -43,3 +43,5 @@ PC 빌드는 본인 SDK가 있는 전체 원본에 소스를 합친 뒤 기존 `
 ![HUD](../../screenshots/cluster_redline/hud-shift-on-black.png)
 
 ![Layout settings](../../screenshots/cluster_redline/settings-layout-hud.png)
+
+[1.0.2 설치 보완: 내비 신호의 Main_Instance를 명시하고 해당 인스턴스/getter가 없으면 선택적 요청을 제외합니다. 실차 설치 확인은 필요합니다.](../../docs/CLUSTER-REDLINE-1.0.2.ko.md)

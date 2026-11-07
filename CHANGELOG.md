@@ -1,3 +1,9 @@
+# 1.0.2
+
+- Fix Guidance installation/runtime instance mismatch: declare Main_Instance instead of inherited default 1.
+- Require the named catalog instance and a valid getter ID before retaining optional Guidance in Store and desktop installs; otherwise keep HUD released and allow the app to install without that proxy.
+- Add named-instance/getter compatibility cases and assertions on both language artifacts. Actual vehicle generator success still needs confirmation.
+
 # 1.0.1
 
 - Read OEM navigation guidanceState (getter only) and release HUD during calculation/guidance, unknown/stale/provider-loss states; keep cluster independent. Omit unavailable optional getter at install time.

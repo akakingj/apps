@@ -30,7 +30,7 @@ NAV = 'de.bmw.infotainment.navigation.guiding.Guidance'
 MDRIVE = 'de.bmw.infotainment.misc.MDrive'
 MANDATORY = 'de.bmw.infotainment.vehicle.CDS'
 manifest = {'proxies': {
-    NAV: {'attributes': {'guidanceState': 'r'}},
+    NAV: {'instances': 'Main_Instance', 'attributes': {'guidanceState': 'r'}},
     MDRIVE: {'attributes': {'dataDisplayGearbox': 's'}},
     MANDATORY: {'attributes': {'statusEngineSpeed2': 'rs'}},
 }}
@@ -56,6 +56,8 @@ with tempfile.TemporaryDirectory(prefix='redline-optional-guidance-') as temp:
         ('notifier only', {'notifier': {'id': 32769}}, False),
         ('getter only', {'getter': {'id': 1}}, True),
         ('getter and notifier', {'getter': {'id': 1}, 'notifier': {'id': 32769}}, True),
+        ('empty getter', {'getter': {}}, False),
+        ('zero getter ID', {'getter': {'id': 0}}, False),
     ]
     for label, definition, expected in variants:
         catalog = {'interfaces': {
@@ -66,6 +68,7 @@ with tempfile.TemporaryDirectory(prefix='redline-optional-guidance-') as temp:
             catalog['interfaces'][NAV] = {'fields': {}}
             if definition:
                 catalog['interfaces'][NAV]['fields']['guidanceState'] = definition
+        catalog['instanceIDs'] = {NAV: {'Main_Instance': 1}}
         catalog_file.write_text(json.dumps(catalog))
         catalog_hash = hashlib.sha256(catalog_file.read_bytes()).digest()
         for marked_optional in [True, False]:
@@ -88,9 +91,28 @@ with tempfile.TemporaryDirectory(prefix='redline-optional-guidance-') as temp:
                 assert result['proxies'][MDRIVE] == manifest['proxies'][MDRIVE]
                 if present:
                     assert result['proxies'][NAV]['attributes']['guidanceState'] == 'r'
+                    assert result['proxies'][NAV]['instances'] == 'Main_Instance'
                 assert all('w' not in flags for proxy in result['proxies'].values() for flags in proxy['attributes'].values())
             assert hashlib.sha256(catalog_file.read_bytes()).digest() == catalog_hash
             assert missing.exists() == (marked_optional and not expected)
+    # The real catalog has a separate named instance table. A getter is not
+    # enough: accepting an absent Main_Instance caused an un-installable proxy.
+    for instances in [None, {}, {'1': 1}, {'Other_Instance': 1}, {'Main_Instance': None}, {'Main_Instance': 1}]:
+        catalog = {'interfaces': {NAV: {'fields': {'guidanceState': {'getter': {'id': 1}}}},
+                                  MDRIVE: {'fields': {'dataDisplayGearbox': {'notifier': {'id': 32769}}}}}}
+        if instances is not None: catalog['instanceIDs'] = {NAV: instances}
+        catalog_file.write_text(json.dumps(catalog))
+        (stage / 'meta.json').write_text(json.dumps({'id': 'cluster_redline', 'optional': {NAV: 'route state'}}))
+        target.write_text(json.dumps(manifest))
+        subprocess.run(['sh', str(harness), node, str(catalog_file), str(stage)], check=True, capture_output=True, text=True)
+        desktop = json.loads(target.read_text())
+        store_input.write_text(json.dumps({'manifest': manifest, 'catalog': catalog, 'optional': {NAV: True}}))
+        store = json.loads(subprocess.check_output([node, '-e', store_js, str(ROOT / 'tools/store-build.js'), str(store_input)], text=True))
+        expected = instances is not None and instances.get('Main_Instance') is not None
+        for result in [desktop, store]:
+            assert (NAV in result['proxies']) == expected, (instances, result)
+            assert result['proxies'][MDRIVE] == manifest['proxies'][MDRIVE]
+            if expected: assert result['proxies'][NAV]['instances'] == 'Main_Instance'
     # Preserve Store's pre-existing optional S/M notifier requirements.
     for definition, expected in [(None, False), ({'getter': {'id': 1}}, False), ({'notifier': {'id': 32769}}, True)]:
         catalog = {'interfaces': {MDRIVE: {'fields': {'dataDisplayGearbox': definition}}}} if definition else {'interfaces': {}}
@@ -98,4 +120,4 @@ with tempfile.TemporaryDirectory(prefix='redline-optional-guidance-') as temp:
         store_input.write_text(json.dumps({'manifest': manifest, 'catalog': catalog, 'optional': {NAV: True}}))
         result = json.loads(subprocess.check_output([node, '-e', store_js, str(ROOT / 'tools/store-build.js'), str(store_input)], text=True))
         assert (MDRIVE in result['proxies']) == expected
-print('PASS: actual desktop/Store optional Guidance filtering (missing interface/field/getter, notifier-only, getter-only, both), mandatory preservation, read-only flags/catalog, prior Jam-marker upgrade and idempotency')
+print('PASS: named Main_Instance requirements, missing/empty/invalid getter metadata, actual desktop/Store optional Guidance filtering (missing interface/field/getter, notifier-only, getter-only, both), mandatory preservation, read-only flags/catalog, prior Jam-marker upgrade and idempotency')

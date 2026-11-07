@@ -14,6 +14,9 @@ spec = json.loads((ROOT / 'apps/cluster_redline/app.json').read_text())
 iface = 'de.bmw.infotainment.misc.MDrive'
 field = 'dataDisplayGearbox'
 assert spec['signals'][iface][field] == 's'
+nav = 'de.bmw.infotainment.navigation.guiding.Guidance'
+assert spec['signals'][nav]['_instances'] == 'Main_Instance'
+assert spec['signals'][nav]['guidanceState'] == 'r'
 
 with tempfile.TemporaryDirectory(prefix='redline-manifest-') as temp:
     root = Path(temp)
@@ -46,5 +49,7 @@ for suffix in ('', '-ko.1'):
         with tarfile.open(package) as archive:
             manifest = json.load(archive.extractfile(manifest_path))
         assert manifest['proxies'][iface]['attributes'][field] == 's', str(package)
+        assert manifest['proxies'][nav]['instances'] == 'Main_Instance', str(package)
+        assert manifest['proxies'][nav]['attributes']['guidanceState'] == 'r', str(package)
 
-print('PASS: upstream checker reproduces old no-getter rejection; fixed signals and all four desktop language artifacts request subscription only')
+print('PASS: upstream getter regression; all four language artifacts preserve notifier-only gearbox and read-only Guidance/Main_Instance')

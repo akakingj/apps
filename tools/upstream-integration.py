@@ -67,14 +67,14 @@ JAM_METADATA
 '''
 
 
-OPTIONAL_GUIDANCE_MARKER = '// Jam optional guidance getter v1'
+OPTIONAL_GUIDANCE_MARKER = '// Jam optional guidance instance v2'
 
 
 def optional_guidance_source(text):
     if OPTIONAL_GUIDANCE_MARKER in text:
         return text
-    before = '        for (const i of Object.keys(opt)) if (!have[i]) { missing[i] = opt[i]; delete m.proxies[i]; }'
-    after = """        // Jam optional guidance getter v1: polling needs a getter, not only a notifier.
+    original = '        for (const i of Object.keys(opt)) if (!have[i]) { missing[i] = opt[i]; delete m.proxies[i]; }'
+    prior = """        // Jam optional guidance getter v1: polling needs a getter, not only a notifier.
         const supportsOptional = (i) => {
             if (!have[i]) return false;
             if (i !== "de.bmw.infotainment.navigation.guiding.Guidance") return true;
@@ -82,7 +82,18 @@ def optional_guidance_source(text):
             return !!(field && field.getter);
         };
         for (const i of Object.keys(opt)) if (!supportsOptional(i)) { missing[i] = opt[i]; delete m.proxies[i]; }"""
-    return replace_once(text, before, after)
+    after = """        // Jam optional guidance instance v2: the runtime connects to Main_Instance.
+        const all = JSON.parse(fs.readFileSync(catalog, "utf8"));
+        const supportsOptional = (i) => {
+            if (!have[i]) return false;
+            if (i !== "de.bmw.infotainment.navigation.guiding.Guidance") return true;
+            const field = have[i].fields && have[i].fields.guidanceState;
+            const instances = all.instanceIDs && all.instanceIDs[i];
+            const named = instances && Object.prototype.hasOwnProperty.call(instances, "Main_Instance") && instances.Main_Instance != null;
+            return !!(field && field.getter && field.getter.id && named);
+        };
+        for (const i of Object.keys(opt)) if (!supportsOptional(i)) { missing[i] = opt[i]; delete m.proxies[i]; }"""
+    return replace_once(text, prior if '// Jam optional guidance getter v1' in text else original, after)
 
 
 def installer_source(text):

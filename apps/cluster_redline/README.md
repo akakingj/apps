@@ -1,4 +1,4 @@
-# Cluster Redline 1.0.1
+# Cluster Redline 1.0.2
 ## 1.0.1
 
 Read-only OEM guidance-state monitoring releases our HUD during route calculation/navigation and whenever that state cannot be checked. Only fresh explicit INACTIVE permits HUD rendering. Missing optional getters are omitted at install time. Native linger and other HUD clients still apply. Add torque/power mini gauges beside RPM, with bounded horizontal placement and real unit conversion. Retry only verified transient layer failures (2/5/10 seconds, three attempts), never bypass native guards. A separate native parked-recovery source patch is provided for upstream review; **the app does not install that renderer patch**, and real-car recovery remains unverified. [Change notes](../../docs/CLUSTER-REDLINE-1.0.1.ko.md).
@@ -54,3 +54,5 @@ Host tests cover settings entry/touch/rotary routing, independent outputs, share
 ![HUD](../../screenshots/cluster_redline/hud-shift-on-black.png)
 
 ![Layout settings](../../screenshots/cluster_redline/settings-layout-hud.png)
+
+[1.0.2 install fix: request the native Guidance Main_Instance explicitly and omit this optional proxy when its instance/getter is unavailable. Vehicle installation still needs confirmation.](../../docs/CLUSTER-REDLINE-1.0.2.ko.md)

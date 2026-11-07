@@ -52,7 +52,9 @@ function filterOptionalProxies(manifest, catalog, optional) {
     const gearbox = field(program, 'dataDisplayGearbox');
     if (!gearbox || !gearbox.notifier) delete proxies[program];
     const route = field(guidance, 'guidanceState');
-    if (optional && optional[guidance] && (!route || !route.getter)) delete proxies[guidance];
+    const instances = catalog.instanceIDs && catalog.instanceIDs[guidance];
+    const named = instances && Object.prototype.hasOwnProperty.call(instances, 'Main_Instance') && instances.Main_Instance != null;
+    if (optional && optional[guidance] && (!route || !route.getter || !route.getter.id || !named)) delete proxies[guidance];
     return manifest;
 }
 function build(options) {
