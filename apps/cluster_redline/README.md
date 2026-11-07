@@ -1,5 +1,7 @@
-# Cluster Redline 1.0.4
+# Cluster Redline 1.0.5
 ## 1.0.1
+1.0.5 fixes guidance polling starvation on repeated state notifications and prevents older reads overwriting newer turns. [Fix notes](../../docs/CLUSTER-REDLINE-1.0.5.ko.md).
+
 
 1.0.4 restores the earlier 800×240 HUD layout and side-gauge sizes with correctly sized metallic M marks. Both displays share blue/lighter-blue RPM cells, changing to purple/pink after4000rpm and red at the configured redline. [Changes](../../docs/CLUSTER-REDLINE-1.0.4.ko.md).
 

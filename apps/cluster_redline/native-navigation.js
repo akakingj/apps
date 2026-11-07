@@ -38,14 +38,28 @@ function decodeDart(value) {
     const text=distanceText(item.formattedDistance);
     return maneuver&&maneuver!=='NONE'&&text?{maneuver,distanceText:text,exitNumber}:null;
 }
+function dartFailure(value) {
+    if(!object(value))return 'payload_missing';
+    if(!object(value.maneuver))return 'maneuver_missing';
+    const stamp=value.timeStamp;
+    if(stamp&&((stamp.date&&stamp.date.invalid===true)||(stamp.time&&stamp.time.invalid===true)))return 'clock_invalid';
+    const keys=Object.keys(value.maneuver).filter((k)=>value.maneuver[k]!==undefined&&value.maneuver[k]!==null);
+    if(keys.length!==1)return 'union_ambiguous';
+    const kind=keys[0],item=value.maneuver[kind];
+    if(!object(item))return 'variant_missing';
+    if(item.unreliable===true)return 'maneuver_unreliable';
+    if(['intersection','branch','roundabout'].indexOf(kind)<0)return 'maneuver_unsupported';
+    if(!distanceText(item.formattedDistance))return 'distance_unavailable';
+    return 'direction_unavailable';
+}
 class NativeNavigation {
     constructor(ttl) { this.ttl=ttl||TTL_MS;this.clear(); }
-    clear() { this.state=null;this.provider=null;this.dart=null;this.stateAt=this.providerAt=this.dartAt=null; }
+    clear() { this.state=null;this.provider=null;this.dart=null;this.stateAt=this.providerAt=this.dartAt=null;this.dartDetail='not_received'; }
     sample(field,value,now) {
         if(typeof now!=='number'||!isFinite(now)||now<0){this.clear();return;}
-        if(field==='guidanceState') { const next=enumeration(value,STATES);if(this.state!==next||next!=='ACTIVE'){this.dart=null;this.dartAt=null;}this.state=next;this.stateAt=now; }
-        if(field==='guidingProvider') { const next=enumeration(value,PROVIDERS);if(this.provider!==null&&this.provider!==next){this.dart=null;this.dartAt=null;}this.provider=next;this.providerAt=now; }
-        if(field==='conclusiveDart') { this.dart=this.state==='ACTIVE'?decodeDart(value):null;this.dartAt=this.dart?now:null; }
+        if(field==='guidanceState') { const next=enumeration(value,STATES);if(this.state!==next||next!=='ACTIVE'){this.dart=null;this.dartAt=null;this.dartDetail=next==='ACTIVE'?'route_changed':'state_not_active';}this.state=next;this.stateAt=now; }
+        if(field==='guidingProvider') { const next=enumeration(value,PROVIDERS);if(this.provider!==null&&this.provider!==next){this.dart=null;this.dartAt=null;this.dartDetail='provider_changed';}this.provider=next;this.providerAt=now; }
+        if(field==='conclusiveDart') { this.dart=this.state==='ACTIVE'?decodeDart(value):null;this.dartAt=this.dart?now:null;this.dartDetail=this.dart?'decoded':this.state!=='ACTIVE'?'state_not_active':dartFailure(value); }
     }
     read(now,available) {
         const fresh=(at)=>typeof now==='number'&&isFinite(now)&&at!==null&&now>=at&&now-at<=this.ttl;
@@ -57,7 +71,7 @@ class NativeNavigation {
             else if(!this.dart||!fresh(this.dartAt))reason='navigation_maneuver_unknown';
             else return Object.assign({visible:true,reason:'navigation_ready',provider:this.provider,ageMs:now-this.dartAt},this.dart);
         }
-        return {visible:false,reason,provider:this.provider,maneuver:null,distanceText:null,exitNumber:null};
+        return {visible:false,reason,provider:this.provider,maneuver:null,distanceText:null,exitNumber:null,detail:reason==='navigation_maneuver_unknown'?(this.dart?'maneuver_stale':this.dartDetail):null};
     }
 }
 module.exports={NativeNavigation,decodeDart,distanceText,TTL_MS,DIRECTIONS,PROVIDERS};

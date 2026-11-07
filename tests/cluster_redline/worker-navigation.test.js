@@ -221,7 +221,29 @@ async function composedNavigation() {
         assert(!h.worker.controller.navigation.visible);assert.strictEqual(h.client.active.get(h.worker.controller.hud.ref).contend,false);
     } finally {h.worker.stop();h.stopped();}
 }
+async function repeatedNotificationsWhilePolling() {
+    const h=harness({withManeuvers:true});
+    const dart=(direction,distance)=>({maneuver:{intersection:{direction,unreliable:false,formattedDistance:{distance,unit:'METER'}}}});
+    try {
+        await flush();h.navigate('ACTIVE');
+        h.feeds[guidance.INTERFACE].guidingProvider('ANDROID_AUTO');
+        h.feeds[guidance.INTERFACE].conclusiveDart(dart('LEFT','300'));
+        h.tick(1000);await flush();h.both();
+        assert.strictEqual(h.polls.length,3);
+        h.navigate('ACTIVE',1100); // Same state, newer notification while getters are pending.
+        for(const read of h.polls)read.resolve(read.field==='guidanceState'?'ACTIVE':read.field==='guidingProvider'?'ANDROID_AUTO':dart('RIGHT','200'));
+        await flush();h.tick(1150);h.both();
+        assert.strictEqual(h.worker.controller.navigation.distanceText,'200 m','repeated unchanged state must not discard fresh maneuver/provider reads');
+        assert.strictEqual(h.worker.controller.navigation.maneuver,'RIGHT');
+        const count=h.polls.length;h.tick(2000);await flush();
+        h.feeds[guidance.INTERFACE].conclusiveDart(dart('LEFT','150'));
+        for(const read of h.polls.slice(count))read.resolve(read.field==='guidanceState'?'ACTIVE':read.field==='guidingProvider'?'ANDROID_AUTO':dart('RIGHT','100'));
+        await flush();h.tick(2050);h.both();
+        assert.strictEqual(h.worker.controller.navigation.maneuver,'LEFT','older getter must not overwrite a newer maneuver event');
+        assert.strictEqual(h.worker.controller.navigation.distanceText,'150 m');
+    } finally {h.worker.stop();h.stopped();}
+}
 (async () => {
-    await composedNavigation();await eventYield(); await optionalReadSafety(); await pollingAndRaces(); await providerReconnectRace(); await lateReadsAndSubscriptions();
+    await repeatedNotificationsWhilePolling();await composedNavigation();await eventYield(); await optionalReadSafety(); await pollingAndRaces(); await providerReconnectRace(); await lateReadsAndSubscriptions();
     console.log('PASS: actual worker native-guidance getter gating/instance, immediate HUD-only yield, fresh recovery, optional/stale/provider safety, bounded polling, event/read/provider-reconnect races and complete late-work shutdown');
 })().catch(error => { console.error(error); process.exitCode = 1; });

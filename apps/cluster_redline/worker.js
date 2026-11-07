@@ -28,9 +28,10 @@ function start(ctx) {
     const log = ctx.log, signals = ctx.signals;
     const client = new ClusterRender('cluster-redline'), controller = new Outputs(client, painter, hudPainter);
     const gearbox = new gear.GearState(), navigation = new guidance.GuidanceState(), maneuvers = new NativeNavigation();
-    const navigationFields = [], lastNavigationValues = {};
-    function navigationSample(field,value) {
+    const navigationFields = [], lastNavigationValues = {}, navigationEventRevisions = {}, navigationSeenAt = {}, navigationReadState = {};
+    function navigationSample(field,value,readState) {
         if(stopped)return;
+        navigationSeenAt[field]=mono();navigationReadState[field]=readState||'received';
         if(field!=='conclusiveDart' && lastNavigationValues[field]!==value){navigationRevision++;lastNavigationValues[field]=value;}
         if(field===guidance.FIELD)navigation.sample(value,mono());
         maneuvers.sample(field,value,mono());
@@ -88,7 +89,7 @@ function start(ctx) {
         } catch(e) {}
         if(navigationFields.indexOf(guidance.FIELD)>=0) {
             const handlers={};
-            navigationFields.forEach((field)=>{handlers[field]=(value)=>{if(field!=='conclusiveDart')navigationRevision++;navigationSample(field,value);};});
+            navigationFields.forEach((field)=>{handlers[field]=(value)=>{navigationEventRevisions[field]=(navigationEventRevisions[field]||0)+1;navigationSample(field,value);};});
             signals.watch(guidance.INTERFACE,guidance.INSTANCE,handlers,log,{}).then((sub)=>{
                 guidanceSub=sub;keep(sub);if(sub.error)reportError('optional native guidance',sub.error);
             }).catch((e)=>reportError('optional native guidance',e));
@@ -129,15 +130,21 @@ function start(ctx) {
             // independent interval and late reads cannot alter a stopped worker.
             if (navigationAvailable && guidanceSub.proxy && typeof guidanceSub.proxy.getValue === 'function' && !guidancePending && at - lastGuidancePoll >= 1000) {
                 lastGuidancePoll = at; guidancePending = true; const revision = navigationRevision;
+                const eventRevisions=Object.assign({},navigationEventRevisions);
                 try {
                     const reads=navigationFields.map((field)=>Promise.resolve().then(()=>guidanceSub.proxy.getValue(field,1000))
-                        .then((value)=>({field,value}),()=>({field,value:null})));
+                        .then((value)=>({field,value}),()=>({field,value:null,failed:true})));
                     Promise.all(reads).then((values)=>{
                         guidancePending=false;
                         if(stopped||revision!==navigationRevision)return;
                         // Apply identity before its maneuver; asynchronous initial
                         // reads cannot reinsert an arrow from a previous provider.
-                        values.forEach((item)=>navigationSample(item.field,item.value));
+                        values.forEach((item)=>{
+                            // A newer notification supersedes only its own
+                            // getter. Repeated identical state/provider events
+                            // must not starve unrelated direction/distance reads.
+                            if((navigationEventRevisions[item.field]||0)===(eventRevisions[item.field]||0))navigationSample(item.field,item.value,item.failed?'read_failed':'read_ok');
+                        });
                     },()=>{guidancePending=false;if(!stopped&&revision===navigationRevision){navigation.clear();maneuvers.clear();controller.hud.hide();}});
                 } catch(e) {guidancePending=false;navigation.clear();maneuvers.clear();controller.hud.hide();}
             }
@@ -151,12 +158,14 @@ function start(ctx) {
             if (at - lastStatus >= 500) {
                 lastStatus = at;
                 atomic(path.join(ctx.dataDir, 'cluster-redline-status.json'), {
-                    at: new Date().toISOString(), requested: !!state.requested, layerState: state.layerState || 'hidden',
+                    at: new Date().toISOString(), appVersion: ctx.spec && ctx.spec.version || 'unknown', requested: !!state.requested, layerState: state.layerState || 'hidden',
                     reason: state.reason, mode: state.mode, rpm: state.rpm, shift: state.shift, engineStopped: !!state.engineStopped,
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
-                    outputs: state.outputs, navigation: navigationState, maneuver: maneuverState, nativeStatus: nativeStatus,
+                    outputs: state.outputs, navigation: navigationState, maneuver: maneuverState,
+                    navigationInputs: {fields:navigationFields.slice(),available:navigationAvailable,pending:guidancePending,reads:Object.assign({},navigationReadState),
+                        agesMs:navigationFields.reduce((out,field)=>{out[field]=navigationSeenAt[field]===undefined?null:Math.max(0,at-navigationSeenAt[field]);return out;},{})}, nativeStatus: nativeStatus,
                     renderer: rendererInfo, rendererBackend: client.backend || null, rendererTargets: client.targets || '', requestedSettings: raw,
                     profile: config.engineProfile, config: config,
                     errors: errors.slice(-8), source: live ? 'live-someip' : 'offline-disabled',

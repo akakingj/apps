@@ -1,5 +1,7 @@
 # iDrive 7 Jam Apps
 
+Cluster Redline **1.0.5** fixes guidance reads discarded by repeated status notifications and old reads overwriting newer arrows. [Fix notes](docs/CLUSTER-REDLINE-1.0.5.ko.md).
+
 Cluster Redline **1.0.4** restores the earlier HUD layout, shares the new RPM palette, and adds native turn guidance with independent position/size controls. [Changes](docs/CLUSTER-REDLINE-1.0.4.ko.md).
 
 1.0.3 keeps fresh zero-RPM output through automatic stop/start after a running-engine sample. HUD now uses the cluster face and palette, matching metallic M marks and shared red shift-light pulses. HUD source height is now353px; placement controls use its actual dimensions. [Change notes](docs/CLUSTER-REDLINE-1.0.3.ko.md).
