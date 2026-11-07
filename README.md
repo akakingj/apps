@@ -1,10 +1,12 @@
 # iDrive 7 Jam Apps
 
+1.0.3 keeps fresh zero-RPM output through automatic stop/start after a running-engine sample. HUD now uses the cluster face and palette, matching metallic M marks and shared red shift-light pulses. HUD source height is now353px; placement controls use its actual dimensions. [Change notes](docs/CLUSTER-REDLINE-1.0.3.ko.md).
+
 English | [한국어](README.ko.md)
 
 Two ordinary apps for the existing [idrive7-apps](https://github.com/cauliflowermossgrape/idrive7-apps) build and deployment workflow.
 
-Cluster Redline **1.0.2** adds independent HUD/cluster output choices per Sport/all mode, live position and size controls, a compact color-changing HUD and a 5500 rpm petrol preset. It fixes the contending HUD request that could block stock guidance. Same-slot stock navigation and Redline cannot yet be composed together. [Change and validation notes](docs/CLUSTER-REDLINE-1.0.0.ko.md).
+Cluster Redline **1.0.3** adds independent HUD/cluster output choices per Sport/all mode, live position and size controls, a compact color-changing HUD and a 5500 rpm petrol preset. It fixes the contending HUD request that could block stock guidance. Same-slot stock navigation and Redline cannot yet be composed together. [Change and validation notes](docs/CLUSTER-REDLINE-1.0.0.ko.md).
 
 | App | English guide | 한국어 설명서 |
 |---|---|---|

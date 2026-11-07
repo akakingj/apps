@@ -116,7 +116,7 @@ class Controller {
         if (!d.show) { this.hide(); return Object.assign(d, { requested: false, layerState: this.layerState }); }
         const rect = placement(cfg, cfg.displayTarget, painter), placementKey = [rect.x, rect.y, rect.w, rect.h].join('|');
         d.placement = rect;
-        d.flash = hud && d.shift && Math.floor(now / 250) % 2 === 0;
+        d.flash = d.shift && Math.floor(now / 250) % 2 === 0;
         if (this.ref && this.placementKey !== placementKey) {
             if (this.liveLayout) this.client.set(this.ref, { x: rect.x, y: rect.y, w: rect.w, h: rect.h });
             else this.hide();

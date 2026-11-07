@@ -1,3 +1,10 @@
+# 1.0.3
+
+- Retain both output layers on fresh zero RPM after engine operation; restart updates the same image. Cold boot, invalid/stale data, OFF and mode/lifecycle release remain guarded.
+- Render HUD from the cluster face with matching palette, positions, units and red shift-light pulse phase. Preserve aspect at800×353 and use actual painter geometry in the layout editor.
+- Replace top/bottom line-drawn M with cached transparent tricolour/filled metallic marks.
+- Add stop/start continuity, shared-face/alpha/delta and mark-render checks; retain1.0.2 named Guidance install fix. Vehicle readability and automatic stop/start still require car verification.
+
 # 1.0.2
 
 - Fix Guidance installation/runtime instance mismatch: declare Main_Instance instead of inherited default 1.

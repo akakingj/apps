@@ -19,7 +19,7 @@ const all = { displayMode: 'all', shiftRpm: 2000 };
 assert.strictEqual(p.evaluate(1000, true, all).show, true);
 assert.strictEqual(p.evaluate(1000, true, all).shift, true);
 assert.strictEqual(p.evaluate(1000, true, { displayMode: 'all', appEnabled: false }).show, false);
-p.rpmSample(0, 1100); assert.strictEqual(p.evaluate(1100, true, all).show, false);
+p.rpmSample(0, 1100); assert.strictEqual(p.evaluate(1100, true, all).show, true, 'fresh stopped-engine sample keeps the all-mode display');
 p.rpmSample(2500, 1200); assert.strictEqual(p.evaluate(3101, true, all).show, false);
 p.modeSample(null, 3102); p.rpmSample(2500, 3102); assert.strictEqual(p.evaluate(3102, true, all).show, false);
 const state = { torqueNm: 400, torquePeak: 450, powerPS: 258, powerPeak: 280, config: settings() };

@@ -138,7 +138,7 @@ function start(ctx) {
                 lastStatus = at;
                 atomic(path.join(ctx.dataDir, 'cluster-redline-status.json'), {
                     at: new Date().toISOString(), requested: !!state.requested, layerState: state.layerState || 'hidden',
-                    reason: state.reason, mode: state.mode, rpm: state.rpm, shift: state.shift,
+                    reason: state.reason, mode: state.mode, rpm: state.rpm, shift: state.shift, engineStopped: !!state.engineStopped,
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,

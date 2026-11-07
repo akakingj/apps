@@ -75,7 +75,7 @@ function settings(raw) {
 function modeOf(raw) { return (typeof raw === 'number' || typeof raw === 'string') && Object.prototype.hasOwnProperty.call(MODES, raw) ? MODES[raw] : null; }
 class Policy {
     constructor() { this.reset(); }
-    reset() { this.mode = null; this.rpm = null; this.modeAt = null; this.rpmAt = null; this.sportSince = null; }
+    reset() { this.mode = null; this.rpm = null; this.modeAt = null; this.rpmAt = null; this.sportSince = null; this.runningSeen = false; }
     modeSample(raw, now) {
         const next = modeOf(raw), wasSport = SPORT.indexOf(this.mode) >= 0 && this.modeAt !== null && now >= this.modeAt && now - this.modeAt <= 3500;
         const isSport = SPORT.indexOf(next) >= 0;
@@ -85,6 +85,8 @@ class Policy {
     rpmSample(rpm, now) {
         this.rpm = typeof rpm === 'number' && isFinite(rpm) && rpm >= 0 && rpm <= 10000 ? rpm : null;
         this.rpmAt = this.rpm === null ? null : now;
+        if (this.rpm === null) this.runningSeen = false;
+        else if (this.rpm >= 100) this.runningSeen = true;
     }
     evaluate(now, ready, config) {
         const cfg = settings(config);
@@ -96,11 +98,15 @@ class Policy {
         else if (!fresh(this.modeAt, 3500)) reason = 'mode_unknown';
         else if (cfg.displayMode === 'sport' && SPORT.indexOf(this.mode) < 0) reason = 'not_sport';
         else if (!fresh(this.rpmAt, 1800)) reason = 'rpm_unknown';
-        else if (this.rpm < 100) reason = cfg.engineProfile === 'hybrid' ? 'hybrid_engine_stopped' : 'engine_stopped';
+        // Fresh zero RPM after a running sample is a live stopped engine, not
+        // a reason to release the display at every automatic stop/start.
+        // A cold boot still waits for the engine; stale/invalid data and
+        // lifecycle/provider loss keep their normal release behavior.
+        else if (this.rpm < 100 && !this.runningSeen) reason = cfg.engineProfile === 'hybrid' ? 'hybrid_engine_stopped' : 'engine_stopped';
         else if (this.rpm > cfg.maxRpm + 1000) reason = 'rpm_invalid';
         else if (cfg.displayMode === 'sport' && (this.sportSince === null || now - this.sportSince < 1000)) reason = 'stabilizing';
         const show = reason === 'sport' || reason === 'all_modes';
-        return { show: show, reason: reason, mode: this.mode, rpm: this.rpm,
+        return { show: show, reason: reason, mode: this.mode, rpm: this.rpm, engineStopped: this.rpm !== null && this.rpm < 100,
             shift: show && this.rpm >= cfg.shiftRpm, config: cfg };
     }
 }

@@ -10,7 +10,7 @@ class Client extends EventEmitter {
     drop(ref){this.active.delete(ref);this.events.push(['drop',ref]);}close(){this.ready=false;}
 }
 const cluster={W:1088,H:480,draw:()=>({d:Buffer.alloc(64)}),difference:()=>({rects:[],pixels:Buffer.alloc(0)})};
-const hud=Object.assign({},cluster,{W:800,H:240});
+const hud=Object.assign({},cluster,{W:800,H:353});
 const client=new Client(),out=new Outputs(client,cluster,hud);
 const sample=(t,rpm=5000,mode=1)=>{out.policy.modeSample(mode,t-1000);out.policy.rpmSample(rpm,t);};
 sample(1000);let s=out.tick(1000,{sportHudOutput:'redline'});

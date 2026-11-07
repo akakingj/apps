@@ -20,7 +20,7 @@ try{
  page.selectTab(1);page.activate(3);cv=page.draw(new Canvas(1600,520));assert.strictEqual(page.open,'layout');
  for(const r of cv.targets){assert(r.x>=0&&r.y>=0&&r.x+r.w<=1600&&r.y+r.h<=520);assert(r.h>=64)}
  page.layoutTarget='hud';for(let n=0;n<80;n++)page.adjust(0,1);
- const shape=require(path.join(dir,'layout')).placement(page.config(),'hud',{W:800,H:240});assert(shape.x>=0&&shape.x+shape.w<=800);
+ const shape=require(path.join(dir,'layout')).placement(page.config(),'hud',require(path.join(dir,'hud-draw')));assert(shape.x>=0&&shape.x+shape.w<=800);
  const full=new Canvas(1600,520);full.chrome={};page.draw(full);assert.strictEqual(full.chrome.tabs.tabs.length,2);
  if(JSON.parse(fs.readFileSync(path.join(dir,'kit/locale.json'))).language==='ko'){
   const atlas=JSON.parse(fs.readFileSync(path.join(dir,'kit/fonts/korean.json'))).sizes[0].glyphs;

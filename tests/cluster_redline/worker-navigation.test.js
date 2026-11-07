@@ -39,7 +39,7 @@ function harness(options) {
         if (name === './outputs') return { Outputs };
         if (name === './cluster_render_client') return { ClusterRender: FakeClient };
         if (name === './draw') return painter;
-        if (name === './hud-draw') return Object.assign({}, painter, { W: 800, H: 240 });
+        if (name === './hud-draw') return Object.assign({}, painter, { W: 800, H: 353 });
         if (name === './policy') return policy;
         if (name === './guidance') return guidance;
         if (name === './gear') return require('../../apps/cluster_redline/gear');

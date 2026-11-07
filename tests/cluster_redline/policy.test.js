@@ -21,7 +21,7 @@ for (const mode of [0, 4, 5, 6, 7, 8, 9, 10, 61, 62, 63, null, undefined, true, 
 const p = new Policy(); p.modeSample(1, 0); p.rpmSample(6500, 1000);
 assert.strictEqual(p.evaluate(1000, true).shift, true);
 p.rpmSample(5400, 1000); assert.strictEqual(p.evaluate(1000, true).shift, false);
-p.rpmSample(0, 1000); assert.strictEqual(p.evaluate(1000, true).show, false);
+p.rpmSample(0, 1000); assert.strictEqual(p.evaluate(1000, true).show, true, 'fresh automatic-stop RPM keeps the running display');
 p.rpmSample(NaN, 1000); assert.strictEqual(p.evaluate(1000, true).show, false);
 p.rpmSample(4200, 1000); assert.strictEqual(p.evaluate(3000, true).show, false, 'stale RPM must hide');
 p.rpmSample(4200, 4000); assert.strictEqual(p.evaluate(4000, true).show, false, 'stale mode must hide');

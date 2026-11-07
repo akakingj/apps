@@ -36,7 +36,7 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
         if (name === './cluster_render_client') return { ClusterRender: FakeClient };
         if (name === './outputs') return { Outputs };
         if (name === './draw') return painter;
-        if (name === './hud-draw') return Object.assign({}, painter, { W: 800, H: 240 });
+        if (name === './hud-draw') return Object.assign({}, painter, { W: 800, H: 353 });
         if (name === './policy') return require('../../apps/cluster_redline/policy');
         if (name === './renderer') return require('../../apps/cluster_redline/renderer');
         if (name === './guidance') return require('../../apps/cluster_redline/guidance');

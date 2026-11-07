@@ -21,8 +21,8 @@ Object.keys(expected).forEach((profile) => {
     p.modeSample(4, 1100); assert.strictEqual(p.evaluate(1100, true, cfg).show, false);
     p.modeSample(1, 2000); p.rpmSample(0, 3000);
     const stopped = p.evaluate(3000, true, cfg);
-    assert.strictEqual(stopped.show, false); assert.strictEqual(stopped.shift, false);
-    assert.strictEqual(stopped.reason, profile === 'hybrid' ? 'hybrid_engine_stopped' : 'engine_stopped');
+    assert.strictEqual(stopped.show, true); assert.strictEqual(stopped.shift, false);
+    assert.strictEqual(stopped.reason, 'sport'); assert.strictEqual(stopped.engineStopped, true);
 });
 assert.strictEqual(settings({ engineProfile: 'diesel', shiftRpm: 6500 }).shiftRpm, 4200);
 assert.strictEqual(settings({ engineProfile: 'diesel', shiftRpm: 4500 }).shiftRpm, 4500);
@@ -58,4 +58,4 @@ assert.strictEqual(diesel.show, true); assert.strictEqual(diesel.shift, true); a
 c.tick(2300, { engineProfile: 'diesel', frameRate: 4 });
 assert.strictEqual(client.made[client.made.length - 1].fps, 20, 'legacy frame-rate choices must not override the fixed ceiling');
 c.close();
-console.log('PASS: one app / four presets, per-profile presets, custom ranges, hybrid engine-off hide, unknown-profile hide and live profile-switch cleanup');
+console.log('PASS: one app / four presets, per-profile presets, custom ranges, cold hybrid engine-off hide and warm auto-stop retention, unknown-profile hide and live profile-switch cleanup');

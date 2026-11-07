@@ -1,22 +1,16 @@
 'use strict';
 const { Canvas, ramp } = require('./kit/canvas');
 const { gauges } = require('./units');
+const { drawMark } = require('./m-mark');
 const W = 1088, H = 480;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const C = { track: '#1b212b', text: '#f4f7fb', red: '#ff2a2a' };
 const L = { left: 220, right: 868, slant: 14, top: 112, bottom: 153 };
-function mark(cv, cx, y) {
-    ['#38c9ff', '#1653ad', '#ed253c'].forEach((c, i) => {
-        const x = cx - 37 + i * 11;
-        cv.quad([[x + 8, y], [x + 17, y], [x + 9, y + 22], [x, y + 22]], c);
-    });
-    cv.polyline([[cx + 1, y + 22], [cx + 7, y + 1], [cx + 13, y + 14], [cx + 25, y + 1], [cx + 19, y + 22]], 5, C.text);
-}
 function frame(cv, y, lower) {
     const side = lower ? -12 : 12;
     cv.polyline([[98, y + side], [124, y], [499, y]], 1.5, '#8993a0');
     cv.polyline([[589, y], [964, y], [990, y + side]], 1.5, '#8993a0');
-    mark(cv, W / 2, y - 11);
+    drawMark(cv, W / 2, y - 14);
 }
 function mini(cv, x, label, value, unit, maximum, peak, decimals) {
     const w = 200, y = 368, h = 12, slant = 7;
@@ -55,7 +49,7 @@ function draw(state) {
     const span = L.right - L.left - L.slant;
     colors.forEach((color, i) => {
         const a = L.left + span * i / 12, b = L.left + span * (i + 1) / 12 - 0.5;
-        cv.quad([[a + L.slant, 22], [b + L.slant, 22], [b, 40], [a, 40]], i < lit ? color : '#000000');
+        cv.quad([[a + L.slant, 22], [b + L.slant, 22], [b, 40], [a, 40]], i < lit ? (state.shift ? (state.flash ? C.red : '#711318') : color) : '#000000');
     });
     const polygon = (a, b, color) => {
         if (b <= a) return;

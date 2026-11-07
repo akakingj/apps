@@ -4,6 +4,7 @@ const G = require('./kit/gauges');
 const { header } = require('./settings-chrome');
 const { settings: effective, PROFILES } = require('./policy');
 const { placement } = require('./layout');
+const HUD = require('./hud-draw');
 const W = 1600, H = 520;
 const TABS = ['Basic settings', 'Advanced settings'];
 const GROUPS = [
@@ -131,7 +132,7 @@ class SettingsPage {
     adjust(param, delta) {
         this.layoutParam=param;
         const cfg=this.config(),name=this.layoutTarget,suffix=['OffsetX','OffsetY','WidthScale','HeightScale'][param];
-        const shape={W:name==='hud'?800:1088,H:name==='hud'?240:480},r=placement(cfg,name==='hud'?'hud':'map',shape);
+        const shape={W:name==='hud'?HUD.W:1088,H:name==='hud'?HUD.H:480},r=placement(cfg,name==='hud'?'hud':'map',shape);
         const key=name+suffix,step=param<2?10:5;
         const min=param===0?r.minX:param===1?r.minY:20,max=param===0?r.maxX:param===1?r.maxY:param===3&&name==='hud'?150:100;
         this.settings.set(key,Math.max(min,Math.min(max,cfg[key]+delta*step)));
@@ -163,7 +164,7 @@ class SettingsPage {
             button('+',1140,y+18,100,72,()=>this.adjust(i+2,1),this.layoutParam===i+2);
             cv.text(String(cfg[key])+' %',1500,y+67,34,'#ffffff',{align:'right',font:'num'});
         });
-        const shape={W:this.layoutTarget==='hud'?800:1088,H:this.layoutTarget==='hud'?240:480};
+        const shape={W:this.layoutTarget==='hud'?HUD.W:1088,H:this.layoutTarget==='hud'?HUD.H:480};
         const r=placement(cfg,this.layoutTarget==='hud'?'hud':'map',shape);
         cv.text(t('Coordinates')+': X '+r.x+' · Y '+r.y+' · '+r.w+' × '+r.h,84,503,24,'#ffad45',{literal:true});
     }

@@ -1,5 +1,7 @@
-# Cluster Redline 1.0.2
+# Cluster Redline 1.0.3
 ## 1.0.1
+
+1.0.3 keeps fresh zero-RPM output through automatic stop/start after a running-engine sample. HUD now uses the cluster face and palette, matching metallic M marks and shared red shift-light pulses. HUD source height is now353px; placement controls use its actual dimensions. [Change notes](../../docs/CLUSTER-REDLINE-1.0.3.ko.md).
 
 Read-only OEM guidance-state monitoring releases our HUD during route calculation/navigation and whenever that state cannot be checked. Only fresh explicit INACTIVE permits HUD rendering. Missing optional getters are omitted at install time. Native linger and other HUD clients still apply. Add torque/power mini gauges beside RPM, with bounded horizontal placement and real unit conversion. Retry only verified transient layer failures (2/5/10 seconds, three attempts), never bypass native guards. A separate native parked-recovery source patch is provided for upstream review; **the app does not install that renderer patch**, and real-car recovery remains unverified. [Change notes](../../docs/CLUSTER-REDLINE-1.0.1.ko.md).
 
@@ -16,7 +18,7 @@ Advanced settings: Redline display mode (Sport / All drive modes), HUD display (
 
 Position / size lets you select Cluster or HUD, move in 10-pixel steps and adjust width/height separately in 5% steps. Temporary X/Y/width/height readouts show the bounded native placement. Changes update the existing layer without repeatedly reacquiring it.
 
-The compact HUD uses the cluster's angled RPM cells, M-style framing and a right-side received gear (`M1`, `S1`, `D1`, `P`, etc.). It turns yellow at 85% of the selected shift threshold and red at the threshold, with a 2 Hz bright/dim flash. Unlit shift lights are black. Gear prefixes depend on the car's available selector/programme signals; chassis Sport does not imply gearbox S.
+The HUD shares the cluster face: angled blue/cyan/purple/pink RPM cells, fixed red zone, metallic M framing and bottom-centred received gear (`M1`, `S1`, `D1`, `P`, etc.), with torque/power on its sides. Both outputs use green/yellow/red progressing LEDs; at the shift threshold the LEDs pulse red at 2 Hz and RPM digits stay red. Unlit LEDs are black. Gear prefixes depend on the car's available selector/programme signals; chassis Sport does not imply gearbox S.
 
 Defaults: Sport only; Cluster Redline, HUD Stock; Petrol; PS/Nm; fixed 20 fps request ceiling. Cluster dimensions default to 80% and HUD to 75%. Actual rendering speed depends on the car. eDrive power is engine-only, estimated from engine torque and RPM, not combined electric output.
 
@@ -43,7 +45,7 @@ python kit/tools/build.py cluster_redline
 python kit/tools/build.py --language ko cluster_redline
 ```
 
-Use the normal kit/install workflow. Do not publish generated SDK-containing packages. No engine, gearbox, coding or navigation-control APIs are added. Stale data, engine-off, app-off and renderer loss release output. Existing auto-start OFF, custom thresholds and output choices are migrated.
+Use the normal kit/install workflow. Do not publish generated SDK-containing packages. No engine, gearbox, coding or navigation-control APIs are added. Stale data, app-off and renderer loss release output. Fresh zero RPM after engine operation retains the face during automatic stops. Existing auto-start OFF, custom thresholds and output choices are migrated.
 
 ## Validation
 
@@ -56,3 +58,5 @@ Host tests cover settings entry/touch/rotary routing, independent outputs, share
 ![Layout settings](../../screenshots/cluster_redline/settings-layout-hud.png)
 
 [1.0.2 install fix: request the native Guidance Main_Instance explicitly and omit this optional proxy when its instance/getter is unavailable. Vehicle installation still needs confirmation.](../../docs/CLUSTER-REDLINE-1.0.2.ko.md)
+
+![Stop & Go](../../screenshots/cluster_redline/stop-go.png)
