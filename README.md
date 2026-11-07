@@ -4,11 +4,7 @@ English | [한국어](README.ko.md)
 
 Two ordinary apps for the existing [idrive7-apps](https://github.com/cauliflowermossgrape/idrive7-apps) build and deployment workflow.
 
-Cluster Redline 0.9.2 provides Basic/Advanced settings tabs, four vehicle presets,
-Sport/all-mode display and actual power/torque unit conversion. An orange instruction
-allows Map view/Off for the map target, with deferred first-image visibility. Renderer installation guidance is included and refresh is fixed at a requested 20fps.
-Rendering above every stock map/Assist view remains
-unverified. [Update instructions](docs/CLUSTER-REDLINE-0.8.3.ko.md).
+Cluster Redline **1.0.0** adds independent HUD/cluster output choices per Sport/all mode, live position and size controls, a compact color-changing HUD and a 5500 rpm petrol preset. It fixes the contending HUD request that could block stock guidance. Same-slot stock navigation and Redline cannot yet be composed together. [Change and validation notes](docs/CLUSTER-REDLINE-1.0.0.ko.md).
 
 | App | English guide | 한국어 설명서 |
 |---|---|---|
@@ -62,7 +58,7 @@ The normal backup/restore path is retained. No separate mgu-deploy installation 
 The one-time merge applies small guarded edits to upstream `kit/tools/build.py`
 and `deploy/mgu-app-install.sh` to preserve explicit app startup metadata.
 Normal apps, including Circuit, remain manually started; Cluster Redline starts in the background.
-Cluster Redline requires cluster-render 0.3.10+ and is still **not tested on a real vehicle**.
+Cluster Redline requires cluster-render 0.4.0+ and is still **not tested on a real vehicle**.
 
 Share source checkouts/ZIPs publicly. Your own BMW OAP SDK is required for installable builds;
 it is excluded here. Generated `.mgu`, `.tgz` and car kits contain that SDK and must remain private.
@@ -74,16 +70,6 @@ See [validation](docs/VALIDATION.ko.md), [client attribution](NOTICE.cluster-red
 
 [0.8.7: Larger settings text and touch controls](docs/CLUSTER-REDLINE-0.8.7.ko.md)
 
-## HUD output (0.9.0)
+## HUD and cluster settings (1.0.0)
 
-Choose **Advanced settings → Display layer → HUD (RPM / gear / shift)** to show RPM, gear and shift lights on the HUD. This selects HUD instead of this app's cluster output. The existing Sport/all-mode, shift threshold and widget-size settings apply. Saved HUD choices are retained; see the cluster migration below.
-
-Only the renderer's advertised iDrive 7 `hud:800x480` target is accepted. Factory HUD guidance is not forcibly displaced. Panel and HUD share a native scene ID, so this app requests only one at a time; simultaneous cluster/HUD output is not included. Actual G20 HUD placement and operation require car validation.
-
-[HUD setup and validation guide](docs/CLUSTER-REDLINE-0.9.0.ko.md)
-
-[0.9.1: HUD request arbitration fix and diagnostics](docs/CLUSTER-REDLINE-0.9.1.ko.md)
-
-[0.9.2: cluster map takeover, guidance hold and acquisition status](docs/CLUSTER-REDLINE-0.9.2.ko.md)
-
-Cluster output now defaults to **Map area (recommended)**. Old panel choices move to map once; HUD and other settings are retained. Supported maneuver panels use the renderer's guide hold. Coverage above Assisted Driving View still requires car validation.
+Use Advanced settings to select each output independently and adjust position/size. Stock HUD guidance has priority. [Current app guide](apps/cluster_redline/README.md).

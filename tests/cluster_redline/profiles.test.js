@@ -3,7 +3,7 @@ const assert = require('assert');
 const { EventEmitter } = require('events');
 const { Policy, PROFILES, settings } = require('../../apps/cluster_redline/policy');
 const { Controller } = require('../../apps/cluster_redline/controller');
-const expected = { petrol: [6500, 6000, 7000], diesel: [4200, 5000, 6000], hybrid: [6500, 7000, 8000], m: [7000, 7000, 9000] };
+const expected = { petrol: [5500, 6000, 7000], diesel: [4200, 5000, 6000], hybrid: [5500, 7000, 8000], m: [5500, 7000, 9000] };
 Object.keys(expected).forEach((profile) => {
     const low = settings({ engineProfile: profile, shiftRpm: 2000 });
     assert.strictEqual(low.shiftRpm, 2000, '2000 rpm offered by the UI must not silently become a profile default');

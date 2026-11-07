@@ -3,16 +3,19 @@ const { t } = require('./kit/i18n');
 const G = require('./kit/gauges');
 const { header } = require('./settings-chrome');
 const { settings: effective, PROFILES } = require('./policy');
+const { placement } = require('./layout');
 const W = 1600, H = 520;
 const TABS = ['Basic settings', 'Advanced settings'];
 const GROUPS = [
-    ['appEnabled', 'engineProfile', 'displayMode', 'powerUnit', 'torqueUnit'],
-    ['shiftRpm', 'displayTarget', 'widgetScale'],
+    ['appEnabled', 'engineProfile', 'powerUnit', 'torqueUnit', 'shiftRpm'],
+    ['displayMode', 'sportHudOutput', 'sportClusterOutput', 'layout'],
 ];
 const WARNING = 'Set Instrument cluster > Central display area to Off for correct operation.';
 const MAP_WARNING = 'Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
 const RENDERER_NOTICE = 'Install Cluster renderer (cluster-render) from MGU Store first.';
-const HUD_WARNING = 'HUD only; cluster output stops. Stock HUD guidance may take priority.';
+const HUD_WARNING = 'Stock HUD guidance has priority; same-slot content cannot be shown together.';
+const STOCK_NOTICE = 'Stock displays selected; Redline does not occupy either display.';
+const LAYOUT_ITEM = { key: 'layout', label: 'Position / size', type: 'layout' };
 function options(item, cfg) {
     if (item.type === 'bool') return [[false, 'Off'], [true, 'On']];
     if (item.type === 'choice') return item.options;
@@ -21,26 +24,34 @@ function options(item, cfg) {
         .map((v) => [v, v === 0 ? 'Preset default' : String(v) + ' ' + (item.unit || '')]);
 }
 class SettingsPage {
-    constructor(settings, changed, version) { this.settings = settings; this.changed = changed || (() => {}); this.version = version; this.tab = 0; this.focus = 0; this.open = null; this.choice = 0; }
+    constructor(settings, changed, version) { this.settings = settings; this.changed = changed || (() => {}); this.version = version; this.tab = 0; this.focus = 0; this.open = null; this.choice = 0; this.layoutTarget = 'cluster'; this.layoutParam = 0; }
     config() {
         const raw = {}; this.settings.schema.forEach((s) => { raw[s.key] = this.settings.get(s.key); });
         return effective(raw);
     }
-    keys() { return GROUPS[this.tab]; }
-    item() { return this.settings.schema.find((s) => s.key === this.keys()[this.focus]); }
+    keys() {
+        if (!this.tab) return GROUPS[0];
+        const prefix = this.settings.get('displayMode') === 'all' ? 'all' : 'sport';
+        return ['displayMode', prefix+'HudOutput', prefix+'ClusterOutput', 'layout'];
+    }
+    item() { const key=this.keys()[this.focus]; return key==='layout'?LAYOUT_ITEM:this.settings.schema.find((s) => s.key === key); }
     selectTab(index) { this.tab = index === 1 ? 1 : 0; this.focus = 0; this.open = null; this.changed(); }
     move(delta) {
-        if (this.open) { const n = options(this.item(), this.config()).length; this.choice = (this.choice + delta + n) % n; }
+        if (this.open === 'layout') this.layoutParam = (this.layoutParam + delta + 4) % 4;
+        else if (this.open) { const n = options(this.item(), this.config()).length; this.choice = (this.choice + delta + n) % n; }
         else this.focus = (this.focus + delta + this.keys().length) % this.keys().length;
         this.changed();
     }
     value(item, cfg) {
+        if (item.key === 'layout') return t('Adjust');
         const value = this.settings.get(item.key), selected = options(item, cfg).find((o) => o[0] === value);
         if (item.key === 'shiftRpm' && value === 0) return String(cfg.shiftRpm) + ' rpm (' + t('Preset default') + ')';
         return selected ? t(selected[1]) : t('Check required');
     }
     change(delta) {
+        if (this.open === 'layout') { this.adjust(this.layoutParam, delta); return; }
         const item = this.item(), list = options(item, this.config());
+        if (item.key === 'layout') { this.open='layout';this.changed();return; }
         const at = list.findIndex((o) => o[0] === this.settings.get(item.key));
         this.settings.set(item.key, list[(at + delta + list.length) % list.length][0]);
         this.open = null; this.changed();
@@ -48,6 +59,7 @@ class SettingsPage {
     activate(index) {
         if (index !== undefined) this.focus = index;
         const item = this.item();
+        if (item.key === 'layout') { this.open='layout';this.changed();return; }
         if (item.type === 'bool') { this.change(1); return; }
         this.open = item.key;
         this.choice = Math.max(0, options(item, this.config()).findIndex((o) => o[0] === this.settings.get(item.key)));
@@ -79,12 +91,13 @@ class SettingsPage {
             cv.text(TABS[this.tab], 84, 83, 34, '#f3f5f7', { font: 'bold' });
             cv.line(84, 95, 1536, 95, 1, '#71303a');
         }
-        if (this.open) this.drawChoices(cv, cfg, targets);
+        if (this.open === 'layout') this.drawLayout(cv, cfg, targets);
+        else if (this.open) this.drawChoices(cv, cfg, targets);
         else {
             let y = 100;
             this.keys().forEach((key, i) => {
-                const item = this.settings.schema.find((s) => s.key === key);
-                const h = key === 'appEnabled' ? 116 : this.tab === 1 ? 88 : 66;
+                const item = key==='layout'?LAYOUT_ITEM:this.settings.schema.find((s) => s.key === key);
+                const h = key === 'appEnabled' ? 116 : this.tab === 1 ? 74 : 66;
                 const on = i === this.focus;
                 if (on) {
                     cv.gradientRect(78, y, 1460, h - 1, [[0, '#291217'], [1, theme.bg]]);
@@ -95,7 +108,8 @@ class SettingsPage {
                 cv.text(this.value(item, cfg), 1482, baseline, 34, '#c1cddd', { align: 'right' });
                 if (item.type !== 'bool') cv.polyline([[1514, y + h / 2 - 12], [1527, y + h / 2], [1514, y + h / 2 + 12]], 3, '#909cac');
                 if (key === 'appEnabled') {
-                    const warning = cfg.displayTarget === 'hud' ? HUD_WARNING : cfg.displayTarget === 'map' ? MAP_WARNING : WARNING;
+                    const prefix=cfg.displayMode==='all'?'all':'sport';
+                    const warning = cfg[prefix+'HudOutput']==='redline' ? HUD_WARNING : cfg[prefix+'ClusterOutput']==='redline' ? MAP_WARNING : STOCK_NOTICE;
                     cv.text(RENDERER_NOTICE, 100, y + 73, fit(RENDERER_NOTICE, 24, 1400), '#ff9e36');
                     cv.text(warning, 100, y + 102, fit(warning, 24, 1400), '#ff9e36');
                 }
@@ -105,13 +119,53 @@ class SettingsPage {
             });
             if (this.tab === 0) cv.text('Presets set gauge scales; eDrive shows engine output only, not combined output.', 84, 510, 22, '#8b98aa');
             else {
-                cv.text('Status', 84, 408, 26, '#7f8b9d');
-                cv.text(status || 'Waiting for background app', 84, 449, 30, '#bdc9d8');
+                cv.text('Status', 84, 430, 26, '#7f8b9d');
+                if (Array.isArray(status)) status.forEach((line,i)=>cv.text(line,84,457+i*28,fit(line,24,1450),'#bdc9d8'));
+                else cv.text(status || 'Waiting for background app', 84, 470, fit(status || 'Waiting for background app',30,1450), '#bdc9d8');
                 cv.text('Fixed 20 fps request limit; actual output depends on the car.', 84, 510, 22, '#8b98aa');
             }
         }
         cv.targets = targets.map((target, i) => Object.assign({ key: this.tab + ':' + (this.open || 'rows') + ':' + i, run: target.act }, target));
         return cv;
+    }
+    adjust(param, delta) {
+        this.layoutParam=param;
+        const cfg=this.config(),name=this.layoutTarget,suffix=['OffsetX','OffsetY','WidthScale','HeightScale'][param];
+        const shape={W:name==='hud'?800:1088,H:name==='hud'?240:480},r=placement(cfg,name==='hud'?'hud':'map',shape);
+        const key=name+suffix,step=param<2?10:5;
+        const min=param===0?r.minX:param===1?r.minY:20,max=param===0?r.maxX:param===1?r.maxY:param===3&&name==='hud'?150:100;
+        this.settings.set(key,Math.max(min,Math.min(max,cfg[key]+delta*step)));
+        this.changed();
+    }
+    drawLayout(cv,cfg,targets) {
+        const button=(label,x,y,w,h,act,on)=>{
+            cv.roundRect(x,y,w,h,8,on?'#57202d':'#252a31');
+            if (['↑','←','→','↓'].indexOf(label)>=0) {
+                const cx=x+w/2,cy=y+h/2,points=label==='↑'?[[cx-16,cy+8],[cx,cy-10],[cx+16,cy+8]]:label==='↓'?[[cx-16,cy-8],[cx,cy+10],[cx+16,cy-8]]:label==='←'?[[cx+8,cy-16],[cx-10,cy],[cx+8,cy+16]]:[[cx-8,cy-16],[cx+10,cy],[cx-8,cy+16]];
+                cv.polyline(points,4,'#f3f5f7');
+            } else if (label==='−' || label==='+') {
+                cv.line(x+w/2-18,y+h/2,x+w/2+18,y+h/2,3,'#f3f5f7');
+                if(label==='+')cv.line(x+w/2,y+h/2-18,x+w/2,y+h/2+18,3,'#f3f5f7');
+            } else cv.text(label,x+w/2,y+h/2+11,30,'#f3f5f7',{align:'center'});
+            targets.push({x,y,w,h,act});
+        };
+        ['cluster','hud'].forEach((name,i)=>button(name==='hud'?'HUD':'Cluster',84+i*260,110,240,64,()=>{this.layoutTarget=name;this.changed();},this.layoutTarget===name));
+        button('Back',1260,110,276,64,()=>{this.open=null;this.changed();});
+        cv.text('Position',100,208,28,'#b8c5d4');
+        button('↑',320,218,100,72,()=>this.adjust(1,-1),this.layoutParam===1);
+        button('←',200,302,100,72,()=>this.adjust(0,-1),this.layoutParam===0);
+        button('→',440,302,100,72,()=>this.adjust(0,1),this.layoutParam===0);
+        button('↓',320,386,100,72,()=>this.adjust(1,1),this.layoutParam===1);
+        ['Gauge width','Gauge height'].forEach((label,i)=>{
+            const y=226+i*140,key=this.layoutTarget+(i?'HeightScale':'WidthScale');
+            cv.text(label,800,y,30,'#b8c5d4');
+            button('−',1020,y+18,100,72,()=>this.adjust(i+2,-1),this.layoutParam===i+2);
+            button('+',1140,y+18,100,72,()=>this.adjust(i+2,1),this.layoutParam===i+2);
+            cv.text(String(cfg[key])+' %',1500,y+67,34,'#ffffff',{align:'right',font:'num'});
+        });
+        const shape={W:this.layoutTarget==='hud'?800:1088,H:this.layoutTarget==='hud'?240:480};
+        const r=placement(cfg,this.layoutTarget==='hud'?'hud':'map',shape);
+        cv.text(t('Coordinates')+': X '+r.x+' · Y '+r.y+' · '+r.w+' × '+r.h,84,503,24,'#ffad45',{literal:true});
     }
     drawChoices(cv, cfg, targets) {
         const item = this.item(), list = options(item, cfg), start = Math.max(0, Math.min(list.length - 4, this.choice - 1));

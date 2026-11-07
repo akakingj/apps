@@ -1,8 +1,8 @@
 {
   "id": "cluster_redline",
   "title": "Cluster Redline",
-  "description": "Sport cluster with stock-map takeover, guidance hold, vehicle presets and large settings controls",
-  "version": "0.9.2",
+  "description": "Independent stock/Redline cluster and HUD outputs, adjustable placement and native-guidance priority",
+  "version": "1.0.0",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
@@ -91,7 +91,7 @@
     },
     {
       "key": "displayMode",
-      "label": "Display mode",
+      "label": "Redline display mode",
       "type": "choice",
       "default": "sport",
       "options": [
@@ -185,7 +185,8 @@
           "hud",
           "HUD (RPM / gear / shift)"
         ]
-      ]
+      ],
+      "hidden": true
     },
     {
       "key": "widgetScale",
@@ -202,7 +203,8 @@
         85,
         90,
         100
-      ]
+      ],
+      "hidden": true
     },
     {
       "key": "renderer",
@@ -216,8 +218,136 @@
         ]
       ],
       "hidden": true
+    },
+    {
+      "key": "sportClusterOutput",
+      "label": "Cluster display",
+      "type": "choice",
+      "default": "redline",
+      "options": [
+        [
+          "redline",
+          "Redline"
+        ],
+        [
+          "stock",
+          "Stock display"
+        ]
+      ]
+    },
+    {
+      "key": "sportHudOutput",
+      "label": "HUD display",
+      "type": "choice",
+      "default": "stock",
+      "options": [
+        [
+          "redline",
+          "Redline"
+        ],
+        [
+          "stock",
+          "Stock display"
+        ]
+      ]
+    },
+    {
+      "key": "allClusterOutput",
+      "label": "Cluster display",
+      "type": "choice",
+      "default": "redline",
+      "options": [
+        [
+          "redline",
+          "Redline"
+        ],
+        [
+          "stock",
+          "Stock display"
+        ]
+      ]
+    },
+    {
+      "key": "allHudOutput",
+      "label": "HUD display",
+      "type": "choice",
+      "default": "stock",
+      "options": [
+        [
+          "redline",
+          "Redline"
+        ],
+        [
+          "stock",
+          "Stock display"
+        ]
+      ]
+    },
+    {
+      "key": "clusterOffsetX",
+      "label": "cluster OffsetX",
+      "type": "number",
+      "default": 0,
+      "unit": "px",
+      "hidden": true
+    },
+    {
+      "key": "clusterOffsetY",
+      "label": "cluster OffsetY",
+      "type": "number",
+      "default": 0,
+      "unit": "px",
+      "hidden": true
+    },
+    {
+      "key": "clusterWidthScale",
+      "label": "cluster WidthScale",
+      "type": "number",
+      "default": 80,
+      "unit": "%",
+      "hidden": true
+    },
+    {
+      "key": "clusterHeightScale",
+      "label": "cluster HeightScale",
+      "type": "number",
+      "default": 80,
+      "unit": "%",
+      "hidden": true
+    },
+    {
+      "key": "hudOffsetX",
+      "label": "hud OffsetX",
+      "type": "number",
+      "default": 0,
+      "unit": "px",
+      "hidden": true
+    },
+    {
+      "key": "hudOffsetY",
+      "label": "hud OffsetY",
+      "type": "number",
+      "default": -100,
+      "unit": "px",
+      "hidden": true
+    },
+    {
+      "key": "hudWidthScale",
+      "label": "hud WidthScale",
+      "type": "number",
+      "default": 75,
+      "unit": "%",
+      "hidden": true
+    },
+    {
+      "key": "hudHeightScale",
+      "label": "hud HeightScale",
+      "type": "number",
+      "default": 75,
+      "unit": "%",
+      "hidden": true
     }
   ],
-  "mguClusterRenderMinVersion": "0.3.10",
+  "mguClusterRenderMinVersion": "0.4.0",
   "mguLocalOnly": true
 }

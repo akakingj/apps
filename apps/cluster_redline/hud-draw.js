@@ -1,41 +1,56 @@
 'use strict';
 const { Canvas } = require('./kit/canvas');
-const W = 800, H = 480;
-const L = { left: 120, right: 680, alertTop: 36, barTop: 94, barBottom: 126, baseline: 242 };
+const W = 800, H = 240;
+const L = { left: 64, right: 612, slant: 12, alertTop: 34, barTop: 74, barBottom: 110, baseline: 208 };
 const RED = '#ff2a2a', WHITE = '#f4f7fb';
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+function alertStage(state) { return state.rpm >= state.config.shiftRpm ? 'red' : state.rpm >= state.config.shiftRpm * 0.85 ? 'yellow' : 'green'; }
 function draw(state) {
     const cv = new Canvas(W, H), cfg = state.config;
     cv.clear([0, 0, 0, 0]);
-    // Keep the lower half empty for the factory HUD. This does not change its
-    // layout or guidance priority; the renderer owns actual slot placement.
-    const color = state.shift ? RED : WHITE, span = L.right - L.left;
-    const start = Math.max(0, cfg.shiftRpm - Math.min(2000, cfg.shiftRpm * 0.7));
-    const lit = state.shift ? 12 : Math.floor(clamp((state.rpm - start) / (cfg.shiftRpm - start), 0, 1) * 12);
-    for (let i = 0; i < 12; i++) {
-        const tint = i < 6 ? '#19ee67' : i < 9 ? '#ffd522' : RED;
-        cv.fillRect(L.left + i * span / 12, L.alertTop, span / 12 - 2, 18, i < lit ? tint : '#000000');
+    [14,232].forEach((y)=>{
+        cv.line(L.left,y,294,y,1,'#8993a0');cv.line(365,y,L.right,y,1,'#8993a0');
+        ['#38c9ff','#1653ad','#ed253c'].forEach((tint,i)=>{
+            const x=300+i*8;cv.quad([[x+5,y-7],[x+11,y-7],[x+6,y+7],[x,y+7]],tint);
+        });
+        cv.polyline([[328,y+7],[332,y-7],[337,y+2],[345,y-7],[341,y+7]],3,WHITE);
+    });
+    const stage = alertStage(state), color = stage === 'red' ? (state.flash ? RED : '#711318') : stage === 'yellow' ? '#ffd522' : '#19ee67';
+    const span = L.right - L.left - L.slant;
+    const start = cfg.shiftRpm * 0.65;
+    const lit = state.shift ? 12 : Math.floor(clamp((state.rpm-start)/(cfg.shiftRpm-start),0,1)*12);
+    for(let i=0;i<12;i++) {
+        const a=L.left+span*i/12,b=L.left+span*(i+1)/12-1;
+        cv.quad([[a+L.slant,L.alertTop],[b+L.slant,L.alertTop],[b,L.alertTop+12],[a,L.alertTop+12]],i<lit?color:'#000000');
     }
-    const end = L.left + span * clamp(state.rpm / cfg.maxRpm, 0, 1);
-    cv.fillRect(L.left, L.barTop, span, L.barBottom - L.barTop, '#17212a');
-    cv.fillRect(L.left + span * cfg.redlineRpm / cfg.maxRpm, L.barTop,
-        span * (1 - cfg.redlineRpm / cfg.maxRpm), L.barBottom - L.barTop, '#4c1621');
-    if (end > L.left) cv.fillRect(L.left, L.barTop, end - L.left, L.barBottom - L.barTop, state.shift ? RED : '#25c5ff');
-    for (let r = 500; r < cfg.maxRpm; r += 500) {
-        const x = L.left + span * r / cfg.maxRpm;
-        cv.line(x, L.barTop, x, L.barBottom, 1, '#000000');
+    const band=(a,b,tint)=>{
+        if(b<=a)return;
+        const x=L.left+span*a/cfg.maxRpm,z=L.left+span*b/cfg.maxRpm;
+        cv.quad([[x+L.slant,L.barTop],[z+L.slant,L.barTop],[z,L.barBottom],[x,L.barBottom]],tint);
+    };
+    band(0,cfg.maxRpm,'#1b212b');band(cfg.redlineRpm,cfg.maxRpm,'#4c1621');
+    band(0,clamp(state.rpm,0,cfg.maxRpm),color);
+    for(let rpm=500;rpm<cfg.maxRpm;rpm+=500) {
+        const x=L.left+span*rpm/cfg.maxRpm;
+        cv.line(x+L.slant,L.barTop,x,L.barBottom,0.8,'#000000');
     }
-    cv.text(String(Math.round(state.rpm / 10) * 10), L.left, L.baseline, 90, color, { font: 'num' });
-    cv.text('RPM', L.left, L.baseline + 30, 22, color, { font: 'bold', literal: true });
-    const gear = typeof state.gear === 'string' && /^(?:[DSM]?(?:[1-9]|10)|P|R|N|D|--)$/.test(state.gear) ? state.gear : '--';
-    cv.text(gear, L.right, L.baseline, 90, WHITE, { font: 'bold', align: 'right' });
+    for(let rpm=0;rpm<=cfg.maxRpm;rpm+=1000) {
+        const x=L.left+span*rpm/cfg.maxRpm,tint=rpm>=cfg.redlineRpm?RED:'#aeb9c6';
+        cv.line(x,L.barBottom+4,x,L.barBottom+10,1,tint);
+        cv.text(String(rpm/1000),x,142,15,tint,{align:'center',font:'num'});
+    }
+    const num=String(Math.round(state.rpm/10)*10),tint=state.shift?RED:WHITE;
+    const nw=cv.textWidth(num,54,{font:'num'}),sw=cv.textWidth('RPM',18,{font:'bold',literal:true}),nx=330-(nw+8+sw)/2;
+    cv.text(num,nx,L.baseline,54,tint,{font:'num'});
+    cv.text('RPM',nx+nw+8,L.baseline,18,tint,{font:'bold',literal:true});
+    const gear=typeof state.gear==='string'&&/^(?:[DSM]?(?:[1-9]|10)|P|R|N|D|--)$/.test(state.gear)?state.gear:'--';
+    cv.text(gear,750,132,64,WHITE,{font:'bold',align:'right'});
     return cv;
 }
-// Crop four independent regions. Unchanged transparent pixels never enter updates.
 function difference(previous, next) {
     const stride = W * 4;
     const rects = [], parts = [];
-    [[0, 0, W, 80], [0, 80, W, 150], [0, 150, 480, H], [480, 150, W, H]].forEach((region) => {
+    [[0, 0, W, 65], [0, 65, 630, 155], [0, 155, 630, H], [630, 65, W, H]].forEach((region) => {
         const [x0, top, x1, bottom] = region;
         let left = x1, right = -1, first = H, last = -1;
         for (let y = top; y < bottom; y++) {
@@ -53,4 +68,4 @@ function difference(previous, next) {
     });
     return { rects, pixels: Buffer.concat(parts) };
 }
-module.exports = { draw, difference, W, H, layout: L };
+module.exports = { draw, difference, W, H, layout: L, alertStage };

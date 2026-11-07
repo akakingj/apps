@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const { ClusterRender } = require('./cluster_render_client');
-const { Controller } = require('./controller');
+const { Outputs } = require('./outputs');
 const painter = require('./draw');
 const hudPainter = require('./hud-draw');
 const { settings, DEFAULTS } = require('./policy');
@@ -24,7 +24,7 @@ function atomic(file, value) {
 function supportedRenderer() { return renderer.inspect(undefined, fs).compatible; }
 function start(ctx) {
     const log = ctx.log, signals = ctx.signals;
-    const client = new ClusterRender('cluster-redline'), controller = new Controller(client, painter, hudPainter);
+    const client = new ClusterRender('cluster-redline'), controller = new Outputs(client, painter, hudPainter);
     const gearbox = new gear.GearState();
     let config = settings(), lastStatus = -Infinity, stopped = false, timer;
     let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub, fesSub, programSub;
@@ -96,6 +96,7 @@ function start(ctx) {
             const raw = {};
             Object.keys(DEFAULTS).forEach((k) => { if (k !== 'frameRate') raw[k] = ctx.settings.get(k); });
             config = settings(raw);
+            controller.hudBlocked = rendererInfo.hudGuidanceSafe === false;
             const state = controller.tick(at, config);
             if (at - lastStatus >= 500) {
                 lastStatus = at;
@@ -105,6 +106,7 @@ function start(ctx) {
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
+                    outputs: state.outputs,
                     renderer: rendererInfo, rendererBackend: client.backend || null, rendererTargets: client.targets || '', requestedSettings: raw,
                     profile: config.engineProfile, config: config,
                     errors: errors.slice(-8), source: live ? 'live-someip' : 'offline-disabled',

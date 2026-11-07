@@ -91,7 +91,6 @@ SHIFT NOW	변속 시점
 Map slot	지도 영역
 Renderer version	렌더러 버전
 Map takeover	지도 우선 표시
-
 Display layer	표시 레이어
 Front center (test)	전면 중앙 (시험)
 Map area (legacy)	지도 영역 (기존)
@@ -139,3 +138,21 @@ Map slot acquired	지도 표시 영역 확보됨
 Waiting for stock map release	순정 지도 영역 해제 대기
 Waiting for map acquisition	지도 표시 영역 확보 대기
 Guidance hide unavailable	내비 안내 상자 숨김 사용 불가
+Redline display mode	레드라인 표시 모드
+Cluster display	계기판 표시
+HUD display	HUD 표시
+Stock display	순정 표시
+Position / size	위치 / 크기
+Adjust	조절
+Position	위치
+Gauge width	가로 크기
+Gauge height	세로 크기
+Coordinates	좌표
+Cluster	계기판
+HUD	HUD
+Back	뒤로
+HUD area acquired	HUD 영역 확보됨
+Waiting for HUD area	HUD 영역 확보 대기
+Stock HUD guidance has priority; same-slot content cannot be shown together.	순정 HUD 안내가 우선합니다. 같은 표시 영역의 화면은 동시에 표시할 수 없습니다.
+Check HUD guidance-yield settings	HUD 순정 안내 양보 설정 확인
+Stock displays selected; Redline does not occupy either display.	순정 표시가 선택되어 레드라인이 계기판과 HUD 표시 영역을 사용하지 않습니다.

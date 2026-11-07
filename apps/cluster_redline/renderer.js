@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const MINIMUM = '0.3.10';
+const MINIMUM = '0.4.0';
 function atLeast(value, minimum) {
     if (typeof value !== 'string' || !/^\d+\.\d+\.\d+$/.test(value)) return false;
     const have = value.split('.').map(Number), want = minimum.split('.').map(Number);
@@ -14,7 +14,7 @@ function inspect(root, io) {
     root = root || '/'; io = io || fs;
     const base = path.join(root, 'var/opt/cluster-render');
     const result = { minimum: MINIMUM, version: null, compatible: false, metadata: null,
-        localConfig: path.join(base, 'cluster-render.local.conf'), takeOverStock: true, hudTakeOverStock: false, reason: '' };
+        localConfig: path.join(base, 'cluster-render.local.conf'), takeOverStock: true, hudTakeOverStock: false, hudYieldSlots: [0x322], reason: '' };
     const candidates = [path.join(base, 'current/component.json'), path.join(base, 'component.json')];
     for (const file of candidates) {
         let source;
@@ -35,9 +35,15 @@ function inspect(root, io) {
             io.readFileSync(file, 'utf8').split(/\r?\n/).forEach((line) => {
                 const m = line.match(/^\s*(map|hud)_take_over_stock\s*=\s*([^#;\s]+)/);
                 if (m) result[m[1] === 'hud' ? 'hudTakeOverStock' : 'takeOverStock'] = m[2] === '1' ? true : m[2] === '0' ? false : null;
+                const slots = line.match(/^\s*hud_yield_slots\s*=\s*([^#;]*)/);
+                if (slots) {
+                    const list=slots[1].trim().split(/[,\s]+/).filter(Boolean);
+                    result.hudYieldSlots=list.every((v)=>/^0x[0-9a-f]+$/i.test(v))?list.map((v)=>parseInt(v,16)):null;
+                }
             });
         } catch (e) {} // Keep each target's documented default when no readable override exists.
     });
+    result.hudGuidanceSafe=result.hudTakeOverStock===false && Array.isArray(result.hudYieldSlots) && result.hudYieldSlots.indexOf(0x322)>=0;
     return result;
 }
 function hash(value) { return crypto.createHash('sha256').update(value).digest('hex'); }

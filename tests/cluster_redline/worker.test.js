@@ -5,7 +5,7 @@ const path = require('path');
 const vm = require('vm');
 const { EventEmitter } = require('events');
 const { settings } = require('../../apps/cluster_redline/policy');
-const { Controller } = require('../../apps/cluster_redline/controller');
+const { Outputs } = require('../../apps/cluster_redline/outputs');
 const source = fs.readFileSync(path.join(__dirname, '../../apps/cluster_redline/worker.js'), 'utf8');
 
 async function scenario(live, version, backend, withProgram, stopEarly, target) {
@@ -14,7 +14,7 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
     let time = 0, timer, delay, client, watches = 0, shutdowns = 0;
     const files = {}, feeds = {}, subscriptions = {}, config = settings(), app = new EventEmitter();
     const calls = [];
-    if (target) config.displayTarget = target;
+    if (target) { config.displayTarget = target; ['sport','all'].forEach(mode => { config[mode+'HudOutput']=target==='hud'?'redline':'stock';config[mode+'ClusterOutput']=target==='hud'?'stock':'redline'; }); }
     class FakeClient extends EventEmitter {
         constructor() { super(); client = this; this.ready = false; this.backend = backend; this.targets = 'map:1088x480,panel:1920x720,hud:800x480'; this.next = 0; }
         connect() { calls.push('connect'); this.ready = true; this.emit('ready'); }
@@ -34,9 +34,9 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
         if (name === 'fs') return fakeFs;
         if (name === 'path') return path;
         if (name === './cluster_render_client') return { ClusterRender: FakeClient };
-        if (name === './controller') return { Controller };
+        if (name === './outputs') return { Outputs };
         if (name === './draw') return painter;
-        if (name === './hud-draw') return Object.assign({}, painter, { W: 800 });
+        if (name === './hud-draw') return Object.assign({}, painter, { W: 800, H: 240 });
         if (name === './policy') return require('../../apps/cluster_redline/policy');
         if (name === './renderer') return require('../../apps/cluster_redline/renderer');
         if (name === './gear') return require('../../apps/cluster_redline/gear');
@@ -76,7 +76,7 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
         assert.strictEqual(typeof rpm, 'function'); assert.strictEqual(typeof mode, 'function');
         rpm({ actualValueRPMEngineCrankshaft: 26000 }); mode({ actualValueModeDrivingExperience: 'SPORT_DYNAMIC' });
         tick(1000);
-        if (['0.3.10', '0.4.0'].includes(version) && backend === 'id7') {
+        if (['0.4.0', '0.4.1'].includes(version) && backend === 'id7') {
             assert.strictEqual(status().requested, true); assert.strictEqual(status().rpm, 6500);
             assert.strictEqual(status().shift, true);
             const gear = feeds['de.bmw.infrastructure.VehicleInformation'];
@@ -105,7 +105,7 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
             config.appEnabled = false; tick(4200); assert.strictEqual(status().requested, false);
         } else {
             assert.strictEqual(status().requested, false);
-            if (!['0.3.10', '0.4.0'].includes(version)) assert.strictEqual(calls.indexOf('connect'), -1);
+            if (!['0.4.0', '0.4.1'].includes(version)) assert.strictEqual(calls.indexOf('connect'), -1);
             assert.strictEqual(calls.filter((c) => Array.isArray(c) && c[0] === 'image').length, 0);
         }
     }
@@ -117,10 +117,11 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
     await scenario(true, '0.3.9');
     await scenario(true, '0.3.1');
     await scenario(true, '0.4.0');
+    await scenario(true, '0.4.1');
     await scenario(true, '0.4.0', 'id7', true, false, 'hud');
-    await scenario(true, '0.3.10', 'id7', false);
-    await scenario(true, '0.3.10', 'id8');
+    await scenario(true, '0.4.0', 'id7', false);
+    await scenario(true, '0.4.0', 'id8');
     await scenario(false, '0.3.10');
-    await scenario(true, '0.3.10', 'id7', true, true);
+    await scenario(true, '0.4.0', 'id7', true, true);
     console.log('PASS: real worker live-field adapters, raw RPM scale, background sport-only output, master OFF, old-renderer refusal, offline no-connect and platform shutdown');
 })().catch((e) => { console.error(e); process.exit(1); });

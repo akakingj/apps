@@ -1,3 +1,12 @@
+# 1.0.0
+
+- Independent HUD/cluster Redline/Stock choices for Sport and all-mode configurations.
+- Large live position/width/height controls and temporary bounded coordinate readout.
+- Compact M-style HUD with right-side gear, yellow warning and red flashing shift alert.
+- Move shift threshold to Basic; preset Petrol/eDrive/M 5500 rpm, retain Diesel 4200 and saved custom values.
+- Fix HUD contend flag that could block newly arriving factory guidance. Require native renderer 0.4.0 and preserve its HUD yield policy. Same-slot concurrent OEM guidance/Redline composition remains unsupported.
+- Host app/UI checks plus upstream 0.4.0 native slot suite (268 checks); no real-car validation.
+
 # Changelog
 
 ## Cluster Redline 0.8.3

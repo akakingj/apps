@@ -49,7 +49,7 @@ function fixture(apps, options) {
     assert.deepStrictEqual(parsed.skipped, []);
     const apps = ids.map((id) => parsed.components.find((c) => c.id === id));
     apps.forEach((app) => {
-        assert(app); assert.strictEqual(app.requires['cluster-render'], '0.3.10');
+        assert(app); assert.strictEqual(app.requires['cluster-render'], '0.4.0');
         assert.strictEqual(app.requires['mgu-deploy'], '0.7.17');
     });
     for (const id of ids) {
@@ -58,7 +58,7 @@ function fixture(apps, options) {
         assert.strictEqual(fresh.queue[0].source, 'robertn', 'renderer is resolved from its registered upstream source');
         const older = fixture(apps, { installed: { 'cluster-render': '0.3.9' } }); older.request(id);
         assert.deepStrictEqual(older.queue.map((q) => q.id), ['cluster-render', id]);
-        for (const version of ['0.3.10', '0.3.11', '0.4.0']) {
+        for (const version of ['0.4.0', '0.4.1']) {
             const ready = fixture(apps, { installed: { 'cluster-render': version } }); ready.request(id);
             assert.deepStrictEqual(ready.queue.map((q) => q.id), [id], 'reuse compatible renderer ' + version);
         }

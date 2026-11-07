@@ -40,13 +40,13 @@
       "kind": "app",
       "path": "apps/cluster_redline",
       "title": "계기판 레드라인 (한국어)",
-      "description": "지도 영역 선점 · 내비 안내 상자 숨김 · 확보 상태 표시 · 큰 설정 버튼",
+      "description": "계기판·HUD 개별 선택 · 위치/가로/세로 조절 · 순정 안내 우선",
       "mguHmi": [
         "ID7"
       ],
       "requires": {
         "mgu-deploy": "0.7.17",
-        "cluster-render": "0.3.10"
+        "cluster-render": "0.4.0"
       },
       "build": {
         "node": "tools/store-build.js",
@@ -112,13 +112,13 @@
       "kind": "app",
       "path": "store/apps/cluster_redline_en",
       "title": "Cluster Redline (English)",
-      "description": "Stock-map takeover · guidance hold · acquisition status · large settings controls",
+      "description": "Independent cluster/HUD outputs, adjustable layout and stock-guidance priority",
       "mguHmi": [
         "ID7"
       ],
       "requires": {
         "mgu-deploy": "0.7.17",
-        "cluster-render": "0.3.10"
+        "cluster-render": "0.4.0"
       },
       "build": {
         "node": "tools/store-build.js",

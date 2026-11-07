@@ -25,19 +25,19 @@ function effective() {
         assert.strictEqual(effective().frameRate, 20, 'saved 60fps must not override the fixed ceiling');
         assert.strictEqual(effective().redlineRpm, 6000); assert.strictEqual(effective().maxRpm, 7000);
         assert.strictEqual(effective().gearPrefix, undefined); assert.strictEqual(effective().torqueScale, 500);
-        assert.strictEqual(effective().displayTarget, 'map'); assert.strictEqual(effective().widgetScale, 80);
-        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); // petrol -> diesel
-        assert.strictEqual(effective().engineProfile, 'diesel'); assert.strictEqual(hu.settings.get('shiftRpm'), 0);
-        assert.strictEqual(effective().shiftRpm, 4200); assert.strictEqual(effective().torqueScale, 700);
-        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().displayMode, 'all');
-        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().powerUnit, 'kW');
-        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().torqueUnit, 'kgfm');
-        hu.handlers.BTN_ADVANCED(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().shiftRpm, 2000);
-        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().displayTarget, 'panel');
-        hu.handlers.BTN_VALUE_UP(); assert.strictEqual(effective().displayTarget, 'hud', 'HUD must be selectable through the actual app controls');
-        hu.handlers.BTN_NEXT(); hu.handlers.BTN_VALUE_DOWN(); assert.strictEqual(effective().widgetScale, 75);
-        const saved = JSON.parse(fs.readFileSync(path.join(dir, 'settings.json')));
-        for (const key of ['appEnabled', 'engineProfile', 'displayMode', 'powerUnit', 'torqueUnit', 'shiftRpm', 'displayTarget', 'widgetScale']) assert.strictEqual(saved[key], hu.settings.get(key), 'persisted setting '+key);
+        assert.strictEqual(effective().sportClusterOutput,'redline');assert.strictEqual(effective().sportHudOutput,'stock');
+        hu.handlers.BTN_NEXT();hu.handlers.BTN_VALUE_UP();assert.strictEqual(effective().engineProfile,'diesel');assert.strictEqual(effective().shiftRpm,4200);
+        hu.handlers.BTN_NEXT();hu.handlers.BTN_VALUE_UP();assert.strictEqual(effective().powerUnit,'kW');
+        hu.handlers.BTN_NEXT();hu.handlers.BTN_VALUE_UP();assert.strictEqual(effective().torqueUnit,'kgfm');
+        hu.handlers.BTN_NEXT();hu.handlers.BTN_VALUE_UP();assert.strictEqual(effective().shiftRpm,2000);
+        hu.handlers.BTN_ADVANCED();hu.handlers.BTN_VALUE_UP();assert.strictEqual(effective().displayMode,'all');
+        hu.handlers.BTN_NEXT();hu.handlers.BTN_VALUE_UP();assert.strictEqual(effective().allHudOutput,'redline');
+        hu.handlers.BTN_NEXT();hu.handlers.BTN_VALUE_UP();assert.strictEqual(effective().allClusterOutput,'stock');
+        hu.handlers.BTN_NEXT();hu.handlers.BTN_VALUE_UP();hu.handlers.BTN_VALUE_UP();assert.strictEqual(effective().clusterOffsetX,10);
+        hu.handlers.BTN_NEXT();hu.handlers.BTN_VALUE_DOWN();assert.strictEqual(effective().clusterOffsetY,-10);
+        const saved=JSON.parse(fs.readFileSync(path.join(dir,'settings.json')));
+        for(const key of ['appEnabled','engineProfile','powerUnit','torqueUnit','shiftRpm','displayMode','allHudOutput','allClusterOutput','clusterOffsetX','clusterOffsetY'])assert.strictEqual(saved[key],hu.settings.get(key),'persisted '+key);
+        assert.strictEqual(saved._outputsV,1);
         assert(!hu.spec.settings.some(s => ['gearPrefix','redlineRpm','maxRpm','torqueScale','powerScale','autoSport','frameRate'].includes(s.key)));
         console.log('PASS: actual bilingual-ready entry/UI, legacy OFF and fixed 20fps migration, preset reset, both tabs, all eight controls and persistence');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }

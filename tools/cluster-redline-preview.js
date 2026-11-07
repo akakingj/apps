@@ -12,7 +12,8 @@ fs.mkdirSync(out, { recursive: true });
 function scene(name, rpm, engineProfile, options) {
     const p = new Policy(); p.modeSample('SPORT_DYNAMIC', 0); p.rpmSample(rpm, 1000);
     const state = p.evaluate(1000, true, settings(Object.assign({ engineProfile: engineProfile || 'petrol' }, options || {})));
-    state.gear = state.shift ? 'S4' : 'D4';
+    state.gear = options && options.previewGear || (state.shift ? 'S4' : 'D4');
+    state.flash = !!(options && options.previewFlash);
     state.torqueNm = state.shift ? 265 : 380;
     state.powerPS = state.torqueNm * rpm / 9549.2966 * 1.3596216;
     state.torquePeak = state.torqueNm; state.powerPeak = state.powerPS;
@@ -29,8 +30,11 @@ scene('diesel-shift', 4200, 'diesel');
 scene('hybrid-rpm', 3500, 'hybrid');
 scene('threshold-2000-before', 1990, 'petrol', { shiftRpm: 2000 });
 scene('threshold-2000-alert', 2000, 'petrol', { shiftRpm: 2000 });
-scene('hud-rpm', 4200, 'petrol', { displayTarget: 'hud' });
-scene('hud-shift', 6500, 'petrol', { displayTarget: 'hud' });
+scene('hud-rpm', 3500, 'petrol', { displayTarget: 'hud', previewGear:'D1' });
+scene('hud-yellow', 5000, 'petrol', { displayTarget:'hud', previewGear:'S1' });
+scene('hud-shift', 5500, 'petrol', { displayTarget:'hud', previewGear:'M1', previewFlash:true });
+scene('hud-shift-dim', 5500, 'petrol', { displayTarget:'hud', previewGear:'M1', previewFlash:false });
+scene('hud-park', 700, 'petrol', { displayTarget:'hud', previewGear:'P' });
 const html = `<!doctype html><meta charset="utf-8"><title>계기판 레드라인 미리보기</title>
 <style>body{background:#10151d;color:#ecf2fa;font:18px system-ui;max-width:1088px;margin:32px auto;padding:16px}img{max-width:100%}section{border:1px solid #34465b;padding:20px;margin:20px 0;border-radius:12px}.off{height:140px;display:grid;place-items:center;color:#a5b7cb;background:#0b0e12}p{line-height:1.6}</style>
 <h1>계기판 레드라인</h1><p>실제 앱 렌더링 미리보기 · 데모 수치 · 내부 1088 × 480 / 기본 실차 표시 816 × 360 · 마력*은 토크와 RPM으로 계산한 PS입니다. 빈 배경은 투명합니다.</p>

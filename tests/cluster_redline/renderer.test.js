@@ -23,6 +23,7 @@ try {
     put(file, original);
     assert.strictEqual(configure('check', root).takeOverStock, false);
     assert.strictEqual(configure('check', root).hudTakeOverStock, false);
+    assert.strictEqual(configure('check', root).hudGuidanceSafe, true);
     assert.strictEqual(fs.readFileSync(file, 'utf8'), original, 'default check must not write');
     assert.strictEqual(configure('enable', root).takeOverStock, true);
     assert(fs.readFileSync(file, 'utf8').includes('map_linger_ms = 0'));
@@ -30,8 +31,11 @@ try {
     configure('restore', root); assert.strictEqual(fs.readFileSync(file, 'utf8'), original);
     put(file, original + 'hud_take_over_stock = 1\n');
     assert.strictEqual(inspect(root).hudTakeOverStock, true, 'report the owner HUD override separately from map takeover');
+    assert.strictEqual(inspect(root).hudGuidanceSafe, false);
     put(file, original + 'hud_take_over_stock = invalid\n');
     assert.strictEqual(inspect(root).hudTakeOverStock, null, 'invalid HUD policy must not be reported as enabled');
+    put(file, original + 'hud_yield_slots =\n');
+    assert.strictEqual(inspect(root).hudGuidanceSafe, false, 'without yield slots the native parked-guidance rule is not active');
     put(file, original);
     configure('enable', root); fs.appendFileSync(file, '# a later owner edit\n');
     assert.throws(() => configure('restore', root), /owner edits/);

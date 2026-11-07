@@ -10,7 +10,7 @@ const text = Canvas.prototype.text, labels = [], seams = [];
 const line = Canvas.prototype.line;
 Canvas.prototype.text = function(value, x, y, size) { labels.push({ value: String(value), x, y, size }); return text.apply(this, arguments); };
 Canvas.prototype.line = function(x, y, x2, y2) { if (y === L.top && y2 === L.bottom) seams.push(x); return line.apply(this, arguments); };
-const normal = { rpm: 4200, gear: 'D4', shift: false, torqueNm: 380, powerPS: 227, torquePeak: 400, powerPeak: 250, config: settings() };
+const normal = { rpm: 3400, gear: 'D4', shift: false, torqueNm: 380, powerPS: 227, torquePeak: 400, powerPeak: 250, config: settings() };
 const face = draw(normal);
 Canvas.prototype.text = text; Canvas.prototype.line = line;
 assert.strictEqual(seams.length, 13, '7000 RPM uses exactly 14 cells (two per 1000)');

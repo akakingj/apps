@@ -6,6 +6,7 @@ const { t } = require('./kit/i18n');
 const { SettingsPage, W, H } = require('./settings-ui');
 const { configure } = require('./settings-chrome');
 const worker = require('./worker');
+const { migrate } = require('./migrate');
 const { mapStatus } = require('./output-status');
 const REASONS = {
     disabled: 'Automatic display off', renderer_unavailable: 'Waiting for cluster renderer',
@@ -15,21 +16,14 @@ const REASONS = {
     rpm_invalid: 'Check engine RPM', engine_stopped: 'Engine stopped · hidden', stabilizing: 'Confirming Sport mode',
     recovering: 'Waiting for stable live signals', sport: 'Sport mode · display requested',
     all_modes: 'All drive modes · display requested', stopped: 'Background app stopped',
+    stock: 'Stock display',
+    hud_safety: 'Check HUD guidance-yield settings',
 };
 mgu.run({ async start(ctx) {
     configure(ctx);
-    // Preserve a legacy OFF choice when moving from autoSport to appEnabled.
-    try {
-        const old = JSON.parse(fs.readFileSync(path.join(ctx.dataDir, 'settings.json'), 'utf8'));
-        if (old.appEnabled === undefined && old.autoSport === false) ctx.settings.set('appEnabled', false);
-        if (old.renderer === 'software') ctx.settings.set('renderer', 'auto');
-    } catch (e) {}
-    // Move the old panel default to the map takeover path once. Settings keeps
-    // private migration keys; later explicit panel choices and HUD are retained.
-    if (ctx.settings.get('_clusterMapV') !== 1) {
-        if (ctx.settings.get('displayTarget') === 'panel') ctx.settings.set('displayTarget', 'map');
-        ctx.settings.set('_clusterMapV', 1);
-    }
+    let old = {};
+    try { old = JSON.parse(fs.readFileSync(path.join(ctx.dataDir, 'settings.json'), 'utf8')); } catch (e) {}
+    migrate(ctx.settings, old);
     let background = null, drawing = false, again = false;
     const page = new SettingsPage(ctx.settings, () => render().catch(report), ctx.spec.version);
     function report(e) { ctx.log.error('settings', e.message || e); }
@@ -52,12 +46,18 @@ mgu.run({ async start(ctx) {
             try { state = JSON.parse(fs.readFileSync(path.join(ctx.dataDir, 'cluster-redline-status.json'), 'utf8')); } catch (e) {}
             if (state && (!isFinite(Date.parse(state.at)) || Date.now() - Date.parse(state.at) > 5000)) state = null;
             const reason = !ctx.settings.get('appEnabled') ? 'disabled' : state && state.reason;
-            const targetStatus = reason !== 'disabled' && ctx.settings.get('displayTarget') === 'map' ? mapStatus(state) : null;
-            const cv = page.draw(ctx.canvas(W, H), t(targetStatus || REASONS[reason] || 'Waiting for background app'));
+            let status=t(REASONS[reason] || 'Waiting for background app');
+            if (reason !== 'disabled' && state && state.outputs) status=['cluster','hud'].map((name)=>{
+                const out=state.outputs[name];
+                let message=REASONS[out.reason] || 'Waiting for status';
+                if(out.requested) message=name==='cluster' ? mapStatus(out) : out.targetState==='shown' ? 'HUD area acquired' : 'Waiting for HUD area';
+                return t(name==='cluster'?'Cluster':'HUD')+': '+t(message);
+            });
+            const cv = page.draw(ctx.canvas(W, H), status);
             page.targets = cv.targets;
             await Promise.all([
-                ctx.ui.text('BTN_VALUE_DOWN', page.open ? 'Cancel' : 'Value -'),
-                ctx.ui.text('BTN_VALUE_UP', page.open ? 'Select' : 'Value +'),
+                ctx.ui.text('BTN_VALUE_DOWN', page.open && page.open !== 'layout' ? 'Cancel' : 'Value -'),
+                ctx.ui.text('BTN_VALUE_UP', page.open && page.open !== 'layout' ? 'Select' : 'Value +'),
             ]);
             await ctx.ui.image('MAIN_GFX', cv);
         } finally {
@@ -69,8 +69,8 @@ mgu.run({ async start(ctx) {
     ctx.ui.onClick('BTN_ADVANCED', () => page.selectTab(1));
     ctx.ui.onClick('BTN_PREVIOUS', () => page.move(-1));
     ctx.ui.onClick('BTN_NEXT', () => page.move(1));
-    ctx.ui.onClick('BTN_VALUE_DOWN', () => { if (page.open) { page.open = null; render().catch(report); } else page.change(-1); });
-    ctx.ui.onClick('BTN_VALUE_UP', () => page.open ? page.choose(page.choice) : page.change(1));
+    ctx.ui.onClick('BTN_VALUE_DOWN', () => { if (page.open === 'layout') page.change(-1); else if (page.open) { page.open = null; render().catch(report); } else page.change(-1); });
+    ctx.ui.onClick('BTN_VALUE_UP', () => page.open && page.open !== 'layout' ? page.choose(page.choice) : page.change(1));
     // Native RHMI bar buttons remain usable without a GPU/touch renderer.
     ctx.onTap((x, y) => {
         const target = (page.targets || []).find((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);

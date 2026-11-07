@@ -3,13 +3,16 @@ const { Policy, settings } = require('./policy');
 const gear = require('./gear');
 const { Telemetry } = require('./telemetry');
 const { UploadPacer } = require('./upload');
+const { placement } = require('./layout');
 class Controller {
-    constructor(client, painter, hudPainter) {
+    constructor(client, painter, hudPainter, options) {
+        options = options || {};
         this.client = client; this.painter = painter; this.hudPainter = hudPainter; this.policy = new Policy();
         this.ref = 0; this.previous = null; this.layerState = 'hidden'; this.refused = false;
         this.profile = null; this.layerRate = null;
         this.gear = '--'; this.gearMode = null; this.telemetry = new Telemetry(); this.layerScale = null;
-        this.upload = new UploadPacer(); this.retryAfter = 0; this.recoverySince = null; this.recovering = false;
+        this.upload = options.upload || new UploadPacer(); this.ownsUpload = !options.upload; this.liveLayout = !!options.liveLayout;
+        this.retryAfter = 0; this.recoverySince = null; this.recovering = false;
         this.transitions = []; this.lastReason = null;
         client.on('budget', (cap) => this.upload.budget(cap));
         this.targetName = null; this.targetStates = {}; this.paintKey = null;
@@ -25,7 +28,8 @@ class Controller {
     hide() {
         if (this.ref) this.client.drop(this.ref);
         this.ref = 0; this.previous = null; this.paintKey = null; this.layerState = 'hidden';
-        this.upload.reset();
+        if (this.ownsUpload) this.upload.reset();
+        this.placementKey = null;
         this.targetName = null; this.targetStates = {};
     }
     tick(now, config) {
@@ -33,7 +37,7 @@ class Controller {
         if (this.profile !== null && this.profile !== cfg.engineProfile) {
             this.hide(); this.policy.reset();
             this.telemetry.clear();
-        } else if (this.ref && (this.layerRate !== cfg.frameRate || this.targetName !== cfg.displayTarget || this.layerScale !== cfg.widgetScale)) this.hide();
+        } else if (this.ref && (this.layerRate !== cfg.frameRate || this.targetName !== cfg.displayTarget || (!this.liveLayout && this.layerScale !== cfg.widgetScale))) this.hide();
         this.profile = cfg.engineProfile;
         const d = this.policy.evaluate(now, this.client.ready && !this.refused, cfg);
         d.gear = gear.display(this.gear, this.gearMode, 'auto');
@@ -63,26 +67,34 @@ class Controller {
             this.transitions = this.transitions.slice(-12); this.lastReason = d.reason;
         }
         if (!d.show) { this.hide(); return Object.assign(d, { requested: false, layerState: this.layerState }); }
+        const rect = placement(cfg, cfg.displayTarget, painter), placementKey = [rect.x, rect.y, rect.w, rect.h].join('|');
+        d.placement = rect;
+        d.flash = hud && d.shift && Math.floor(now / 250) % 2 === 0;
+        if (this.ref && this.placementKey !== placementKey) {
+            if (this.liveLayout) this.client.set(this.ref, { x: rect.x, y: rect.y, w: rect.w, h: rect.h });
+            else this.hide();
+        }
+        this.placementKey = placementKey;
         if (!this.ref) {
             // Preserve alpha inside the image too; shrink its footprint so the
             // frame/text do not extend into the factory dials as 0.5.0 did.
-            const width = Math.round(painter.W * cfg.widgetScale / 100), height = Math.round(painter.H * cfg.widgetScale / 100);
             this.ref = this.client.image({ target: cfg.displayTarget, klass: panel ? 'overlay' : 'content', z: 100,
-                x: (targetWidth - width) / 2, y: (targetHeight - height) / 2,
-                w: width, h: height, iw: painter.W, ih: painter.H, sampling: 'bilinear',
+                x: rect.x, y: rect.y, w: rect.w, h: rect.h, iw: painter.W, ih: painter.H, sampling: 'bilinear',
                 // An exclusive image keeps its last complete frame if a write
                 // fails; a nonexclusive image is hidden during the rewrite.
                 // Alpha remains transparent over factory gauges. Other lower
                 // custom layers in this compositor target are suspended.
-                // Map and HUD ask even while stock content owns their slot,
-                // matching Robertn's MapFeed. Forced stock unmapping is a
+                // Map requests stock-map takeover. HUD yields to stock content,
+                // including guidance newly parked behind us. Stock unmapping is a
                 // separate renderer policy (HUD defaults to disabled); this
                 // app never changes it. Panel and HUD share a native scene ID,
                 // so only the selected target has a layer here.
                 // Follow the same guide hold as MapFeed on map only. The
                 // renderer limits this to its supported maneuver-panel slots,
                 // releases it with the map, and retains its guard/allowlist.
-                visible: false, prewarm: false, exclusive: true, contend: !panel, guide_hold: !panel && !hud, fps: d.config.frameRate });
+                // Non-contending HUD layers let the native renderer release
+                // our scene for stock guidance newly parked behind it.
+                visible: false, prewarm: false, exclusive: !hud, contend: !panel && !hud, guide_hold: !panel && !hud, fps: d.config.frameRate });
             if (!this.ref) { this.refused = true; d.show = false; d.reason = 'renderer_refused'; return d; }
             this.layerState = 'waiting';
             this.layerRate = d.config.frameRate;
@@ -91,12 +103,14 @@ class Controller {
         }
         // Do not repaint a whole canvas 60 times/s when no source value changed.
         // Keep freshness/mode checks above this cache so stale signals still hide.
-        const paintKey = [d.rpm, d.shift, d.gear, d.torqueNm, d.powerPS, d.torquePeak, d.powerPeak, cfg.shiftRpm, cfg.redlineRpm, cfg.maxRpm, cfg.torqueScale, cfg.powerScale, cfg.torqueUnit, cfg.powerUnit].join('|');
+        const paintKey = [d.rpm, d.shift, d.flash, d.gear, d.torqueNm, d.powerPS, d.torquePeak, d.powerPeak, cfg.shiftRpm, cfg.redlineRpm, cfg.maxRpm, cfg.torqueScale, cfg.powerScale, cfg.torqueUnit, cfg.powerUnit].join('|');
         if (this.previous && this.paintKey === paintKey) return Object.assign(d, { requested: true, layerState: this.layerState });
         if (this.previous && !this.upload.ready(now)) return Object.assign(d, { requested: true, layerState: this.layerState });
+        if (!this.previous && !this.ownsUpload && !this.upload.ready(now)) return Object.assign(d, { requested: true, layerState: this.layerState });
         const canvas = painter.draw(d), pixels = Buffer.from(canvas.d);
         if (!this.previous) {
             this.upload.allow(pixels.length, now, true);
+            if (!this.ownsUpload) this.upload.waitUntil = now + Math.max(250, Math.ceil(pixels.length / this.upload.rate * 1000));
             this.client.pixels(this.ref, null, pixels);
             // The production client waits if pixels are still queued behind
             // socket backpressure. Simple synchronous test/legacy clients can
