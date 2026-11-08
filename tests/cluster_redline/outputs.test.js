@@ -37,4 +37,20 @@ out.hudBlocked=true;sample(8000);out.tick(8000,{sportHudOutput:'redline'});
 sample(10000);s=out.tick(10000,{sportHudOutput:'redline'});
 assert(s.outputs.cluster.requested&&!s.outputs.hud.requested);assert.strictEqual(s.outputs.hud.reason,'hud_safety','unsafe native HUD configuration must not block cluster or factory guidance');
 out.close();assert.strictEqual(client.listenerCount('target'),0);assert.strictEqual(client.listenerCount('ready'),0);
-console.log('PASS: independent stock/Redline outputs, both modes, one socket/budget, paced startup, live placement without churn, blinking and complete release');
+
+// All drive modes uses its saved output pair, including Comfort Plus and Eco.
+for(const mode of [5,'COMFORT_PLUS','ECO_PRO_INDIVIDUAL']){
+ const c=new Client(),o=new Outputs(c,cluster,hud),cfg={displayMode:'all',sportClusterOutput:'stock',sportHudOutput:'stock',allClusterOutput:'redline',allHudOutput:'redline'};
+ o.policy.modeSample(mode,0);o.policy.rpmSample(2000,1000);
+ let state=o.tick(1000,cfg);o.tick(1250,cfg);
+ assert(state.outputs.cluster.requested&&state.outputs.hud.requested);
+ const cr=o.cluster.ref,hr=o.hud.ref;
+ o.policy.modeSample(1,1300);state=o.tick(1300,cfg);
+ assert(state.requested&&o.cluster.ref===cr&&o.hud.ref===hr);
+ o.policy.modeSample(mode,1400);o.tick(1400,Object.assign({},cfg,{allHudOutput:'stock'}));
+ assert(c.active.has(cr)&&!c.active.has(hr));
+ state=o.tick(1450,Object.assign({},cfg,{displayMode:'sport'}));
+ assert(!state.requested&&c.active.size===0);
+ o.close();
+}
+console.log('PASS: independent outputs, all-mode Comfort/Eco support, shared budget, live placement and release');

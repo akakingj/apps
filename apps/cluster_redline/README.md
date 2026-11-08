@@ -1,5 +1,6 @@
-# Cluster Redline 1.0.6
-## 1.0.1
+# Cluster Redline 1.0.7
+
+## 1.0.7
 1.0.6 uses Android Auto/CarPlay guidance-active flags rather than requiring native Guidance to be ACTIVE. Fresh received turns can be shown while native navigation remains INACTIVE. [Fix notes](../../docs/CLUSTER-REDLINE-1.0.6.ko.md).
 
 1.0.5 fixes guidance polling starvation on repeated state notifications and prevents older reads overwriting newer turns. [Fix notes](../../docs/CLUSTER-REDLINE-1.0.5.ko.md).
@@ -16,15 +17,15 @@ RPM, gear and shift lights for the iDrive 7 cluster and HUD. The full-screen set
 
 ## Settings
 
-Basic settings: App auto start, vehicle preset, power unit, torque unit, shift alert RPM. The preset threshold is now 5500 rpm for Petrol, eDrive and M; Diesel remains 4200 rpm. Saved explicit thresholds are retained. Presets set display scales, not discovered vehicle specifications. Petrol keeps a 7000 rpm scale and a red zone from 6000.
+Basic settings: App auto start, independent Start app / Stop app controls, vehicle preset, power unit, torque unit, shift alert RPM. The preset threshold is now 5500 rpm for Petrol, eDrive and M; Diesel remains 4200 rpm. Saved explicit thresholds are retained. Presets set display scales, not discovered vehicle specifications. Petrol keeps a 7000 rpm scale and a red zone from 6000.
 
-Advanced settings: Redline display mode (Sport / All drive modes), HUD display (Redline / Stock), Cluster display (Redline / Stock), Position / size. Each display mode remembers its own output choices. Both outputs may run together using the map and HUD targets; selecting Stock releases that output. Panel is no longer selected: panel and HUD share a native scene ID.
+Advanced settings: Redline display mode (Sport / All drive modes), HUD display (Redline / Stock), Cluster display (Redline / Stock), Position / size. Sport covers Sport variants; All includes Comfort, Comfort Plus, Eco variants and other valid vehicle modes. Each display mode remembers its own output choices. Both outputs may run together using the map and HUD targets; selecting Stock releases that output. Panel is no longer selected: panel and HUD share a native scene ID.
 
 Position / size lets you select Cluster or HUD, move in 10-pixel steps and adjust width/height separately in 5% steps. Temporary X/Y/width/height readouts show the bounded native placement. Changes update the existing layer without repeatedly reacquiring it.
 
 HUD restores the earlier top RPM bar, large central RPM, side torque/power gauges and received gear at the right. Cluster/HUD share the RPM palette and metallic M. Gear prefixes follow received signals.
 
-Defaults: Sport only; Cluster Redline, HUD Stock; Petrol; PS/Nm; fixed 20 fps request ceiling. Cluster dimensions default to 80% and HUD to 75%. Actual rendering speed depends on the car. eDrive power is engine-only, estimated from engine torque and RPM, not combined electric output.
+Defaults: Sport; Cluster Redline, HUD Stock; Petrol; PS/Nm; fixed 20 fps request ceiling. Normal Comfort, Comfort Individual, Eco and Adaptive require All drive modes. Cluster dimensions default to 80% and HUD to 75%. Actual rendering speed depends on the car. eDrive power is engine-only, estimated from engine torque and RPM, not combined electric output.
 
 ## Factory HUD navigation
 
@@ -67,3 +68,5 @@ Host tests cover settings entry/touch/rotary routing, independent outputs, share
 
 ![HUD navigation](../../screenshots/cluster_redline/hud-navigation-on-black.png)
 ![Navigation settings](../../screenshots/cluster_redline/settings-layout-hud-navigation.png)
+
+Auto-start sets operation at the next app-process launch. Start/Stop changes the current worker immediately, closing its subscriptions and renderer on Stop; the settings host stays open for restarting.

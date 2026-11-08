@@ -112,7 +112,7 @@ Vehicle preset	차량 프리셋
 eDrive (PHEV)	eDrive (플러그인 하이브리드)
 Display mode	표시 모드
 Sport modes only	스포츠 모드만
-All drive modes	전체 모드
+All drive modes	모두
 Power unit	마력 단위
 Torque unit	토크 단위
 Preset default	프리셋 기본값
@@ -150,7 +150,7 @@ Gauge height	세로 크기
 Coordinates	좌표
 Cluster	계기판
 HUD	HUD
-Back	뒤로
+Back	뒤로가기
 HUD area acquired	HUD 영역 확보됨
 Waiting for HUD area	HUD 영역 확보 대기
 Stock HUD guidance has priority; same-slot content cannot be shown together.	순정 HUD 안내가 우선합니다. 같은 표시 영역의 화면은 동시에 표시할 수 없습니다.
@@ -172,3 +172,11 @@ Navigation height	길안내 세로 크기
 Waiting for navigation data · stock HUD preserved	길안내 데이터 대기 · 순정 HUD 유지
 Waiting for phone guidance state · stock HUD preserved	휴대폰 안내 상태 대기 · 순정 HUD 유지
 Phone guidance state stale · stock HUD preserved	휴대폰 안내 상태 만료 · 순정 HUD 유지
+Sport / Comfort Plus	스포츠 / 컴포트 플러스
+Comfort Plus · display requested	컴포트 플러스 · 표시 요청
+Confirming drive mode	주행 모드 확인 중
+App operation	앱 실행
+Start app	앱 켜기
+Stop app	앱 끄기
+Running	실행 중
+Stopped	중지됨

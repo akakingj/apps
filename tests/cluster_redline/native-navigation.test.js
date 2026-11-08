@@ -17,6 +17,20 @@ const branch={maneuver:{branch:{branchType:'HIGHWAY_OUT_RIGHT',formattedDistance
 assert.strictEqual(decodeDart(branch).maneuver,'SLIGHT_RIGHT');
 const round={maneuver:{roundabout:{exitNumber:3,formattedDistance:{distance:'500',unit:'METER'}}}};
 assert.strictEqual(decodeDart(round).exitNumber,3);
+// Additional documented variants must use their own enums, never TurnDirection.
+for(const [kind,field,values,expected] of [
+ ['alongMainRoad','mainRoadDirection',[0,'LEFT',1,'RIGHT'],['KEEP_LEFT','KEEP_LEFT','KEEP_RIGHT','KEEP_RIGHT']],
+ ['laneChange','changeSide',[1,'LEFT',2,'RIGHT'],['LANE_LEFT','LANE_LEFT','LANE_RIGHT','LANE_RIGHT']],
+ ['destinationManeuver','position',[1,2,3,4,'LEFT','RIGHT'],['ARRIVAL_LEFT','ARRIVAL_CENTER','ARRIVAL_RIGHT','ARRIVAL_NOT_DIGITIZED','ARRIVAL_LEFT','ARRIVAL_RIGHT']]
+]){
+ values.forEach((v,i)=>{
+  const value={maneuver:{[kind]:{[field]:v,formattedDistance:{distance:'150',unit:'METER'}}}};
+  assert.strictEqual(decodeDart(value).maneuver,expected[i]);assert.strictEqual(decodeDart(value).kind,kind);
+  value.maneuver[kind].unreliable=true;assert.strictEqual(decodeDart(value),null);
+ });
+}
+for(const kind of ['passiveManeuver','placeholderElement','unknownType'])assert.strictEqual(decodeDart({maneuver:{[kind]:{formattedDistance:{distance:'150',unit:'METER'}}}}),null,'unknown direction must not become straight');
+
 function ready(provider,ttl) {
     const n=new NativeNavigation(ttl);
     if(provider==='ANDROID_AUTO'||provider==='CAR_PLAY') {
@@ -48,6 +62,13 @@ assert(!wrong.read(100,true).visible);assert(wrong.read(100,true).needsStock);
 const identityOnly=new NativeNavigation();identityOnly.sample('guidanceState','ACTIVE',0);identityOnly.sample('guidingProvider','ANDROID_AUTO',0);identityOnly.sample('conclusiveDart',dart('LEFT'),0);
 assert(!identityOnly.read(100,true).visible);assert(identityOnly.read(100,true).needsStock);
 // Route end/restart and unknown state must not replay the previous maneuver.
+const unhandled=ready('ANDROID_AUTO');
+unhandled.sample('conclusiveDart',{maneuver:{tunnel:{formattedDistance:{distance:'300',unit:'METER'}}}},10);
+assert.strictEqual(unhandled.read(10,true).detail,'maneuver_unsupported');
+assert.strictEqual(unhandled.read(10,true).kind,'tunnel');assert(unhandled.read(10,true).needsStock);
+unhandled.sample('conclusiveDart',{maneuver:{laneChange:{changeSide:2,formattedDistance:{distance:'300',unit:'METER'}}}},20);
+assert.strictEqual(unhandled.read(20,true).maneuver,'LANE_RIGHT');assert(unhandled.read(20,true).visible);
+unhandled.sample('guidingProvider','CAR_PLAY',30);assert.strictEqual(unhandled.read(30,true).kind,null);
 const n=ready('ANDROID_AUTO');
 n.projectionSample('ANDROID_AUTO','projectedGuidanceActive',false,100);
 assert(!n.read(100,true).visible);assert.strictEqual(n.read(100,true).needsStock,false);

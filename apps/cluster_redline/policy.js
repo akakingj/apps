@@ -16,7 +16,7 @@ const PROFILES = {
 };
 // Zero RPM settings mean the selected profile's defaults, rather than engine-off.
 const FRAME_RATE = 20;
-const DEFAULTS = { appEnabled: true, engineProfile: 'petrol', displayMode: 'sport', powerUnit: 'PS', torqueUnit: 'Nm', shiftRpm: 0, frameRate: FRAME_RATE, displayTarget: 'map', widgetScale: 80 };
+const DEFAULTS = { appEnabled: true, autoStart: true, engineProfile: 'petrol', displayMode: 'sport', powerUnit: 'PS', torqueUnit: 'Nm', shiftRpm: 0, frameRate: FRAME_RATE, displayTarget: 'map', widgetScale: 80 };
 Object.assign(DEFAULTS, { sportClusterOutput: 'redline', sportHudOutput: 'stock', allClusterOutput: 'redline', allHudOutput: 'stock',
     clusterOffsetX: 0, clusterOffsetY: 0, clusterWidthScale: 80, clusterHeightScale: 80,
     hudOffsetX: 0, hudOffsetY: -100, hudWidthScale: 75, hudHeightScale: 75,
@@ -24,14 +24,19 @@ Object.assign(DEFAULTS, { sportClusterOutput: 'redline', sportHudOutput: 'stock'
 const MODES = { 1: 'SPORT', 2: 'SPORT_PLUS', 3: 'SPORT_INDIVIDUAL', 4: 'COMFORT', 5: 'COMFORT_PLUS',
     6: 'COMFORT_INDIVIDUAL', 7: 'ECO_PRO', 8: 'ECO_PRO_PLUS', 9: 'ECO_PRO_INDIVIDUAL', 10: 'ADAPTIVE',
     SPORT_DYNAMIC: 'SPORT', SPORT_EXPERT: 'SPORT_PLUS', SPORT_INDIVIDUAL: 'SPORT_INDIVIDUAL',
-    COMFORT: 'COMFORT', ECO_PRO_EFFICIENT: 'ECO_PRO' };
-const SPORT = ['SPORT', 'SPORT_PLUS', 'SPORT_INDIVIDUAL'];
+    COMFORT: 'COMFORT', COMFORT_PLUS: 'COMFORT_PLUS', ECO_PRO_EFFICIENT: 'ECO_PRO' };
+Object.assign(MODES, {"28": "BOOST", "24": "EASE_MODUS", "13": "OFFROAD_GRIP", "11": "OFFROAD_ICE", "14": "OFFROAD_ROUGH", "12": "OFFROAD_SMOOTH", "22": "PHEV_BATTERYCONTROL", "21": "PHEV_ELECTRIC_INDIVIDUAL", "20": "PHEV_ELECTRIC_STANDARD", "19": "PHEV_HYBRID_COMFORT", "18": "PHEV_HYBRID_ECO", "17": "PHEV_HYBRID_STANDARD", "16": "PHEV_SPORT_INDIVIDUAL", "23": "PHEV_SPORT_PLUS", "15": "PHEV_SPORT_STANDARD", "27": "TRACTION_ASSIST", "ADAPTIVE": "ADAPTIVE", "BOOST": "BOOST", "COMFORT": "COMFORT", "COMFORT_INDIVIDUAL": "COMFORT_INDIVIDUAL", "COMFORT_PLUS": "COMFORT_PLUS", "EASE_MODUS": "EASE_MODUS", "ECO_PRO_EFFICIENT": "ECO_PRO_EFFICIENT", "ECO_PRO_INDIVIDUAL": "ECO_PRO_INDIVIDUAL", "ECO_PRO_PLUS": "ECO_PRO_PLUS", "OFFROAD_GRIP": "OFFROAD_GRIP", "OFFROAD_ICE": "OFFROAD_ICE", "OFFROAD_ROUGH": "OFFROAD_ROUGH", "OFFROAD_SMOOTH": "OFFROAD_SMOOTH", "PHEV_BATTERYCONTROL": "PHEV_BATTERYCONTROL", "PHEV_ELECTRIC_INDIVIDUAL": "PHEV_ELECTRIC_INDIVIDUAL", "PHEV_ELECTRIC_STANDARD": "PHEV_ELECTRIC_STANDARD", "PHEV_HYBRID_COMFORT": "PHEV_HYBRID_COMFORT", "PHEV_HYBRID_ECO": "PHEV_HYBRID_ECO", "PHEV_HYBRID_STANDARD": "PHEV_HYBRID_STANDARD", "PHEV_SPORT_INDIVIDUAL": "PHEV_SPORT_INDIVIDUAL", "PHEV_SPORT_PLUS": "PHEV_SPORT_PLUS", "PHEV_SPORT_STANDARD": "PHEV_SPORT_STANDARD", "SPORT_INDIVIDUAL": "SPORT_INDIVIDUAL", "TRACTION_ASSIST": "TRACTION_ASSIST"});
+Object.assign(MODES, { SPORT:'SPORT', SPORT_PLUS:'SPORT_PLUS', ECO_PRO:'ECO_PRO' });
+const SPORT = ['SPORT', 'SPORT_PLUS', 'SPORT_INDIVIDUAL', 'PHEV_SPORT_STANDARD', 'PHEV_SPORT_PLUS', 'PHEV_SPORT_INDIVIDUAL'];
+// Sport selection is restricted to Sport modes; all includes every valid catalog mode.
+const AUTOMATIC_MODES = SPORT;
 function settings(raw) {
     raw = raw || {};
     const out = Object.assign({}, DEFAULTS);
     // Retain an old owner's OFF choice; removed manual scales/prefixes are ignored.
     if (typeof raw.appEnabled === 'boolean') out.appEnabled = raw.appEnabled;
     else if (raw.autoSport === false) out.appEnabled = false;
+    if (typeof raw.autoStart === 'boolean') out.autoStart = raw.autoStart;
     if (typeof raw.hudNavigationEnabled === 'boolean') out.hudNavigationEnabled = raw.hudNavigationEnabled;
     if (['sport', 'all'].indexOf(raw.displayMode) >= 0) out.displayMode = raw.displayMode;
     if (['PS', 'kW'].indexOf(raw.powerUnit) >= 0) out.powerUnit = raw.powerUnit;
@@ -77,11 +82,11 @@ function settings(raw) {
 function modeOf(raw) { return (typeof raw === 'number' || typeof raw === 'string') && Object.prototype.hasOwnProperty.call(MODES, raw) ? MODES[raw] : null; }
 class Policy {
     constructor() { this.reset(); }
-    reset() { this.mode = null; this.rpm = null; this.modeAt = null; this.rpmAt = null; this.sportSince = null; this.runningSeen = false; }
+    reset() { this.mode = null; this.rpm = null; this.modeAt = null; this.rpmAt = null; this.activeSince = null; this.runningSeen = false; }
     modeSample(raw, now) {
-        const next = modeOf(raw), wasSport = SPORT.indexOf(this.mode) >= 0 && this.modeAt !== null && now >= this.modeAt && now - this.modeAt <= 3500;
-        const isSport = SPORT.indexOf(next) >= 0;
-        this.sportSince = isSport ? (wasSport && this.sportSince !== null ? this.sportSince : now) : null;
+        const next = modeOf(raw), wasActive = AUTOMATIC_MODES.indexOf(this.mode) >= 0 && this.modeAt !== null && now >= this.modeAt && now - this.modeAt <= 3500;
+        const isActive = AUTOMATIC_MODES.indexOf(next) >= 0;
+        this.activeSince = isActive ? (wasActive && this.activeSince !== null ? this.activeSince : now) : null;
         this.mode = next; this.modeAt = next ? now : null;
     }
     rpmSample(rpm, now) {
@@ -98,7 +103,7 @@ class Policy {
         else if (!Object.prototype.hasOwnProperty.call(PROFILES, cfg.engineProfile)) reason = 'profile_unknown';
         else if (!ready) reason = 'renderer_unavailable';
         else if (!fresh(this.modeAt, 3500)) reason = 'mode_unknown';
-        else if (cfg.displayMode === 'sport' && SPORT.indexOf(this.mode) < 0) reason = 'not_sport';
+        else if (cfg.displayMode === 'sport' && AUTOMATIC_MODES.indexOf(this.mode) < 0) reason = 'not_sport';
         else if (!fresh(this.rpmAt, 1800)) reason = 'rpm_unknown';
         // Fresh zero RPM after a running sample is a live stopped engine, not
         // a reason to release the display at every automatic stop/start.
@@ -106,7 +111,7 @@ class Policy {
         // lifecycle/provider loss keep their normal release behavior.
         else if (this.rpm < 100 && !this.runningSeen) reason = cfg.engineProfile === 'hybrid' ? 'hybrid_engine_stopped' : 'engine_stopped';
         else if (this.rpm > cfg.maxRpm + 1000) reason = 'rpm_invalid';
-        else if (cfg.displayMode === 'sport' && (this.sportSince === null || now - this.sportSince < 1000)) reason = 'stabilizing';
+        else if (cfg.displayMode === 'sport' && (this.activeSince === null || now - this.activeSince < 1000)) reason = 'stabilizing';
         const show = reason === 'sport' || reason === 'all_modes';
         return { show: show, reason: reason, mode: this.mode, rpm: this.rpm, engineStopped: this.rpm !== null && this.rpm < 100,
             shift: show && this.rpm >= cfg.shiftRpm, config: cfg };

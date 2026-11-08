@@ -2,6 +2,7 @@
 // Entry-only migration, before any worker starts. Never writes a BMW setting.
 function migrate(store, old) {
     old = old || {};
+    if (old.autoStart === undefined) store.set('autoStart', old.appEnabled !== undefined ? old.appEnabled === true : old.autoSport !== false);
     if (old.appEnabled === undefined && old.autoSport === false) store.set('appEnabled', false);
     if (old.renderer === 'software') store.set('renderer', 'auto');
     if (store.get('_outputsV') === 1) return;

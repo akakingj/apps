@@ -62,7 +62,7 @@ function draw(state) {
     };
     band(0,cfg.maxRpm,'#1b212b');band(cfg.redlineRpm,cfg.maxRpm,'#4c1621');
     const top=clamp(state.rpm,0,cfg.maxRpm);
-    for(let rpm=0;rpm<top;rpm+=500)band(rpm,Math.min(rpm+500,top),rpmColors.colorAt(rpm,cfg));
+    for(let rpm=0;rpm<top;rpm+=50)band(rpm,Math.min(rpm+75,top),rpmColors.colorAt(rpm,cfg));
     for(let rpm=500;rpm<cfg.maxRpm;rpm+=500) {
         const x=L.left+span*rpm/cfg.maxRpm;
         cv.line(x+L.slant,L.barTop,x,L.barBottom,0.8,'#000000');

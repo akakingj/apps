@@ -6,6 +6,7 @@ const PROVIDERS=['NONE','CAR_PLAY','ANDROID_AUTO','CAR_LIFE','OTHER'];
 const STATES=['INACTIVE','CALCULATING_ROUTE','ACTIVE'];
 const UNITS=['','km','mi','mi','m','yd','ft'];
 const UNIT_NAMES=['NONE','KM','MILE_UK','MILE_US','METER','YARD','FEET'];
+const SUPPORTED=['intersection','branch','roundabout','alongMainRoad','laneChange','destinationManeuver'];
 const BRANCHES=['NONE','BRANCH_LEFT','BRANCH_RIGHT','HIGHWAY_IN_LEFT','HIGHWAY_IN_RIGHT','HIGHWAY_IN_STRAIGHT','HIGHWAY_OUT_LEFT','HIGHWAY_OUT_RIGHT','HIGHWAY_OUT_STRAIGHT','FORK_LEFT','FORK_RIGHT','TRIPLE_FORK_LEFT','TRIPLE_FORK_RIGHT','TRIPLE_FORK_STRAIGHT','OVERPASS','UNDERPASS'];
 function enumeration(value,names) { return typeof value==='string'&&names.indexOf(value)>=0?value:typeof value==='number'&&value===Math.floor(value)&&value>=0&&value<names.length?names[value]:null; }
 function object(v) { return !!v&&typeof v==='object'&&!Array.isArray(v); }
@@ -35,8 +36,18 @@ function decodeDart(value) {
     } else if(kind==='roundabout'&&Number.isInteger(item.exitNumber)&&item.exitNumber>0&&item.exitNumber<100) {
         maneuver='ROUNDABOUT';exitNumber=item.exitNumber;
     }
+    if(kind==='alongMainRoad') {
+        const side=enumeration(item.mainRoadDirection,['LEFT','RIGHT']);
+        if(side)maneuver='KEEP_'+side;
+    } else if(kind==='laneChange') {
+        const side=enumeration(item.changeSide,['NONE','LEFT','RIGHT']);
+        if(side&&side!=='NONE')maneuver='LANE_'+side;
+    } else if(kind==='destinationManeuver') {
+        const position=enumeration(item.position,['NONE','LEFT','CENTER','RIGHT','NOT_DIGITIZED']);
+        if(position&&position!=='NONE')maneuver='ARRIVAL_'+position;
+    }
     const text=distanceText(item.formattedDistance);
-    return maneuver&&maneuver!=='NONE'&&text?{maneuver,distanceText:text,exitNumber}:null;
+    return maneuver&&maneuver!=='NONE'&&text?{maneuver,distanceText:text,exitNumber,kind}:null;
 }
 function dartFailure(value) {
     if(!object(value))return 'payload_missing';
@@ -48,7 +59,7 @@ function dartFailure(value) {
     const kind=keys[0],item=value.maneuver[kind];
     if(!object(item))return 'variant_missing';
     if(item.unreliable===true)return 'maneuver_unreliable';
-    if(['intersection','branch','roundabout'].indexOf(kind)<0)return 'maneuver_unsupported';
+    if(SUPPORTED.indexOf(kind)<0)return 'maneuver_unsupported';
     if(!distanceText(item.formattedDistance))return 'distance_unavailable';
     return 'direction_unavailable';
 }
@@ -56,7 +67,7 @@ class NativeNavigation {
     constructor(ttl) { this.ttl=typeof ttl==='number'&&isFinite(ttl)&&ttl>0?ttl:TTL_MS;this.clear(); }
     clearGuidance() {
         this.state=null;this.provider=null;this.dart=null;
-        this.stateAt=this.providerAt=this.dartAt=null;this.dartDetail='not_received';
+        this.stateAt=this.providerAt=this.dartAt=null;this.dartDetail='not_received';this.dartKind=null;
     }
     clear() {
         this.clearGuidance();this.projections={};
@@ -67,7 +78,7 @@ class NativeNavigation {
     clock(now) { return typeof now==='number'&&isFinite(now)&&now>=0; }
     fresh(at,now) { return this.clock(now)&&at!==null&&now>=at&&now-at<=this.ttl; }
     phone(provider) { return provider==='ANDROID_AUTO'||provider==='CAR_PLAY'; }
-    invalidate(reason) { this.dart=null;this.dartAt=null;this.dartDetail=reason; }
+    invalidate(reason) { this.dart=null;this.dartAt=null;this.dartDetail=reason;this.dartKind=null; }
     phoneActive(provider,now) {
         const p=this.projections[provider];
         return !!(p&&p.available===true&&p.active===true&&this.fresh(p.activeAt,now));
@@ -136,6 +147,9 @@ class NativeNavigation {
             this.provider=next;this.providerAt=now;
         }
         if(field==='conclusiveDart') {
+            const union=object(value)&&object(value.maneuver)?value.maneuver:null;
+            const kinds=union?Object.keys(union).filter(k=>union[k]!==undefined&&union[k]!==null):[];
+            this.dartKind=kinds.length===1&&kinds[0].length<=64?kinds[0]:null;
             const decoded=decodeDart(value),ctx=this.context(now,true);
             this.dart=ctx.active?decoded:null;this.dartAt=this.dart?now:null;
             this.dartDetail=this.dart?'decoded':decoded?ctx.reason:dartFailure(value);
@@ -145,11 +159,11 @@ class NativeNavigation {
         const ctx=this.context(now,available);
         if(!ctx.active) {
             if(this.dart)this.invalidate(ctx.reason);
-            return Object.assign({visible:false,provider:this.provider,maneuver:null,distanceText:null,exitNumber:null,detail:this.dartDetail},ctx);
+            return Object.assign({visible:false,provider:this.provider,maneuver:null,distanceText:null,exitNumber:null,detail:this.dartDetail,kind:this.dartKind},ctx);
         }
         if(this.dart&&this.fresh(this.dartAt,now))return Object.assign({visible:true,reason:'navigation_ready',provider:this.provider,ageMs:now-this.dartAt,active:true,known:true,needsStock:true},this.dart);
         if(this.dart)this.invalidate('maneuver_stale');
-        return {visible:false,reason:'navigation_maneuver_unknown',provider:this.provider,maneuver:null,distanceText:null,exitNumber:null,detail:this.dartDetail,active:true,known:true,needsStock:true};
+        return {visible:false,reason:'navigation_maneuver_unknown',provider:this.provider,maneuver:null,distanceText:null,exitNumber:null,detail:this.dartDetail,kind:this.dartKind,active:true,known:true,needsStock:true};
     }
 }
 module.exports={NativeNavigation,decodeDart,distanceText,TTL_MS,DIRECTIONS,PROVIDERS};

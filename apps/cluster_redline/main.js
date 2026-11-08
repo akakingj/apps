@@ -13,8 +13,9 @@ const REASONS = {
     profile_unknown: 'Check engine profile', hybrid_engine_stopped: 'Hybrid engine stopped · hidden',
     renderer_refused: 'Renderer refused display', target_unavailable: 'Selected display target unavailable',
     mode_unknown: 'Waiting for drive mode', not_sport: 'Normal mode · hidden', rpm_unknown: 'Waiting for engine RPM',
-    rpm_invalid: 'Check engine RPM', engine_stopped: 'Engine stopped · hidden', stabilizing: 'Confirming Sport mode',
+    rpm_invalid: 'Check engine RPM', engine_stopped: 'Engine stopped · hidden', stabilizing: 'Confirming drive mode',
     recovering: 'Waiting for stable live signals', sport: 'Sport mode · display requested',
+    comfort_plus: 'Comfort Plus · display requested',
     all_modes: 'All drive modes · display requested', stopped: 'Background app stopped',
     stock: 'Stock display',
     hud_safety: 'Check HUD guidance-yield settings',
@@ -37,6 +38,8 @@ mgu.run({ async start(ctx) {
     let old = {};
     try { old = JSON.parse(fs.readFileSync(path.join(ctx.dataDir, 'settings.json'), 'utf8')); } catch (e) {}
     migrate(ctx.settings, old);
+    // A new app process applies auto-start once; manual operation is independent.
+    ctx.settings.set('appEnabled', ctx.settings.get('autoStart') === true);
     let background = null, drawing = false, again = false;
     const page = new SettingsPage(ctx.settings, () => render().catch(report), ctx.spec.version);
     function report(e) { ctx.log.error('settings', e.message || e); }
@@ -69,7 +72,7 @@ mgu.run({ async start(ctx) {
             const cv = page.draw(ctx.canvas(W, H), status);
             page.targets = cv.targets;
             await Promise.all([
-                ctx.ui.text('BTN_VALUE_DOWN', page.open && page.open !== 'layout' ? 'Cancel' : 'Value -'),
+                ctx.ui.text('BTN_VALUE_DOWN', page.open && page.open !== 'layout' ? 'Back' : 'Value -'),
                 ctx.ui.text('BTN_VALUE_UP', page.open && page.open !== 'layout' ? 'Select' : 'Value +'),
             ]);
             await ctx.ui.image('MAIN_GFX', cv);

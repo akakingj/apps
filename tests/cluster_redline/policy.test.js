@@ -14,7 +14,7 @@ for (const mode of [1, 2, 3, 'SPORT_DYNAMIC', 'SPORT_EXPERT', 'SPORT_INDIVIDUAL'
     assert.strictEqual(p.evaluate(1000, true, { autoSport: false }).show, false);
     p.modeSample(4, 1100); assert.strictEqual(p.evaluate(1100, true).show, false);
 }
-for (const mode of [0, 4, 5, 6, 7, 8, 9, 10, 61, 62, 63, null, undefined, true, 'sport', 'SPORT_ECO', 'COMFORT']) {
+for (const mode of [0, 4, 5, 6, 7, 8, 9, 10, 61, 62, 63, null, undefined, true, 'sport', 'SPORT_ECO', 'COMFORT', 'COMFORT_PLUS']) {
     const p = new Policy(); p.modeSample(mode, 0); p.rpmSample(6500, 1000);
     assert.strictEqual(p.evaluate(1000, true).show, false, 'unexpected mode allowed: ' + mode);
 }
@@ -31,6 +31,17 @@ assert.strictEqual(settings({ appEnabled: false }).appEnabled, false);
 assert.strictEqual(modeOf({ toString: () => '1' }), null);
 const stale = new Policy(); stale.modeSample(1, 0); stale.rpmSample(4200, 4000);
 stale.modeSample(1, 4000); assert.strictEqual(stale.evaluate(4000, true).show, false, 'resuming a stale mode needs confirmation again');
+
+// Every actual catalog mode is eligible in All; sentinels remain hidden.
+for (const mode of [4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,27,28,
+    'COMFORT','COMFORT_PLUS','COMFORT_INDIVIDUAL','ECO_PRO_EFFICIENT','ECO_PRO','ECO_PRO_PLUS','ECO_PRO_INDIVIDUAL','ADAPTIVE']) {
+    const p = new Policy(); p.modeSample(mode,0); p.rpmSample(2000,1000);
+    assert.strictEqual(p.evaluate(1000,true,{displayMode:'all'}).show,true,String(mode));
+}
+for(const mode of [0,25,26,61,62,63,null,'INVALID']){
+    const p=new Policy();p.modeSample(mode,0);p.rpmSample(2000,1000);
+    assert.strictEqual(p.evaluate(1000,true,{displayMode:'all'}).show,false,'invalid mode '+mode);
+}
 
 class FakeClient extends EventEmitter {
     constructor() { super(); this.ready = true; this.targets = 'map:1088x480,panel:1920x720'; this.calls = []; this.layers = new Map(); this.next = 0; }
@@ -61,4 +72,4 @@ c.policy.modeSample(1, 4000); c.policy.rpmSample(6500, 5000); c.tick(5000);
 client.emit('refused', 'layer', c.ref, 'not supported'); c.tick(5100);
 assert.strictEqual(client.layers.size, 0, 'renderer refusal must stay hidden');
 c.close(); assert.strictEqual(client.layers.size, 0);
-console.log('PASS: boot hidden, strict sport modes, debounce, normal/eco release, fresh signals, reconnect, renderer refusal and shutdown');
+console.log('PASS: Sport/all numeric and enum modes, settling and continuity, boot/OFF/normal/eco/stale release, reconnect, renderer refusal and shutdown');

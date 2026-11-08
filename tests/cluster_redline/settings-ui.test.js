@@ -8,10 +8,10 @@ const saved={schema:spec.settings,get:k=>values[k],set:(k,v)=>values[k]=v},page=
 const labels=[],original=Canvas.prototype.text;
 Canvas.prototype.text=function(value,x,y,size,color){labels.push({value:t(value),x,y,size,color});return original.apply(this,arguments)};
 try{
- let cv=page.draw(new Canvas(1600,520));assert.strictEqual(cv.targets.length,7);
+ let cv=page.draw(new Canvas(1600,520));assert.strictEqual(cv.targets.length,9);
  assert(labels.some(l=>l.value===t(MAP_WARNING)&&l.color==='#ff9e36'));
  assert(labels.some(l=>l.value===t(RENDERER_NOTICE)&&l.color==='#ff9e36'));
- assert(labels.some(l=>l.value.includes('5500')));assert.deepStrictEqual(page.keys(),['appEnabled','engineProfile','powerUnit','torqueUnit','shiftRpm']);
+ assert(labels.some(l=>l.value.includes('5500')));assert.deepStrictEqual(page.keys(),['autoStart','appEnabled','engineProfile','powerUnit','torqueUnit','shiftRpm']);
  page.selectTab(1);assert.deepStrictEqual(page.keys(),['displayMode','sportHudOutput','sportClusterOutput','layout']);
  page.activate(1);page.choose(0);assert.strictEqual(values.sportHudOutput,'redline');
  page.activate(0);page.choose(1);assert.strictEqual(values.displayMode,'all');assert.strictEqual(page.keys()[1],'allHudOutput');

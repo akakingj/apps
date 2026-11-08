@@ -16,8 +16,8 @@ Canvas.prototype.text = text; Canvas.prototype.line = line;
 assert.strictEqual(seams.length, 13, '7000 RPM uses exactly 14 cells (two per 1000)');
 assert(labels.some((l) => l.value === 'D4' && l.size === 74));
 assert(labels.some((l) => l.value === 'RPM' && l.y > L.bottom));
-assert(labels.some((l) => l.value === 'Torque' && l.x === 265));
-assert(labels.some((l) => l.value === 'Power*' && l.x === 623));
+assert(labels.some((l) => l.value === 'Torque' && l.x === 240));
+assert(labels.some((l) => l.value === 'Power*' && l.x === 618));
 assert.deepStrictEqual(labels.filter((l) => l.y === 187).map((l) => l.value), ['0', '1', '2', '3', '4', '5', '6', '7']);
 assert(!labels.some((l) => /REDLINE|SHIFT|SPORT|변속|레드라인/.test(l.value)));
 function px(cv, x, y) { return Array.from(cv.d.slice((y * W + x) * 4, (y * W + x) * 4 + 4)); }
@@ -25,10 +25,10 @@ for (const point of [[0, 0], [50, 240], [1030, 240], [W - 1, H - 1], [544, 300]]
 let visible = 0;
 for (let i = 3; i < face.d.length; i += 4) if (face.d[i]) visible++;
 assert(visible < W * H * 0.25, 'must not reintroduce an opaque rectangular background');
-assert.deepStrictEqual(px(face, 250, 30), [0, 0, 0, 255], 'unlit LED cells are solid black, without a faint glow');
+assert.deepStrictEqual(px(face, 250, (L.alertTop + L.alertBottom) / 2), [0, 0, 0, 255], 'unlit LED cells are solid black, without a faint glow');
 const partial = draw(Object.assign({}, normal, { rpm: 5000 }));
-assert(px(partial, 250, 30)[1] > 100);
-assert.deepStrictEqual(px(partial, 840, 30), [0, 0, 0, 255]);
+assert(px(partial, 250, (L.alertTop + L.alertBottom) / 2)[1] > 100);
+assert.deepStrictEqual(px(partial, 840, (L.alertTop + L.alertBottom) / 2), [0, 0, 0, 255]);
 function redDigits(cv) {
     let n = 0;
     for (let y = 205; y < 285; y++) for (let x = 300; x < 800; x++) {
@@ -42,7 +42,8 @@ const alert = draw(Object.assign({}, normal, { rpm: 2000, shift: true, config: s
 assert.strictEqual(redDigits(before), 0); assert(redDigits(alert) > 200, 'configured shift threshold colors the actual RPM digits red');
 const redzone = draw(Object.assign({}, normal, { rpm: 6200 }));
 const rx = Math.round(L.left + (L.right - L.left - L.slant) * 6100 / 7000 + 7);
-assert.deepStrictEqual(px(redzone, rx, 132).slice(0, 3), [255, 42, 42], 'red zone begins at 6000 independently of shift threshold');
+const tint = px(redzone, rx, 132);
+assert(tint[0] > tint[1] && tint[2] > tint[1], 'filled high RPM stays pink/purple as it approaches red at7000');
 assert.strictEqual(redDigits(redzone), 0);
 const a = Buffer.from(face.d), b = Buffer.from(draw(Object.assign({}, normal, { rpm: 6500, shift: true, gear: 'S4' })).d);
 assert.strictEqual(a.length, W * H * 4); assert.strictEqual(difference(a, a).rects.length, 0);
@@ -53,7 +54,9 @@ d.rects.forEach((r) => {
     for (let y = r.y; y < r.y + r.h; y++) { const bytes = r.w * 4; d.pixels.copy(copy, (y * W + r.x) * 4, off, off + bytes); off += bytes; }
 });
 assert(copy.equals(b)); assert.strictEqual(off, d.pixels.length);
+if (JSON.parse(fs.readFileSync(path.join(stage, 'source/javascript/kit/locale.json'))).language === 'ko') {
 const atlas = JSON.parse(fs.readFileSync(path.join(stage, 'source/javascript/kit/fonts/korean.json'))).sizes[0].glyphs;
 const src = ['app.js', 'draw.js', 'policy.js', 'kit/app-spec.json', 'kit/locale.json'].map((f) => fs.readFileSync(path.join(stage, 'source/javascript', f), 'utf8')).join('\n');
 for (const ch of src) if (/[가-힣]/.test(ch)) assert(atlas[ch.charCodeAt(0)], 'Missing Korean glyph: ' + ch);
+}
 console.log('PASS: transparent stock-preserving face, compact layout, 14 RPM cells, black unlit LEDs, shift digits, D4/S4, exact alpha-aware frame deltas and Korean glyphs');

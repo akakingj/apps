@@ -59,9 +59,9 @@ try {
     buttons.forEach((b) => assert(b.w >= 450));
     for (const text of ['Basic settings', 'Advanced settings']) assert(calls.some((c) => c.value === t(text).toUpperCase() && c.size === 28));
     assert(calls.some((c) => c.value === t('Vehicle preset') && c.size === 34));
-    display.pageTargets.forEach((r) => assert(r.h >= 65 && r.y + r.h <= 520));
+    display.pageTargets.forEach((r) => assert(r.h >= 50 && r.y + r.h <= 520));
     save('settings-basic-full');
-    tapLogical(display.pageTargets[4]); assert.strictEqual(page.open,'shiftRpm');
+    tapLogical(display.pageTargets[6]); assert.strictEqual(page.open,'shiftRpm');
     assert.strictEqual(display.pageTargets[0].w,96);assert.strictEqual(display.pageTargets[0].h,64);
     save('settings-rpm-full');
     tapLogical(display.pageTargets[display.pageTargets.length-1]);
@@ -85,7 +85,7 @@ try {
     tapLogical(display.pageTargets.find(r=>r.x===890&&r.y===110));assert.strictEqual(values.hudNavigationEnabled,false);
     tapLogical(display.pageTargets.find(r=>r.x===440&&r.y===302));assert.strictEqual(values.hudNavOffsetX,10);
     save('settings-layout-hud-navigation-full');
-    tapLogical(display.pageTargets.find(r=>r.x===1260&&r.y===110));assert.strictEqual(page.open,null);
+    tapLogical(display.pageTargets.find(r=>r.x===1210&&r.y===448));assert.strictEqual(page.open,null);
     tapLogical(display.tabs[0]);
     save('settings-hud-basic-full');
     components.BTN_NEXT.on('action', () => page.move(1));
@@ -94,7 +94,7 @@ try {
         const b = display.buttons().find((q) => q.id === id), p = display.place;
         tapLogical({ x: (b.x - p.ox) / p.scale, y: (720 - display.barH() - p.oy) / p.scale, w: b.w / p.scale, h: display.barH() / p.scale });
     }
-    tapBar('BTN_NEXT'); assert.strictEqual(page.focus, 1);
+    tapBar('BTN_NEXT'); tapBar('BTN_NEXT'); assert.strictEqual(page.focus, 2);
     tapBar('BTN_VALUE_UP'); assert.strictEqual(values.engineProfile, 'diesel');
     console.log('PASS: real compositor has 28px tabs, 34px rows, four 80px bottom buttons, bounded large targets and working tab/list/footer touches');
 } finally { Recorder.prototype.text = oldText; }

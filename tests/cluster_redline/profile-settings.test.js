@@ -26,7 +26,7 @@ function effective() {
         assert.strictEqual(effective().redlineRpm, 6000); assert.strictEqual(effective().maxRpm, 7000);
         assert.strictEqual(effective().gearPrefix, undefined); assert.strictEqual(effective().torqueScale, 500);
         assert.strictEqual(effective().sportClusterOutput,'redline');assert.strictEqual(effective().sportHudOutput,'stock');
-        hu.handlers.BTN_NEXT();hu.handlers.BTN_VALUE_UP();assert.strictEqual(effective().engineProfile,'diesel');assert.strictEqual(effective().shiftRpm,4200);
+        hu.handlers.BTN_NEXT();hu.handlers.BTN_NEXT();hu.handlers.BTN_VALUE_UP();assert.strictEqual(effective().engineProfile,'diesel');assert.strictEqual(effective().shiftRpm,4200);
         hu.handlers.BTN_NEXT();hu.handlers.BTN_VALUE_UP();assert.strictEqual(effective().powerUnit,'kW');
         hu.handlers.BTN_NEXT();hu.handlers.BTN_VALUE_UP();assert.strictEqual(effective().torqueUnit,'kgfm');
         hu.handlers.BTN_NEXT();hu.handlers.BTN_VALUE_UP();assert.strictEqual(effective().shiftRpm,2000);

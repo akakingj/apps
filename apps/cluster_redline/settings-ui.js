@@ -9,7 +9,7 @@ const NAV = require('./nav-draw');
 const W = 1600, H = 520;
 const TABS = ['Basic settings', 'Advanced settings'];
 const GROUPS = [
-    ['appEnabled', 'engineProfile', 'powerUnit', 'torqueUnit', 'shiftRpm'],
+    ['autoStart', 'appEnabled', 'engineProfile', 'powerUnit', 'torqueUnit', 'shiftRpm'],
     ['displayMode', 'sportHudOutput', 'sportClusterOutput', 'layout'],
 ];
 const WARNING = 'Set Instrument cluster > Central display area to Off for correct operation.';
@@ -19,6 +19,7 @@ const HUD_WARNING = 'HUD navigation shows received turn guidance; unavailable da
 const STOCK_NOTICE = 'Stock displays selected; Redline does not occupy either display.';
 const LAYOUT_ITEM = { key: 'layout', label: 'Position / size', type: 'layout' };
 function options(item, cfg) {
+    if (item.key === 'appEnabled') return [[false, 'Stopped'], [true, 'Running']];
     if (item.type === 'bool') return [[false, 'Off'], [true, 'On']];
     if (item.type === 'choice') return item.options;
     const range = PROFILES[cfg.engineProfile] && PROFILES[cfg.engineProfile].ranges[item.key];
@@ -99,28 +100,36 @@ class SettingsPage {
             let y = 100;
             this.keys().forEach((key, i) => {
                 const item = key==='layout'?LAYOUT_ITEM:this.settings.schema.find((s) => s.key === key);
-                const h = key === 'appEnabled' ? 116 : this.tab === 1 ? 74 : 66;
+                const h = key === 'autoStart' ? 116 : this.tab === 1 ? 74 : 58;
                 const on = i === this.focus;
                 if (on) {
                     cv.gradientRect(78, y, 1460, h - 1, [[0, '#291217'], [1, theme.bg]]);
                     cv.fillRect(78, y + 7, 4, 48, '#ef3046');
                 }
-                const baseline = y + (key === 'appEnabled' ? 40 : h / 2 + 12);
+                const baseline = y + (key === 'autoStart' ? 40 : h / 2 + 12);
                 cv.text(item.label, 100, baseline, 34, '#f1f4fa');
-                cv.text(this.value(item, cfg), 1482, baseline, 34, '#c1cddd', { align: 'right' });
-                if (item.type !== 'bool') cv.polyline([[1514, y + h / 2 - 12], [1527, y + h / 2], [1514, y + h / 2 + 12]], 3, '#909cac');
                 if (key === 'appEnabled') {
+                    cv.text(this.value(item, cfg), 950, baseline, 30, '#c1cddd', { align: 'right' });
+                    [[true,'Start app'],[false,'Stop app']].forEach((choice, n) => {
+                        const x=990+n*278;
+                        cv.roundRect(x,y+4,260,50,6,this.settings.get(key)===choice[0]?'#57202d':'#252a31');
+                        cv.text(choice[1],x+130,y+38,28,'#f3f5f7',{align:'center'});
+                        targets.push({x,y:y+4,w:260,h:50,act:()=>{this.settings.set(key,choice[0]);this.changed();}});
+                    });
+                } else cv.text(this.value(item, cfg), 1482, baseline, 34, '#c1cddd', { align: 'right' });
+                if (item.type !== 'bool') cv.polyline([[1514, y + h / 2 - 12], [1527, y + h / 2], [1514, y + h / 2 + 12]], 3, '#909cac');
+                if (key === 'autoStart') {
                     const prefix=cfg.displayMode==='all'?'all':'sport';
                     const warning = cfg[prefix+'HudOutput']==='redline' ? HUD_WARNING : cfg[prefix+'ClusterOutput']==='redline' ? MAP_WARNING : STOCK_NOTICE;
                     cv.text(RENDERER_NOTICE, 100, y + 73, fit(RENDERER_NOTICE, 24, 1400), '#ff9e36');
                     cv.text(warning, 100, y + 102, fit(warning, 24, 1400), '#ff9e36');
                 }
                 cv.line(84, y + h - 1, 1536, y + h - 1, 0.6, '#292d34');
-                targets.push({ x: 78, y, w: 1460, h: h - 1, act: () => this.activate(i) });
+                if(key !== 'appEnabled') targets.push({ x: 78, y, w: 1460, h: h - 1, act: () => this.activate(i) });
                 y += h;
             });
-            if (this.tab === 0) cv.text('Presets set gauge scales; eDrive shows engine output only, not combined output.', 84, 510, 22, '#8b98aa');
-            else {
+            if (this.tab === 0 && this.keys().length < 6) cv.text('Presets set gauge scales; eDrive shows engine output only, not combined output.', 84, 510, 22, '#8b98aa');
+            else if (this.tab === 1) {
                 cv.text('Status',84,430,26,'#7f8b9d');
                 if (Array.isArray(status)) status.forEach((line,i)=>cv.text(line,84,457+i*28,fit(line,24,1450),'#bdc9d8'));
                 else cv.text(status || 'Waiting for background app', 84, 470, fit(status || 'Waiting for background app',30,1450), '#bdc9d8');
@@ -153,7 +162,7 @@ class SettingsPage {
         };
         ['cluster','hud','hudNav'].forEach((name,i)=>button(name==='hudNav'?'HUD navigation':name==='hud'?'HUD':'Cluster',84+i*260,110,240,64,()=>{this.layoutTarget=name;this.changed();},this.layoutTarget===name));
         if(this.layoutTarget==='hudNav')button(cfg.hudNavigationEnabled?'On':'Off',890,110,300,64,()=>{this.settings.set('hudNavigationEnabled',!cfg.hudNavigationEnabled);this.changed();},cfg.hudNavigationEnabled);
-        button('Back',1260,110,276,64,()=>{this.open=null;this.changed();});
+        button('Back',1210,448,326,64,()=>{this.open=null;this.changed();});
         cv.text('Position',100,208,28,'#b8c5d4');
         button('↑',320,218,100,72,()=>this.adjust(1,-1),this.layoutParam===1);
         button('←',200,302,100,72,()=>this.adjust(0,-1),this.layoutParam===0);
@@ -168,7 +177,7 @@ class SettingsPage {
         });
         const shape=this.layoutTarget==='hudNav'?NAV:this.layoutTarget==='hud'?HUD:{W:1088,H:480};
         const r=placement(cfg,this.layoutTarget==='cluster'?'map':this.layoutTarget,shape);
-        cv.text(t('Coordinates')+': X '+r.x+' · Y '+r.y+' · '+r.w+' × '+r.h,84,503,24,'#ffad45',{literal:true});
+        cv.text(t('Coordinates')+': X '+r.x+' · Y '+r.y+' · '+r.w+' × '+r.h,84,503,22,'#ffad45',{literal:true});
     }
     drawChoices(cv, cfg, targets) {
         const item = this.item(), list = options(item, cfg), start = Math.max(0, Math.min(list.length - 4, this.choice - 1));
@@ -189,7 +198,7 @@ class SettingsPage {
             targets.push({ x: 78, y, w: 1460, h: 70, act: () => this.choose(i) });
         });
         cv.roundRect(1210, 448, 326, 64, 8, '#252a31');
-        cv.text('Cancel', 1373, 492, 32, '#b2c2d4', { align: 'center' });
+        cv.text('Back', 1373, 492, 32, '#b2c2d4', { align: 'center' });
         targets.push({ x: 1210, y: 448, w: 326, h: 64, act: () => { this.open = null; this.changed(); } });
     }
 }

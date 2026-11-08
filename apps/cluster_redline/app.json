@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Independent stock/Redline cluster and HUD outputs, adjustable placement and native-guidance priority",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
@@ -79,8 +79,14 @@
   ],
   "settings": [
     {
-      "key": "appEnabled",
+      "key": "autoStart",
       "label": "App auto start",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "key": "appEnabled",
+      "label": "App operation",
       "type": "bool",
       "default": true
     },
@@ -116,7 +122,7 @@
       "options": [
         [
           "sport",
-          "Sport modes only"
+          "Sport"
         ],
         [
           "all",
