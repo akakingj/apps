@@ -1,26 +1,5 @@
 # Cluster Redline 1.0.10
 
-## 1.0.10
-
-Advanced settings → HUD display → HUD appearance selects a top shift-alert bar or a filled circle beside the gear. A real RPM preview appears below the choices. The circle is hidden before the existing green-alert threshold, then follows the existing green/yellow/flashing-red timing. Its diameter is 70% of the gear glyph height. Gear and warning align beside the upper RPM bar.
-
-HUD torque/power offers Gauges, Values only (torque · RPM · power with matching numeric sizes), and Off. The upper M is removed; the RPM bar is 90% of its prior height; text is 10% larger. Metrics move upward, auxiliary gauges shrink by 10% in each dimension and the lower M/frame moves upward with clearance below the scale labels. Appearance changes redraw at unchanged RPM.
-
-The optional GuidanceEventList.queryContent reader uses named enums; an Android Auto diagnostic returned a valid turn and formatted distance. Queries are bounded and tied to the active phone/provider lifecycle. This does not yet confirm CarPlay data delivery, app-UID permissions or real-vehicle simultaneous HUD display. Missing/invalid/stale guidance preserves stock guidance. It does not add junction-map images.
-
-[Release details](../../docs/CLUSTER-REDLINE-1.0.10.ko.md).
-
-## 1.0.7
-1.0.6 uses Android Auto/CarPlay guidance-active flags rather than requiring native Guidance to be ACTIVE. Fresh received turns can be shown while native navigation remains INACTIVE. [Fix notes](../../docs/CLUSTER-REDLINE-1.0.6.ko.md).
-
-1.0.5 fixes guidance polling starvation on repeated state notifications and prevents older reads overwriting newer turns. [Fix notes](../../docs/CLUSTER-REDLINE-1.0.5.ko.md).
-
-
-1.0.4 restores the earlier 800×240 HUD layout and side-gauge sizes with correctly sized metallic M marks. Both displays share blue/lighter-blue RPM cells, changing to purple/pink after4000rpm and red at the configured redline. [Changes](../../docs/CLUSTER-REDLINE-1.0.4.ko.md).
-
-Read-only Guidance maneuver/provider/state inputs compose a turn arrow and supplied distance into our HUD. Missing/stale maneuver data preserves stock guidance. Stop & Go zero-RPM retention and bounded transient recovery remain.
-
-
 [한국어](README.ko.md)
 
 RPM, gear and shift lights for the iDrive 7 cluster and HUD. The full-screen settings UI keeps two tabs and large touch/rotary controls.
@@ -33,7 +12,7 @@ Advanced settings: Redline display mode (Sport / All drive modes), HUD display (
 
 Position / size lets you select Cluster or HUD, move in 10-pixel steps and adjust width/height separately in 5% steps. Temporary X/Y/width/height readouts show the bounded native placement. Changes update the existing layer without repeatedly reacquiring it.
 
-HUD restores the earlier top RPM bar, large central RPM, side torque/power gauges and received gear at the right. Cluster/HUD share the RPM palette and metallic M. Gear prefixes follow received signals.
+HUD shows the top RPM bar, central RPM, optional side torque/power values or gauges, and the received gear beside the upper bar. Cluster/HUD share the RPM palette and metallic M. Gear prefixes follow received signals.
 
 Defaults: Sport; Cluster Redline, HUD Stock; Petrol; PS/Nm; fixed 20 fps request ceiling. Normal Comfort, Comfort Individual, Eco and Adaptive require All drive modes. Cluster dimensions default to 80% and HUD to 75%. Actual rendering speed depends on the car. eDrive power is engine-only, estimated from engine torque and RPM, not combined electric output.
 
@@ -66,13 +45,9 @@ Use the normal kit/install workflow. Do not publish generated SDK-containing pac
 
 Host tests cover settings entry/touch/rotary routing, independent outputs, shared upload pacing, live placement, exact image deltas, lifecycle cleanup and compatibility. The real upstream 0.4.0 SlotManager host suite passes 268 checks, including newly parked HUD guidance yielding and recovery. These use simulated hardware ports; vehicle rendering, HUD coordinates and stock guidance return remain unverified on the car. Unix-socket and Node subprocess archive integration are restricted in the current build sandbox.
 
-[Detailed Korean change/validation notes](../../docs/CLUSTER-REDLINE-1.0.0.ko.md) · [Renderer dependency guide](../../docs/AUTO-RENDERER.ko.md)
-
-![HUD](../../screenshots/cluster_redline/hud-shift-on-black.png)
+![HUD](../../screenshots/cluster_redline/hud-1.0.10.png)
 
 ![Layout settings](../../screenshots/cluster_redline/settings-layout-hud.png)
-
-[1.0.2 install fix: request the native Guidance Main_Instance explicitly and omit this optional proxy when its instance/getter is unavailable. Vehicle installation still needs confirmation.](../../docs/CLUSTER-REDLINE-1.0.2.ko.md)
 
 ![Stop & Go](../../screenshots/cluster_redline/stop-go.png)
 
@@ -80,3 +55,13 @@ Host tests cover settings entry/touch/rotary routing, independent outputs, share
 ![Navigation settings](../../screenshots/cluster_redline/settings-layout-hud-navigation.png)
 
 Auto-start sets operation at the next app-process launch. Start/Stop changes the current worker immediately, closing its subscriptions and renderer on Stop; the settings host stays open for restarting.
+
+## HUD appearance
+
+Advanced settings → HUD display → HUD appearance selects a top shift-alert bar or a filled circle beside the gear. A real RPM preview appears below the choices. The circle is hidden before the existing green-alert threshold, then follows the existing green/yellow/flashing-red timing. Its diameter is 70% of the gear glyph height. Gear and warning align beside the upper RPM bar.
+
+HUD torque/power offers Gauges, Values only (torque · RPM · power with matching numeric sizes), and Off. The upper M is removed; the RPM bar is 90% of its prior height; text is 10% larger. Metrics move upward, auxiliary gauges shrink by 10% in each dimension and the lower M/frame moves upward with clearance below the scale labels. Appearance changes redraw at unchanged RPM.
+
+The optional GuidanceEventList.queryContent reader uses named enums; an Android Auto diagnostic returned a valid turn and formatted distance. Queries are bounded and tied to the active phone/provider lifecycle. This does not yet confirm CarPlay data delivery, app-UID permissions or real-vehicle simultaneous HUD display. Missing/invalid/stale guidance preserves stock guidance. It does not add junction-map images.
+
+[Current guide](../../docs/CLUSTER-REDLINE.ko.md) · [Changelog](https://github.com/jaimeen77-cmyk/apps/blob/main/CHANGELOG.md)

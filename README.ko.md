@@ -1,10 +1,6 @@
 # iDrive 7 Jam 앱 모음
 
-계기판 레드라인 **1.0.10**: HUD 채운 원형/상단 변속 알림, 토크·마력 게이지/숫자/끄기 선택과 미리보기, 읽기 전용 안내 이벤트 조회를 추가했습니다. HUD 동시 표시는 실차 확인이 필요합니다. [안내](docs/CLUSTER-REDLINE-1.0.10.ko.md).
-
-계기판 레드라인 **1.0.5**: 반복 알림에 의한 길안내 읽기 누락과 이전 응답이 최신 화살표를 덮는 오류를 수정했습니다. [수정 안내](docs/CLUSTER-REDLINE-1.0.5.ko.md).
-
-계기판 레드라인 **1.0.4**: 이전 HUD 배치·토크/마력 크기 복원, 공통 RPM 색상과 HUD 길안내·별도 위치/크기 조절을 추가했습니다. [변경 안내](docs/CLUSTER-REDLINE-1.0.4.ko.md).
+계기판 레드라인 **1.0.10**: HUD 채운 원형/상단 변속 알림, 토크·마력 게이지/숫자/끄기 선택과 미리보기, 읽기 전용 안내 이벤트 조회를 추가했습니다. HUD 동시 표시는 실차 확인이 필요합니다. [안내](docs/CLUSTER-REDLINE.ko.md).
 
 만든이：jaimeen shim
 
@@ -14,13 +10,9 @@
 
 문의사항은 코딩나눔터나 네이버블로그를 통해 문의 주세요.
 
-1.0.3은 엔진 작동 후 신선한 0rpm에서도 화면을 유지합니다. HUD 색상·배치를 클러스터와 공유하고 위아래 M을 금속 질감으로 변경했습니다. HUD 높이는 비율에 맞게 353px로 바뀌었습니다. [변경 안내](docs/CLUSTER-REDLINE-1.0.3.ko.md).
-
 [English](README.md) | 한국어
 
 기존 `idrive7-apps`의 **빌드·언어 선택·전체 앱 배포 방식**에 맞춘 추가 앱입니다.
-
-계기판 레드라인 **1.0.3**: 스포츠/전체 모드별 HUD·계기판 출력 선택, 위치·가로·세로 크기 조절, 색이 변하는 HUD와 가솔린 기본 알림 5500rpm을 반영했습니다. 순정 HUD 안내를 막을 수 있던 경쟁 요청을 수정했습니다. 읽을 수 있는 최신 회전 안내를 합성하고, 안내 데이터가 없으면 순정 HUD를 보존합니다. [변경·검사 안내](docs/CLUSTER-REDLINE-1.0.0.ko.md).
 
 | 앱 | 한국어 설명서 | 영문 설명서 |
 |---|---|---|
@@ -101,16 +93,8 @@ Circuit과 기존 앱은 수동 실행을 유지하고, Cluster Redline만 백�
 설치 키트·`.mgu`·`.tgz`에는 본인 SDK가 포함되므로 공개 저장소에 올리지 마세요.
 검사 결과는 [검사 기록](docs/VALIDATION.ko.md)에 있습니다.
 
-[0.8.4: 실행 버전 확인 / Verify the running version](docs/CLUSTER-REDLINE-0.8.4.ko.md)
-
-[0.8.5 설치 실패 수정: 변속 프로그램 신호의 getter 요청 제거](docs/CLUSTER-REDLINE-0.8.5.ko.md)
-
-[0.8.7: 큰 설정 글자·터치 버튼 / Larger settings controls](docs/CLUSTER-REDLINE-0.8.7.ko.md)
-
-## HUD·계기판 설정 (1.0.1)
+## HUD·계기판 설정
 
 상세설정에서 HUD·계기판 출력을 각각 선택하고 위치·크기를 조절합니다. 순정 HUD 안내가 우선입니다. [현재 앱 설명서](apps/cluster_redline/README.ko.md).
 
-[1.0.1: HUD guidance, torque/power and recovery notes](docs/CLUSTER-REDLINE-1.0.1.ko.md)
-
-[1.0.2 설치 보완: 내비 신호의 Main_Instance를 명시하고 해당 인스턴스/getter가 없으면 선택적 요청을 제외합니다. 실차 설치 확인은 필요합니다.](docs/CLUSTER-REDLINE-1.0.2.ko.md)
+[업데이트 이력](CHANGELOG.md)
