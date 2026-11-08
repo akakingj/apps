@@ -25,17 +25,65 @@ function reconstruct(a,b,painter) {
 }
 for(const next of frames)reconstruct(before,next,hud);
 const px=(cv,x,y)=>Array.from(cv.d.slice((y*cv.w+x)*4,(y*cv.w+x)*4+4));
-for(const [x,y] of [[0,0],[799,239],[400,60]])assert.strictEqual(px(before,x,y)[3],0);
+for(const [x,y] of [[0,0],[799,239],[400,42]])assert.strictEqual(px(before,x,y)[3],0);
 for(const rpm of [500,1500,2500,3500,4500,5500]) {
  const state=Object.assign({},base,{rpm:5900}),a=cluster.draw(state),b=hud.draw(state);
  const sample=(p)=>Math.round(p.left+(p.right-p.left-p.slant)*(rpm+200)/base.config.maxRpm+p.slant/2);
- const ac=px(a,sample(cluster.layout),132),bc=px(b,sample(hud.layout),92);
+ const ac=px(a,sample(cluster.layout),132),bc=px(b,sample(hud.layout),Math.round((hud.layout.barTop+hud.layout.barBottom)/2));
  // Different bar widths sample slightly different positions in the continuous ramp.
  assert(ac.slice(0,3).every((v,i)=>Math.abs(v-bc[i])<=6),'HUD/cluster share RPM-locked palette within raster sampling tolerance');
 }
-const zero=hud.draw(Object.assign({},base,{rpm:0}));assert.deepStrictEqual(px(zero,100,40),[0,0,0,255]);
+const zero=hud.draw(Object.assign({},base,{rpm:0}));assert.deepStrictEqual(px(zero,100,hud.layout.alertTop+6),[0,0,0,255]);
 const bright=hud.draw(Object.assign({},base,{rpm:5500,shift:true,flash:true})),dim=hud.draw(Object.assign({},base,{rpm:5500,shift:true,flash:false}));
-assert(px(bright,100,40)[0]>220&&px(dim,100,40)[0]<150);
+assert(px(bright,100,hud.layout.alertTop+6)[0]>220&&px(dim,100,hud.layout.alertTop+6)[0]<150);
 const blink=reconstruct(bright,dim,hud);assert(blink.rects.every(r=>r.y+r.h<=65));
 assert(Buffer.from(bright.d).slice(155*hud.W*4).equals(Buffer.from(dim.d).slice(155*hud.W*4)),'RPM stays steadily red during LED flash');
-console.log('PASS: prior800x240 HUD geometry, large side gauges and gaps, shared RPM palette, transparent edges and exact update/blink reconstruction across presets');
+
+assert(Math.abs((hud.layout.barBottom-hud.layout.barTop)-36*0.9)<1e-9);
+assert(Math.abs(hud.typography.rpm-54*1.1)<1e-9);
+const ringCfg=settings({hudAlertStyle:'circle'}),ringBase=Object.assign({},base,{config:ringCfg});
+const Canvas=require(path.join(dir,'kit/canvas')).Canvas,geom=hud.gearLayout(new Canvas(800,240),'M1',ringCfg);
+assert(geom.cx+geom.diameter/2<geom.left);
+const font=require(path.join(dir,'kit/fonts')).get('bold',geom.size,'M1');
+const glyphs=['M','1'].map(c=>font.glyphs[c.codePointAt(0)]);
+const actualHeight=(Math.max.apply(null,glyphs.map(g=>g[5]+g[3]))-Math.min.apply(null,glyphs.map(g=>g[5])))*geom.size/font.size;
+assert(Math.abs(geom.diameter/actualHeight-0.7)<1e-9);
+for(const gear of ['P','D','M1','S1','D10']) {
+ const cv=new(require(path.join(dir,'kit/canvas')).Canvas)(800,240),g=hud.gearLayout(cv,gear,ringCfg);
+ assert(g.cx-g.diameter/2>=620);assert(g.right<=800);
+ assert(Math.abs(g.cy-(hud.layoutFor(ringCfg).barTop+hud.layoutFor(ringCfg).barBottom)/2)<1e-9,'gear and warning are centered beside the top RPM gauge');
+}
+for(const [rpm,expected] of [[0,'green'],[ringCfg.shiftRpm*0.7,'green'],[ringCfg.shiftRpm*0.85,'yellow'],[ringCfg.shiftRpm,'red']]) {
+ const a=hud.alertState(Object.assign({},ringBase,{rpm,shift:rpm>=ringCfg.shiftRpm}));assert.strictEqual(a.stage,expected);
+}
+const first=ringCfg.shiftRpm*(0.65+0.35/12);
+assert(!hud.alertState(Object.assign({},ringBase,{rpm:first-0.01,shift:false})).visible);
+assert(hud.alertState(Object.assign({},ringBase,{rpm:first+0.01,shift:false})).visible);
+const g=hud.gearLayout(new(require(path.join(dir,'kit/canvas')).Canvas)(800,240),'M1',ringCfg);
+const x=Math.round(g.cx+g.diameter/2-1.5),y=Math.round(g.cy);
+const idle=hud.draw(Object.assign({},ringBase,{rpm:700}));assert.strictEqual(px(idle,x,y)[3],0);
+const redOn=hud.draw(Object.assign({},ringBase,{rpm:6000,shift:true,flash:true}));
+const redOff=hud.draw(Object.assign({},ringBase,{rpm:6000,shift:true,flash:false}));
+assert(px(redOn,x,y)[0]>220);assert.strictEqual(px(redOff,x,y)[3],0);
+assert(px(redOn,Math.round(g.cx),Math.round(g.cy))[0]>220,'the entire circle is filled');
+assert.strictEqual(px(redOff,Math.round(g.cx),Math.round(g.cy))[3],0,'the filled warning also fully erases during its blink');
+reconstruct(redOn,redOff,hud);
+for(const hudAlertStyle of ['bar','circle'])for(const hudAuxDisplay of ['gauges','values','off']) {
+ const s=Object.assign({},base,{config:settings({hudAlertStyle,hudAuxDisplay})});
+ const image=hud.draw(s);reconstruct(before,image,hud);
+ for(let yy=0;yy<10;yy++)for(let xx=0;xx<630;xx++)assert.strictEqual(px(image,xx,yy)[3],0,'no upper M');
+}
+for(const hudAlertStyle of ['bar','circle']) {
+ const cfg=settings({hudAlertStyle}),l=hud.layoutFor(cfg),quads=[];
+ const cv=new Canvas(800,240),quad=cv.quad.bind(cv);cv.quad=(p,c)=>{quads.push(p);return quad(p,c);};
+ hud.draw(Object.assign({},base,{config:cfg}),cv);
+ const gauge=quads.find(p=>Math.abs(p[0][1]-l.miniTop)<1e-6);
+ assert(gauge,'auxiliary gauge is drawn');
+ const width=Math.max.apply(null,gauge.map(p=>p[0]))-Math.min.apply(null,gauge.map(p=>p[0]));
+ assert(Math.abs(width-160*0.9)<1e-6,'gauge width shrinks by 10%');
+ assert(Math.abs(gauge[2][1]-gauge[0][1]-l.miniHeight*0.9)<1e-6,'gauge height shrinks by 10%');
+ assert(l.frameY-l.miniLabels>=12,'bottom M frame stays below scale labels');
+ assert(l.baseline<(hudAlertStyle==='circle'?180:204),'metrics are moved upward');
+ assert(l.frameY<232,'lower M frame is moved upward');
+}
+console.log('PASS: compact metrics, 90% auxiliary gauges, separated lower M, filled warning/aligned gear, blink erasure, palette and auxiliary modes across presets');

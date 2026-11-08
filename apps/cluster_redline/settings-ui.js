@@ -27,18 +27,25 @@ function options(item, cfg) {
         .map((v) => [v, v === 0 ? 'Preset default' : String(v) + ' ' + (item.unit || '')]);
 }
 class SettingsPage {
-    constructor(settings, changed, version) { this.settings = settings; this.changed = changed || (() => {}); this.version = version; this.tab = 0; this.focus = 0; this.open = null; this.choice = 0; this.layoutTarget = 'cluster'; this.layoutParam = 0; }
+    constructor(settings, changed, version) { this.settings = settings; this.changed = changed || (() => {}); this.version = version; this.tab = 0; this.focus = 0; this.open = null; this.choice = 0; this.layoutTarget = 'cluster'; this.layoutParam = 0; this.section=null;this.previewKey=null;this.preview=null; }
     config() {
         const raw = {}; this.settings.schema.forEach((s) => { raw[s.key] = this.settings.get(s.key); });
         return effective(raw);
     }
     keys() {
+        if(this.section==='hud')return ['hudAlertStyle','hudAuxDisplay'];
         if (!this.tab) return GROUPS[0];
         const prefix = this.settings.get('displayMode') === 'all' ? 'all' : 'sport';
         return ['displayMode', prefix+'HudOutput', prefix+'ClusterOutput', 'layout'];
     }
     item() { const key=this.keys()[this.focus]; return key==='layout'?LAYOUT_ITEM:this.settings.schema.find((s) => s.key === key); }
-    selectTab(index) { this.tab = index === 1 ? 1 : 0; this.focus = 0; this.open = null; this.changed(); }
+    selectTab(index) { this.tab = index === 1 ? 1 : 0; this.focus = 0; this.open = null; this.section=null;this.changed(); }
+    back() {
+        if(this.open)this.open=null;
+        else if(this.section==='hud'){this.section=null;this.focus=1;}
+        this.changed();
+    }
+    enterHUD() {this.section='hud';this.focus=0;this.open=null;this.changed();}
     move(delta) {
         if (this.open === 'layout') this.layoutParam = (this.layoutParam + delta + 4) % 4;
         else if (this.open) { const n = options(this.item(), this.config()).length; this.choice = (this.choice + delta + n) % n; }
@@ -95,7 +102,9 @@ class SettingsPage {
             cv.line(84, 95, 1536, 95, 1, '#71303a');
         }
         if (this.open === 'layout') this.drawLayout(cv, cfg, targets);
+        else if(this.open==='hudAlertStyle'||this.open==='hudAuxDisplay')this.drawHUDChoices(cv,cfg,targets);
         else if (this.open) this.drawChoices(cv, cfg, targets);
+        else if(this.section==='hud')this.drawHUDSettings(cv,cfg,targets);
         else {
             let y = 100;
             this.keys().forEach((key, i) => {
@@ -148,6 +157,56 @@ class SettingsPage {
         this.settings.set(key,Math.max(min,Math.min(max,cfg[key]+delta*step)));
         this.changed();
     }
+    previewHUD(cv,cfg,x,y,w) {
+        const s=w/HUD.W;
+        // The vehicle's native UI dialect does not support pixel-image ops.
+        // Record the real HUD painter as vector primitives instead.
+        const target={
+            text:(v,a,b,size,color,opt)=>cv.text(v,x+a*s,y+b*s,size*s,color,opt),
+            textWidth:(v,size,opt)=>cv.textWidth(v,size*s,opt)/s,
+            line:(a,b,c,d,width,color)=>cv.line(x+a*s,y+b*s,x+c*s,y+d*s,width*s,color),
+            quad:(points,color)=>cv.quad(points.map(p=>[x+p[0]*s,y+p[1]*s]),color),
+            arc:(a,b,r0,r1,start,end,color)=>cv.arc(x+a*s,y+b*s,r0*s,r1*s,start,end,color),
+            blit:(image,a,b)=>{
+                // The lower mark is only 54x17; tiny alpha rectangles retain
+                // its metallic shading without an unsupported image upload.
+                for(let row=0;row<image.h;row++)for(let col=0;col<image.w;col++){
+                    const p=(row*image.w+col)*4;if(!image.d[p+3])continue;
+                    cv.fillRect(x+(a+col)*s,y+(b+row)*s,s,s,Array.from(image.d.slice(p,p+4)));
+                }
+            }
+        };
+        const rpm=Math.round(cfg.shiftRpm*0.92/10)*10;
+        HUD.draw({config:cfg,rpm,gear:'M3',shift:false,flash:true,torqueNm:cfg.torqueScale*0.6,powerPS:cfg.powerScale*0.6,torquePeak:cfg.torqueScale*0.75,powerPeak:cfg.powerScale*0.75},target);
+    }
+    drawHUDSettings(cv,cfg,targets) {
+        this.keys().forEach((key,i)=>{
+            const item=this.settings.schema.find(s=>s.key===key),y=110+i*72,on=this.focus===i;
+            if(on)cv.gradientRect(78,y,1460,70,[[0,'#30131a'],[1,'#090b0e']]);
+            cv.text(item.label,100,y+46,34,'#f3f5f7');
+            cv.text(this.value(item,cfg),1482,y+46,32,'#c1cddd',{align:'right'});
+            cv.line(84,y+71,1536,y+71,0.6,'#292d34');
+            targets.push({x:78,y,w:1460,h:70,act:()=>this.activate(i)});
+        });
+        cv.text('HUD preview',100,282,26,'#b8c5d4');this.previewHUD(cv,cfg,100,292,700);
+        cv.roundRect(1210,448,326,64,8,'#252a31');cv.text('Back',1373,492,32,'#b2c2d4',{align:'center'});
+        targets.push({x:1210,y:448,w:326,h:64,act:()=>this.back()});
+    }
+    drawHUDChoices(cv,cfg,targets) {
+        const item=this.item(),list=options(item,cfg),gap=16,width=(1452-gap*(list.length-1))/list.length;
+        cv.text(item.label,100,126,32,'#ef4050');
+        list.forEach((o,i)=>{
+            const x=84+i*(width+gap),on=i===this.choice;
+            cv.roundRect(x,148,width,72,8,on?'#57202d':'#252a31');
+            cv.text(o[1],x+width/2,195,32,'#f4f6fa',{align:'center'});
+            if(o[0]===this.settings.get(item.key))cv.line(x+22,215,x+width-22,215,3,'#ff9e36');
+            targets.push({x,y:148,w:width,h:72,act:()=>this.choose(i)});
+        });
+        const preview=Object.assign({},cfg);preview[item.key]=list[this.choice][0];
+        cv.text('HUD preview',100,258,26,'#b8c5d4');this.previewHUD(cv,preview,100,270,800);
+        cv.roundRect(1210,448,326,64,8,'#252a31');cv.text('Back',1373,492,32,'#b2c2d4',{align:'center'});
+        targets.push({x:1210,y:448,w:326,h:64,act:()=>this.back()});
+    }
     drawLayout(cv,cfg,targets) {
         const button=(label,x,y,w,h,act,on)=>{
             cv.roundRect(x,y,w,h,8,on?'#57202d':'#252a31');
@@ -197,6 +256,10 @@ class SettingsPage {
             if (selected) cv.text('Selected', 1500, y + 46, 26, '#ff9e36', { align: 'right' });
             targets.push({ x: 78, y, w: 1460, h: 70, act: () => this.choose(i) });
         });
+        if(/^(sport|all)HudOutput$/.test(item.key)) {
+            cv.roundRect(84,448,520,64,8,'#252a31');cv.text('HUD appearance',344,492,32,'#f3f5f7',{align:'center'});
+            targets.push({x:84,y:448,w:520,h:64,act:()=>this.enterHUD()});
+        }
         cv.roundRect(1210, 448, 326, 64, 8, '#252a31');
         cv.text('Back', 1373, 492, 32, '#b2c2d4', { align: 'center' });
         targets.push({ x: 1210, y: 448, w: 326, h: 64, act: () => { this.open = null; this.changed(); } });

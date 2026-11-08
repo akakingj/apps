@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Independent stock/Redline cluster and HUD outputs, adjustable placement and native-guidance priority",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
@@ -50,6 +50,13 @@
       "_methods": [
         "getViewConfig",
         "getViewContent"
+      ]
+    },
+    "de.bmw.infotainment.navigation.guiding.GuidanceEventList": {
+      "_optional": "Read-only current route event query for combined phone navigation and Redline HUD; missing events preserve stock HUD guidance",
+      "_instances": "Main_Instance",
+      "_methods": [
+        "queryContent"
       ]
     }
   },
@@ -417,6 +424,44 @@
       "type": "number",
       "default": 100,
       "unit": "%",
+      "hidden": true
+    },
+    {
+      "key": "hudAlertStyle",
+      "label": "HUD shift alert",
+      "type": "choice",
+      "default": "bar",
+      "options": [
+        [
+          "bar",
+          "Top alert bar"
+        ],
+        [
+          "circle",
+          "Circle beside gear"
+        ]
+      ],
+      "hidden": true
+    },
+    {
+      "key": "hudAuxDisplay",
+      "label": "HUD torque / power",
+      "type": "choice",
+      "default": "gauges",
+      "options": [
+        [
+          "gauges",
+          "Gauges"
+        ],
+        [
+          "values",
+          "Values only"
+        ],
+        [
+          "off",
+          "Off"
+        ]
+      ],
       "hidden": true
     }
   ],

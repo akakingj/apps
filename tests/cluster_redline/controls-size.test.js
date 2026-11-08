@@ -96,5 +96,16 @@ try {
     }
     tapBar('BTN_NEXT'); tapBar('BTN_NEXT'); assert.strictEqual(page.focus, 2);
     tapBar('BTN_VALUE_UP'); assert.strictEqual(values.engineProfile, 'diesel');
-    console.log('PASS: real compositor has 28px tabs, 34px rows, four 80px bottom buttons, bounded large targets and working tab/list/footer touches');
+    page.selectTab(1);page.activate(1);render();
+    tapLogical(display.pageTargets.find(r=>r.x===84&&r.y===448&&r.w===520));assert.strictEqual(page.section,'hud');
+    page.activate(0);page.move(1);render();
+    assert(calls.some(c=>c.value===String(Math.round(page.config().shiftRpm*0.92/10)*10)&&c.size>50));
+    const nativeFrame=page.draw(display.canvas(1600,520));
+    assert.strictEqual(nativeFrame.images.size,0,'HUD previews must not request unsupported native pixel-image operations');
+    tapLogical(display.pageTargets.find(r=>r.x>800&&r.y===148));assert.strictEqual(values.hudAlertStyle,'circle');
+    save('settings-hud-alert-full');
+    page.activate(1);render();tapLogical(display.pageTargets.find(r=>r.x>500&&r.x<1100&&r.y===148));
+    assert.strictEqual(values.hudAuxDisplay,'values');save('settings-hud-values-full');
+    tapLogical(display.pageTargets.find(r=>r.x===1210&&r.y===448));assert.strictEqual(page.section,null);
+    console.log('PASS: real compositor tabs/large controls, native vector HUD preview without image ops, touch choices and back navigation');
 } finally { Recorder.prototype.text = oldText; }

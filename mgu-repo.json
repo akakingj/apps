@@ -40,7 +40,7 @@
       "kind": "app",
       "path": "apps/cluster_redline",
       "title": "계기판 레드라인 (한국어)",
-      "description": "기존 HUD 안내 뷰의 회전 정보 읽기·합성 시도 · 실차 확인 전",
+      "description": "HUD 원형/상단 변속 알림 · 토크·마력 표시 선택 · 길안내 합성 · 클러스터 렌더러 필요",
       "mguHmi": [
         "ID7"
       ],
@@ -112,7 +112,7 @@
       "kind": "app",
       "path": "store/apps/cluster_redline_en",
       "title": "Cluster Redline (English)",
-      "description": "Read existing HUD view maneuvers for Redline composition; vehicle verification pending",
+      "description": "HUD bar/filled-circle shift alerts, gauge/value modes and turn composition; Cluster renderer required",
       "mguHmi": [
         "ID7"
       ],

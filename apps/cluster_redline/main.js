@@ -72,8 +72,8 @@ mgu.run({ async start(ctx) {
             const cv = page.draw(ctx.canvas(W, H), status);
             page.targets = cv.targets;
             await Promise.all([
-                ctx.ui.text('BTN_VALUE_DOWN', page.open && page.open !== 'layout' ? 'Back' : 'Value -'),
-                ctx.ui.text('BTN_VALUE_UP', page.open && page.open !== 'layout' ? 'Select' : 'Value +'),
+                ctx.ui.text('BTN_VALUE_DOWN', page.open && page.open !== 'layout' || page.section==='hud' ? 'Back' : 'Value -'),
+                ctx.ui.text('BTN_VALUE_UP', page.open && page.open !== 'layout' || page.section==='hud' ? 'Select' : 'Value +'),
             ]);
             await ctx.ui.image('MAIN_GFX', cv);
         } finally {
@@ -85,8 +85,8 @@ mgu.run({ async start(ctx) {
     ctx.ui.onClick('BTN_ADVANCED', () => page.selectTab(1));
     ctx.ui.onClick('BTN_PREVIOUS', () => page.move(-1));
     ctx.ui.onClick('BTN_NEXT', () => page.move(1));
-    ctx.ui.onClick('BTN_VALUE_DOWN', () => { if (page.open === 'layout') page.change(-1); else if (page.open) { page.open = null; render().catch(report); } else page.change(-1); });
-    ctx.ui.onClick('BTN_VALUE_UP', () => page.open && page.open !== 'layout' ? page.choose(page.choice) : page.change(1));
+    ctx.ui.onClick('BTN_VALUE_DOWN', () => { if (page.open === 'layout') page.change(-1); else if (page.open||page.section==='hud')page.back(); else page.change(-1); });
+    ctx.ui.onClick('BTN_VALUE_UP', () => page.open && page.open !== 'layout' ? page.choose(page.choice) : page.section==='hud'?page.activate():page.change(1));
     // Native RHMI bar buttons remain usable without a GPU/touch renderer.
     ctx.onTap((x, y) => {
         const target = (page.targets || []).find((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);

@@ -51,6 +51,9 @@ for suffix in ('', '-ko.1'):
         hud = manifest['proxies']['de.bmw.infotainment.navigation.guiding.GuidanceRenderedContent']
         assert hud['instances']=='Main_Instance' and hud['attributes']=={'registeredViews':'r'}
         assert hud['methods']==['getViewConfig','getViewContent']
+        events = manifest['proxies']['de.bmw.infotainment.navigation.guiding.GuidanceEventList']
+        assert events['instances']=='Main_Instance' and events['methods']==['queryContent']
+        assert not events.get('attributes') and not events.get('broadcasts')
         assert manifest['proxies'][iface]['attributes'][field] == 's', str(package)
         assert manifest['proxies'][nav]['instances'] == 'Main_Instance', str(package)
         assert all(manifest['proxies'][nav]['attributes'][key]=='rs' for key in ['guidanceState','guidingProvider','conclusiveDart']), str(package)

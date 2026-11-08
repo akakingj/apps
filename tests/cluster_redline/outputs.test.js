@@ -53,4 +53,14 @@ for(const mode of [5,'COMFORT_PLUS','ECO_PRO_INDIVIDUAL']){
  assert(!state.requested&&c.active.size===0);
  o.close();
 }
-console.log('PASS: independent outputs, all-mode Comfort/Eco support, shared budget, live placement and release');
+{
+ const c=new Client(),drawn=[];
+ const painter={W:800,H:240,draw:s=>{drawn.push([s.config.hudAlertStyle,s.config.hudAuxDisplay]);return {d:Buffer.from([drawn.length,0,0,255])};},difference:(a,b)=>({rects:[{x:0,y:0,w:1,h:1}],pixels:b})};
+ const o=new Outputs(c,cluster,painter),cfg={sportClusterOutput:'stock',sportHudOutput:'redline'};
+ o.policy.modeSample(1,0);o.policy.rpmSample(4000,1000);o.tick(1000,cfg);
+ const ref=o.hud.ref;o.tick(1300,Object.assign({},cfg,{hudAlertStyle:'circle'}));
+ o.tick(1600,Object.assign({},cfg,{hudAlertStyle:'circle',hudAuxDisplay:'values'}));
+ assert.deepStrictEqual(drawn,[['bar','gauges'],['circle','gauges'],['circle','values']],'style changes repaint even when RPM and telemetry are unchanged');
+ assert.strictEqual(o.hud.ref,ref,'appearance changes reuse the existing HUD layer');o.close();
+}
+console.log('PASS: independent outputs, all-mode support, shared budget, live appearance/placement changes and release');

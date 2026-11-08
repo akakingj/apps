@@ -118,11 +118,34 @@ OPTIONAL_PROJECTION_MARKER = '// Jam optional projection managers v4'
 
 
 OPTIONAL_HUD_MARKER = '// Jam optional HUD rendered guidance v5'
+OPTIONAL_ROUTE_EVENTS_MARKER = '// Jam optional route events query v6'
+
+
+def optional_route_events_source(text):
+    if OPTIONAL_ROUTE_EVENTS_MARKER in text:
+        return text
+    addition = r"""        // Jam optional route events query v6
+        const eventList = "de.bmw.infotainment.navigation.guiding.GuidanceEventList";
+        if (opt[eventList] && m.proxies[eventList]) {
+            const definition = have[eventList], named = all.instanceIDs && all.instanceIDs[eventList];
+            const method = definition && definition.methods && definition.methods.queryContent;
+            if (!definition || definition.serviceId !== 64283 || !definition.version || definition.version.major !== 5 ||
+                !named || named.Main_Instance !== 128 || !method || method.methodId !== 4) {
+                missing[eventList] = opt[eventList]; delete m.proxies[eventList];
+            } else {
+                m.proxies[eventList].attributes = {};
+                m.proxies[eventList].methods = ["queryContent"];
+                m.proxies[eventList].instances = "Main_Instance";
+                delete m.proxies[eventList].broadcasts;
+            }
+        }
+"""
+    return replace_once(text, '        // Jam optional guidance field persistence v3', addition + '        // Jam optional guidance field persistence v3')
 
 
 def optional_hud_source(text):
     if OPTIONAL_HUD_MARKER in text:
-        return text
+        return optional_route_events_source(text)
     addition = r"""        // Jam optional HUD rendered guidance v5
         const hudName = "de.bmw.infotainment.navigation.guiding.GuidanceRenderedContent";
         if (opt[hudName] && m.proxies[hudName]) {
@@ -141,7 +164,7 @@ def optional_hud_source(text):
             }
         }
 """
-    return replace_once(text, '        // Jam optional guidance field persistence v3', addition + '        // Jam optional guidance field persistence v3')
+    return optional_route_events_source(replace_once(text, '        // Jam optional guidance field persistence v3', addition + '        // Jam optional guidance field persistence v3'))
 
 def optional_guidance_source(text):
     text = _optional_guidance_source_v3(text)

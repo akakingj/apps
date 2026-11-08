@@ -27,5 +27,15 @@ try{
   for(const label of labels)for(const ch of label.value)if(/[가-힣]/.test(ch))assert(atlas[ch.charCodeAt(0)],'missing glyph '+ch);
   for(const text of ['Stock display','Position / size','HUD display'])assert.notStrictEqual(t(text),text);
  }
- console.log('PASS: requested basic/advanced groups, 5500 default, independent mode choices, large layout controls, bounds and bilingual glyphs');
+ page.selectTab(1);page.activate(1);cv=page.draw(new Canvas(1600,520));
+ cv.targets.find(r=>r.x===84&&r.y===448&&r.w===520).act();assert.strictEqual(page.section,'hud');
+ assert.deepStrictEqual(page.keys(),['hudAlertStyle','hudAuxDisplay']);
+ page.activate(0);page.move(1);cv=page.draw(new Canvas(1600,520));assert.strictEqual(page.choice,1);
+ assert(labels.some(l=>l.value==='5060'&&l.size>50),'choice preview includes enlarged real RPM digits');
+ cv.targets.find(r=>r.x>800&&r.y===148).act();assert.strictEqual(values.hudAlertStyle,'circle');assert.strictEqual(page.open,null);
+ page.activate(1);page.choose(1);assert.strictEqual(values.hudAuxDisplay,'values');
+ page.activate(1);page.choose(2);assert.strictEqual(values.hudAuxDisplay,'off');
+ cv=page.draw(new Canvas(1600,520));cv.targets.find(r=>r.x===1210&&r.y===448).act();assert.strictEqual(page.section,null);
+ for(const r of cv.targets)assert(r.x>=0&&r.y>=0&&r.x+r.w<=1600&&r.y+r.h<=520);
+ console.log('PASS: requested groups, bilingual glyphs, HUD appearance choices with real RPM preview, saved styles/aux modes and back navigation');
 }finally{Canvas.prototype.text=original}

@@ -20,7 +20,8 @@ const DEFAULTS = { appEnabled: true, autoStart: true, engineProfile: 'petrol', d
 Object.assign(DEFAULTS, { sportClusterOutput: 'redline', sportHudOutput: 'stock', allClusterOutput: 'redline', allHudOutput: 'stock',
     clusterOffsetX: 0, clusterOffsetY: 0, clusterWidthScale: 80, clusterHeightScale: 80,
     hudOffsetX: 0, hudOffsetY: -100, hudWidthScale: 75, hudHeightScale: 75,
-    hudNavigationEnabled: true, hudNavOffsetX: 0, hudNavOffsetY: 0, hudNavWidthScale: 100, hudNavHeightScale: 100 });
+    hudNavigationEnabled: true, hudNavOffsetX: 0, hudNavOffsetY: 0, hudNavWidthScale: 100, hudNavHeightScale: 100,
+    hudAlertStyle: 'bar', hudAuxDisplay: 'gauges' });
 const MODES = { 1: 'SPORT', 2: 'SPORT_PLUS', 3: 'SPORT_INDIVIDUAL', 4: 'COMFORT', 5: 'COMFORT_PLUS',
     6: 'COMFORT_INDIVIDUAL', 7: 'ECO_PRO', 8: 'ECO_PRO_PLUS', 9: 'ECO_PRO_INDIVIDUAL', 10: 'ADAPTIVE',
     SPORT_DYNAMIC: 'SPORT', SPORT_EXPERT: 'SPORT_PLUS', SPORT_INDIVIDUAL: 'SPORT_INDIVIDUAL',
@@ -38,6 +39,8 @@ function settings(raw) {
     else if (raw.autoSport === false) out.appEnabled = false;
     if (typeof raw.autoStart === 'boolean') out.autoStart = raw.autoStart;
     if (typeof raw.hudNavigationEnabled === 'boolean') out.hudNavigationEnabled = raw.hudNavigationEnabled;
+    if (['bar','circle'].indexOf(raw.hudAlertStyle)>=0) out.hudAlertStyle=raw.hudAlertStyle;
+    if (['gauges','values','off'].indexOf(raw.hudAuxDisplay)>=0) out.hudAuxDisplay=raw.hudAuxDisplay;
     if (['sport', 'all'].indexOf(raw.displayMode) >= 0) out.displayMode = raw.displayMode;
     if (['PS', 'kW'].indexOf(raw.powerUnit) >= 0) out.powerUnit = raw.powerUnit;
     if (['Nm', 'kgfm'].indexOf(raw.torqueUnit) >= 0) out.torqueUnit = raw.torqueUnit;
