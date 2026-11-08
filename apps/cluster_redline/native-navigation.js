@@ -1,6 +1,7 @@
 'use strict';
 // Read-only decoding of the vehicle's Guidance schema. No destinations or coordinates.
 const TTL_MS=5000;
+const {summarize}=require('./navigation-input');
 const DIRECTIONS=['NONE','STRAIGHT_ON','LEFT','SLIGHT_LEFT','HARD_LEFT','RIGHT','SLIGHT_RIGHT','HARD_RIGHT','UTURN_RIGHT','UTURN_LEFT'];
 const PROVIDERS=['NONE','CAR_PLAY','ANDROID_AUTO','CAR_LIFE','OTHER'];
 const STATES=['INACTIVE','CALCULATING_ROUTE','ACTIVE'];
@@ -67,7 +68,7 @@ class NativeNavigation {
     constructor(ttl) { this.ttl=typeof ttl==='number'&&isFinite(ttl)&&ttl>0?ttl:TTL_MS;this.clear(); }
     clearGuidance() {
         this.state=null;this.provider=null;this.dart=null;
-        this.stateAt=this.providerAt=this.dartAt=null;this.dartDetail='not_received';this.dartKind=null;
+        this.stateAt=this.providerAt=this.dartAt=null;this.dartDetail='not_received';this.dartKind=null;this.inputSummary=null;this.inputAt=null;
     }
     clear() {
         this.clearGuidance();this.projections={};
@@ -78,7 +79,7 @@ class NativeNavigation {
     clock(now) { return typeof now==='number'&&isFinite(now)&&now>=0; }
     fresh(at,now) { return this.clock(now)&&at!==null&&now>=at&&now-at<=this.ttl; }
     phone(provider) { return provider==='ANDROID_AUTO'||provider==='CAR_PLAY'; }
-    invalidate(reason) { this.dart=null;this.dartAt=null;this.dartDetail=reason;this.dartKind=null; }
+    invalidate(reason) { this.dart=null;this.dartAt=null;this.dartDetail=reason;this.dartKind=null;this.inputSummary=null;this.inputAt=null; }
     phoneActive(provider,now) {
         const p=this.projections[provider];
         return !!(p&&p.available===true&&p.active===true&&this.fresh(p.activeAt,now));
@@ -151,19 +152,21 @@ class NativeNavigation {
             const kinds=union?Object.keys(union).filter(k=>union[k]!==undefined&&union[k]!==null):[];
             this.dartKind=kinds.length===1&&kinds[0].length<=64?kinds[0]:null;
             const decoded=decodeDart(value),ctx=this.context(now,true);
+            this.inputSummary=ctx.active?summarize(value):null;this.inputAt=this.inputSummary?now:null;
             this.dart=ctx.active?decoded:null;this.dartAt=this.dart?now:null;
             this.dartDetail=this.dart?'decoded':decoded?ctx.reason:dartFailure(value);
         }
     }
     read(now,available) {
         const ctx=this.context(now,available);
+        const input=ctx.active&&this.fresh(this.inputAt,now)?this.inputSummary:null;
         if(!ctx.active) {
             if(this.dart)this.invalidate(ctx.reason);
             return Object.assign({visible:false,provider:this.provider,maneuver:null,distanceText:null,exitNumber:null,detail:this.dartDetail,kind:this.dartKind},ctx);
         }
-        if(this.dart&&this.fresh(this.dartAt,now))return Object.assign({visible:true,reason:'navigation_ready',provider:this.provider,ageMs:now-this.dartAt,active:true,known:true,needsStock:true},this.dart);
+        if(this.dart&&this.fresh(this.dartAt,now))return Object.assign({visible:true,reason:'navigation_ready',provider:this.provider,ageMs:now-this.dartAt,active:true,known:true,needsStock:true,input},this.dart);
         if(this.dart)this.invalidate('maneuver_stale');
-        return {visible:false,reason:'navigation_maneuver_unknown',provider:this.provider,maneuver:null,distanceText:null,exitNumber:null,detail:this.dartDetail,kind:this.dartKind,active:true,known:true,needsStock:true};
+        return {visible:false,reason:'navigation_maneuver_unknown',provider:this.provider,maneuver:null,distanceText:null,exitNumber:null,detail:this.dartDetail,kind:this.dartKind,active:true,known:true,needsStock:true,input};
     }
 }
 module.exports={NativeNavigation,decodeDart,distanceText,TTL_MS,DIRECTIONS,PROVIDERS};

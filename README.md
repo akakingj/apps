@@ -1,6 +1,6 @@
 # iDrive 7 Jam Apps
 
-Cluster Redline **1.0.7** adds separate run/auto-start controls, smoother RPM colours, revised cluster gauges and additional HUD guidance types. [Release notes](docs/CLUSTER-REDLINE-1.0.7.ko.md).
+Cluster Redline **1.0.8** adds bounded HUD navigation icon/distance diagnostics; navigation coexistence is still under investigation. [Notes](docs/CLUSTER-REDLINE-1.0.8.ko.md).
 
 Cluster Redline **1.0.5** fixes guidance reads discarded by repeated status notifications and old reads overwriting newer arrows. [Fix notes](docs/CLUSTER-REDLINE-1.0.5.ko.md).
 

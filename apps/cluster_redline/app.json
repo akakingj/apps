@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Independent stock/Redline cluster and HUD outputs, adjustable placement and native-guidance priority",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
