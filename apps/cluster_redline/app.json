@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Independent stock/Redline cluster and HUD outputs, adjustable placement and native-guidance priority",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
@@ -42,6 +42,15 @@
       "_instances": "CarPlayManagerInst1",
       "projectedGuidanceActive": "rs",
       "projectedGuidanceMetadataAvailable": "rs"
+    },
+    "de.bmw.infotainment.navigation.guiding.GuidanceRenderedContent": {
+      "_optional": "Read existing HUD guidance events only; unavailable views preserve stock HUD guidance",
+      "_instances": "Main_Instance",
+      "registeredViews": "r",
+      "_methods": [
+        "getViewConfig",
+        "getViewContent"
+      ]
     }
   },
   "screens": [

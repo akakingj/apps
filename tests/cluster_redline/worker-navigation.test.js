@@ -7,6 +7,7 @@ const { Outputs } = require('../../apps/cluster_redline/outputs');
 const policy = require('../../apps/cluster_redline/policy');
 const guidance = require('../../apps/cluster_redline/guidance');
 const {PROJECTED}=require('../../apps/cluster_redline/projection-config');
+const {INTERFACE:HUD_GUIDANCE}=require('../../apps/cluster_redline/hud-guidance-config');
 const source = fs.readFileSync(path.join(__dirname, '../../apps/cluster_redline/worker.js'), 'utf8');
 const CDS = 'de.bmw.infotainment.vehicle.CDS', FES = 'de.bmw.infotainment.drivingexcitement.FES';
 const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
@@ -45,6 +46,7 @@ function harness(options) {
         if (name === './guidance') return guidance;
         if(name === './native-navigation')return require('../../apps/cluster_redline/native-navigation');
         if(name === './projection-config')return {PROJECTED};
+        if(name === './hud-guidance')return require('../../apps/cluster_redline/hud-guidance');
         if (name === './gear') return require('../../apps/cluster_redline/gear');
         if (name === './renderer') return { inspect: () => ({ compatible: true, version: '0.4.0', hudGuidanceSafe: true }) };
         throw new Error('Unexpected dependency ' + name);
@@ -56,8 +58,14 @@ function harness(options) {
     vm.runInNewContext(source, box, { filename: 'worker.js' });
     const signals = {
         hasNative: () => true,
+        call(proxy,method,args,timeout){
+            assert(opt.renderedHUD);assert.strictEqual(args.viewId,'test-hud');assert.strictEqual(timeout,1000);
+            if(method==='getViewConfig')return Promise.resolve({GenericListError:0,configSequenceId:1,viewConfig:{targetUI:'HUD'}});
+            assert.strictEqual(method,'getViewContent');return Promise.resolve({GenericListError:0,viewContent:{configSequenceId:1,ramsesSceneId:123,type:{contentType:'HIGH_GUIDING'},associatedEvent:{intersection:{direction:'RIGHT',formattedDistance:{distance:'200',unit:'METER'}}}}});
+        },
         loadConfig(iface) {
             loads.push(iface);
+            if(opt.renderedHUD&&iface===HUD_GUIDANCE)return {fields:{registeredViews:{getter:{id:1}}},methods:{getViewConfig:{methodId:5},getViewContent:{methodId:3}}};
             if (iface === guidance.INTERFACE) {
                 if (opt.missing) throw new Error('guidance absent');
                 const fields={guidanceState:opt.definition===undefined?{getter:{id:3}}:opt.definition,guidingProvider:{getter:{id:27}}};
@@ -80,6 +88,8 @@ function harness(options) {
                     if (pollThrow) throw pollThrow;
                     const read = deferred(); polls.push(Object.assign(read, { field, timeout, at: time })); return read.promise;
                 }, setValue() { throw new Error('worker must not write native guidance'); }, callMethod() { throw new Error('worker must not control routing'); } };
+            } else if(iface===HUD_GUIDANCE){
+                assert.strictEqual(instance,'Main_Instance');sub.proxy={getValue:()=>Promise.resolve(['test-hud'])};
             } else if(Object.keys(PROJECTED).some(p=>PROJECTED[p].iface===iface)) {
                 const provider=Object.keys(PROJECTED).find(p=>PROJECTED[p].iface===iface);assert.strictEqual(instance,PROJECTED[provider].instance);
                 sub.proxy={getValue:(field)=>Promise.resolve(sub.phoneValues&&sub.phoneValues[field]===true)};
@@ -282,7 +292,21 @@ async function reportedProjectedGuidanceWithNativeInactive() {
         } finally {h.worker.stop();h.stopped();}
     }
 }
+async function actualHudViewFallback(){
+ const h=harness({withManeuvers:true,phoneStatus:true,renderedHUD:true});
+ const empty={maneuver:{pointOfInterest:{category:'SERVICE_AREA',formattedDistance:{distance:'',unit:'NONE'},serviceIconHandles:[]}}};
+ try{
+  await flush();h.navigate('INACTIVE');h.feeds[PROJECTED.ANDROID_AUTO.iface].projectedGuidanceActive(true);h.feeds[guidance.INTERFACE].guidingProvider('ANDROID_AUTO');h.feeds[guidance.INTERFACE].conclusiveDart(empty);
+  h.tick(1000);await flush();h.tick(1050);h.both();
+  assert.strictEqual(h.worker.controller.navigation.source,'hud_rendered_event');assert.strictEqual(h.worker.controller.navigation.maneuver,'RIGHT');
+  const ref=h.worker.controller.hud.ref;
+  h.feeds[guidance.INTERFACE].conclusiveDart(empty);h.tick(1100);h.both();
+  assert.strictEqual(h.worker.controller.hud.ref,ref,'common empty POI cannot repeatedly hide a valid HUD event');
+  h.feeds[PROJECTED.ANDROID_AUTO.iface].projectedGuidanceActive(false);h.tick(1150);h.both();assert(!h.worker.controller.navigation.visible);
+  h.feeds[PROJECTED.ANDROID_AUTO.iface].projectedGuidanceActive(true);h.tick(1200);assert.strictEqual(h.worker.controller.hud.ref,0,'new route waits for a fresh HUD view');
+ }finally{h.worker.stop();h.stopped();}
+}
 (async () => {
-    await reportedProjectedGuidanceWithNativeInactive();await repeatedNotificationsWhilePolling();await composedNavigation();await eventYield(); await optionalReadSafety(); await pollingAndRaces(); await providerReconnectRace(); await lateReadsAndSubscriptions();
+    await actualHudViewFallback();await reportedProjectedGuidanceWithNativeInactive();await repeatedNotificationsWhilePolling();await composedNavigation();await eventYield(); await optionalReadSafety(); await pollingAndRaces(); await providerReconnectRace(); await lateReadsAndSubscriptions();
     console.log('PASS: actual worker native-guidance getter gating/instance, immediate HUD-only yield, fresh recovery, optional/stale/provider safety, bounded polling, event/read/provider-reconnect races and complete late-work shutdown');
 })().catch(error => { console.error(error); process.exitCode = 1; });

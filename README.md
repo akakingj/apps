@@ -1,6 +1,6 @@
 # iDrive 7 Jam Apps
 
-Cluster Redline **1.0.8** adds bounded HUD navigation icon/distance diagnostics; navigation coexistence is still under investigation. [Notes](docs/CLUSTER-REDLINE-1.0.8.ko.md).
+Cluster Redline **1.0.9** tries a separate read-only HUD maneuver source when the common channel has an empty POI. Vehicle coexistence remains unverified. [Notes](docs/CLUSTER-REDLINE-1.0.9.ko.md).
 
 Cluster Redline **1.0.5** fixes guidance reads discarded by repeated status notifications and old reads overwriting newer arrows. [Fix notes](docs/CLUSTER-REDLINE-1.0.5.ko.md).
 

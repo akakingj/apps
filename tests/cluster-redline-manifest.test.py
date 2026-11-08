@@ -29,7 +29,7 @@ with tempfile.TemporaryDirectory(prefix='redline-manifest-') as temp:
             if key.startswith('_'):
                 continue
             definitions[key] = {'getter': {'id': 1}, 'notifier': {'id': 32769}}
-        catalog['interfaces'][name] = {'fields': definitions}
+        catalog['interfaces'][name] = {'fields': definitions, 'methods': {method: {'methodId': index+1} for index, method in enumerate(fields.get('_methods', []))}}
     # Matches the reported firmware: the S/M programme only notifies.
     del catalog['interfaces'][iface]['fields'][field]['getter']
     fixture = root / 'catalog.json'
@@ -48,6 +48,9 @@ for suffix in ('', '-ko.1'):
         package = project / 'dist' / ('cluster_redline@' + spec['version'] + suffix + '.' + extension)
         with tarfile.open(package) as archive:
             manifest = json.load(archive.extractfile(manifest_path))
+        hud = manifest['proxies']['de.bmw.infotainment.navigation.guiding.GuidanceRenderedContent']
+        assert hud['instances']=='Main_Instance' and hud['attributes']=={'registeredViews':'r'}
+        assert hud['methods']==['getViewConfig','getViewContent']
         assert manifest['proxies'][iface]['attributes'][field] == 's', str(package)
         assert manifest['proxies'][nav]['instances'] == 'Main_Instance', str(package)
         assert all(manifest['proxies'][nav]['attributes'][key]=='rs' for key in ['guidanceState','guidingProvider','conclusiveDart']), str(package)

@@ -40,7 +40,7 @@
       "kind": "app",
       "path": "apps/cluster_redline",
       "title": "계기판 레드라인 (한국어)",
-      "description": "1.0.7 UI 유지 · HUD 길안내 아이콘·거리 진단 추가 (동시 표시 확인용)",
+      "description": "기존 HUD 안내 뷰의 회전 정보 읽기·합성 시도 · 실차 확인 전",
       "mguHmi": [
         "ID7"
       ],
@@ -112,7 +112,7 @@
       "kind": "app",
       "path": "store/apps/cluster_redline_en",
       "title": "Cluster Redline (English)",
-      "description": "HUD navigation icon/distance diagnostics; retains1.0.7 UI (coexistence investigation)",
+      "description": "Read existing HUD view maneuvers for Redline composition; vehicle verification pending",
       "mguHmi": [
         "ID7"
       ],

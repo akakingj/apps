@@ -116,10 +116,37 @@ def _optional_guidance_source_v3(text):
 OPTIONAL_PROJECTION_MARKER = '// Jam optional projection managers v4'
 
 
+
+OPTIONAL_HUD_MARKER = '// Jam optional HUD rendered guidance v5'
+
+
+def optional_hud_source(text):
+    if OPTIONAL_HUD_MARKER in text:
+        return text
+    addition = r"""        // Jam optional HUD rendered guidance v5
+        const hudName = "de.bmw.infotainment.navigation.guiding.GuidanceRenderedContent";
+        if (opt[hudName] && m.proxies[hudName]) {
+            const definition = have[hudName], named = all.instanceIDs && all.instanceIDs[hudName];
+            const instance = named && named.Main_Instance;
+            const field = definition && definition.fields && definition.fields.registeredViews;
+            const methods = ["getViewConfig", "getViewContent"];
+            const valid = v => typeof v === "number" && isFinite(v) && Math.floor(v) === v && v > 0 && v < 0x8000;
+            if (!field || !field.getter || !valid(field.getter.id) || typeof instance !== "number" || !isFinite(instance) ||
+                Math.floor(instance) !== instance || instance < 0 || instance > 65535 ||
+                methods.some(n => !definition.methods || !definition.methods[n] || !valid(definition.methods[n].methodId))) {
+                missing[hudName] = opt[hudName]; delete m.proxies[hudName];
+            } else {
+                m.proxies[hudName].attributes = {registeredViews: "r"};
+                m.proxies[hudName].methods = methods;
+            }
+        }
+"""
+    return replace_once(text, '        // Jam optional guidance field persistence v3', addition + '        // Jam optional guidance field persistence v3')
+
 def optional_guidance_source(text):
     text = _optional_guidance_source_v3(text)
     if OPTIONAL_PROJECTION_MARKER in text:
-        return text
+        return optional_hud_source(text)
     projection = r"""        // Jam optional projection managers v4: named phone guidance inputs.
         // Keep this whitelist here; do not execute app-provided JS as root.
         const projected = [
@@ -154,7 +181,7 @@ def optional_guidance_source(text):
         });
 """
     anchor = '        // Jam optional guidance field persistence v3'
-    return replace_once(text, anchor, projection + anchor)
+    return optional_hud_source(replace_once(text, anchor, projection + anchor))
 
 
 def installer_source(text):

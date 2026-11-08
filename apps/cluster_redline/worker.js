@@ -13,6 +13,7 @@ const gear = require('./gear');
 const guidance = require('./guidance');
 const {NativeNavigation} = require('./native-navigation');
 const {PROJECTED} = require('./projection-config');
+const {HudGuidance,INTERFACE:HUD_GUIDANCE,INSTANCE:HUD_INSTANCE,METHODS:HUD_METHODS}=require('./hud-guidance');
 const CDS = 'de.bmw.infotainment.vehicle.CDS';
 const FES = 'de.bmw.infotainment.drivingexcitement.FES';
 const MODE_FIELD = 'statusFESVehicleDynamicSwitchHMI';
@@ -41,7 +42,8 @@ function start(ctx) {
     }
     function protectGuidance() {
         const now=mono(),m=maneuvers.read(now,true);
-        if((navigation.read(now,true).blocked||m.needsStock)&&!m.visible)controller.hud.hide();
+        const key=m.active&&m.known?navigationRevision+':'+m.provider:null;
+        if((navigation.read(now,true).blocked||m.needsStock)&&!m.visible&&!hudGuidance.read(now,key))controller.hud.hide();
     }
     function projectionSample(provider,field,value) {
         if(stopped)return;
@@ -54,6 +56,7 @@ function start(ctx) {
     let config = settings(), lastStatus = -Infinity, stopped = false, timer;
     let guidanceSub, lastGuidancePoll = -Infinity, guidancePending = false, navigationRevision = 0, nativeStatus = null;
     let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub, fesSub, programSub;
+    const hudGuidance=new HudGuidance(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const subs = [], errors = [];
     function keep(s) { if (stopped) s.shutdown(); else subs.push(s); }
     const reportError = (name, e) => { const s = name + ': ' + e; if (errors.indexOf(s) < 0) { errors.push(s); log.warn(s); } };
@@ -68,7 +71,7 @@ function start(ctx) {
         }
     });
     if (live) {
-        // Re-read getters even while values do not change. No set/call methods are used.
+        // Re-read live getters; only the optional HUD view reader uses read-only query methods.
         signals.watch(CDS, '1', {
             statusEngineSpeed2: (v) => {
                 const raw = v && v.actualValueRPMEngineCrankshaft;
@@ -132,9 +135,19 @@ function start(ctx) {
             }).catch((e)=>reportError(provider+' guidance status',e));
         });
     }
+    // Existing HUD views expose their actual associated event independently of
+    // the common conclusiveDart. No view is registered or configured here.
+    if(live)try {
+        const cfg=signals.loadConfig(HUD_GUIDANCE);
+        if(cfg.fields&&cfg.fields.registeredViews&&cfg.fields.registeredViews.getter&&
+            cfg.methods&&HUD_METHODS.every(name=>cfg.methods[name])&&typeof signals.call==='function') {
+            signals.watch(HUD_GUIDANCE,HUD_INSTANCE,{},log,{}).then(sub=>{keep(sub);hudGuidance.attach(sub);})
+                .catch(e=>reportError('optional HUD guidance',e));
+        }
+    }catch(e){ /* Optional interface absent: normal stock-guidance fallback. */ }
     function stop() {
         if (stopped) return;
-        stopped = true; clearTimeout(timer); controller.close();
+        stopped = true; clearTimeout(timer); hudGuidance.stop(); controller.close();
         process.removeListener('exit', stop);
         if (ctx.app && ctx.app.removeListener) ctx.app.removeListener('shutdown', stop);
         subs.forEach((s) => { try { s.shutdown(); } catch (e) {} });
@@ -204,7 +217,11 @@ function start(ctx) {
                 } catch(e) {guidancePending=false;navigation.clear();maneuvers.clear();controller.hud.hide();}
             }
             const navigationState=navigation.read(at,navigationAvailable);
-            const maneuverState=maneuvers.read(at,navigationAvailable);
+            const commonManeuver=maneuvers.read(at,navigationAvailable);
+            const hudKey=config.appEnabled&&config[(config.displayMode==='all'?'all':'sport')+'HudOutput']==='redline'&&config.hudNavigationEnabled&&commonManeuver.active&&commonManeuver.known?navigationRevision+':'+commonManeuver.provider:null;
+            hudGuidance.tick(at,hudKey);
+            const hudEvent=hudGuidance.read(at,hudKey);
+            const maneuverState=!commonManeuver.visible&&hudEvent?Object.assign({},hudEvent,{provider:commonManeuver.provider}):commonManeuver;
             controller.navigation=maneuverState;
             const composed=config.hudNavigationEnabled&&maneuverState.visible;
             controller.hudBlocked=rendererInfo.hudGuidanceSafe===false||((navigationState.blocked||maneuverState.needsStock)&&!composed);
@@ -218,7 +235,7 @@ function start(ctx) {
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
-                    outputs: state.outputs, navigation: navigationState, maneuver: maneuverState, projectedNavigation: maneuvers.projectedStatus(at),
+                    outputs: state.outputs, navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     navigationInputs: {fields:navigationFields.slice(),available:navigationAvailable,pending:guidancePending,reads:Object.assign({},navigationReadState),
                         agesMs:navigationFields.reduce((out,field)=>{out[field]=navigationSeenAt[field]===undefined?null:Math.max(0,at-navigationSeenAt[field]);return out;},{})}, nativeStatus: nativeStatus,
                     renderer: rendererInfo, rendererBackend: client.backend || null, rendererTargets: client.targets || '', requestedSettings: raw,

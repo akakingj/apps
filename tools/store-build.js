@@ -68,6 +68,7 @@ function filterOptionalProxies(manifest, catalog, optional) {
     if (optional && Object.keys(optional).some((name) => /\.(AndroidAutoProjectedManager|CarPlayManager)$/.test(name))) {
         require('../apps/cluster_redline/projection-config').filterProjections(manifest, catalog, optional);
     }
+    if(optional&&optional['de.bmw.infotainment.navigation.guiding.GuidanceRenderedContent'])require('../apps/cluster_redline/hud-guidance-config').filterRendered(manifest,catalog,optional);
     return manifest;
 }
 function build(options) {
