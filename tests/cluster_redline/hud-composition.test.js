@@ -9,7 +9,7 @@ const nav={visible:true,maneuver:'RIGHT',distanceText:'300 m',provider:'ANDROID_
 const off=paint.draw(base),on=paint.draw(Object.assign({},base,{navigation:nav}));
 assert(!Buffer.from(off.d).equals(Buffer.from(on.d)));
 const rect=placement(base.config,'hudNav',navPaint);
-assert.deepStrictEqual([rect.x,rect.y,rect.w,rect.h],[560,300,240,112]);
+assert.deepStrictEqual([rect.x,rect.y,rect.w,rect.h],[526,270,168,78]);
 function check(a,b) {const old=Buffer.from(a.d),next=Buffer.from(b.d),restored=Buffer.from(old),delta=paint.difference(old,next);let offset=0;for(const r of delta.rects){for(let y=r.y;y<r.y+r.h;y++){const n=r.w*4;delta.pixels.copy(restored,(y*paint.W+r.x)*4,offset,offset+n);offset+=n;}}assert(restored.equals(next));return delta;}
 const erased=check(on,off);assert(erased.rects.every(r=>r.y>=240),'clearing navigation must not rewrite RPM/gauges');
 for(const change of [{hudNavOffsetX:100},{hudNavOffsetY:-100},{hudNavWidthScale:150,hudNavHeightScale:150}]) {

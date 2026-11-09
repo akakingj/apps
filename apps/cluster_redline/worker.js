@@ -13,7 +13,8 @@ const gear = require('./gear');
 const guidance = require('./guidance');
 const {NativeNavigation} = require('./native-navigation');
 const {AuxInfo,SOURCES}=require('./aux-info');
-const {navAllowed}=require('./display-config');
+const {navAllowed,auxConfig,rpmOutput}=require('./display-config');
+const {BatteryVoltage}=require('./battery-voltage');
 const {PROJECTED} = require('./projection-config');
 const {HudGuidance,INTERFACE:HUD_GUIDANCE,INSTANCE:HUD_INSTANCE,METHODS:HUD_METHODS}=require('./hud-guidance');
 const {RouteEvents,INTERFACE:ROUTE_EVENTS,INSTANCE:ROUTE_INSTANCE,METHODS:ROUTE_METHODS}=require('./route-events');
@@ -33,7 +34,7 @@ function start(ctx) {
     const log = ctx.log, signals = ctx.signals;
     const client = new ClusterRender('cluster-redline'), controller = new Outputs(client, painter, hudPainter);
     const gearbox = new gear.GearState(), navigation = new guidance.GuidanceState(), maneuvers = new NativeNavigation();
-    const auxInfo=new AuxInfo(),auxSubs=[];
+    const auxInfo=new AuxInfo(),auxSubs=[],batteryVoltage=new BatteryVoltage(signals,log,mono);
     const projectionSubs={},projectionFields={},projectionPending={},projectionLastPoll={},projectionEpoch={},projectionEvents={};
     const navigationFields = [], lastNavigationValues = {}, navigationEventRevisions = {}, navigationSeenAt = {}, navigationReadState = {};
     function navigationSample(field,value,readState) {
@@ -174,7 +175,7 @@ function start(ctx) {
     }catch(e){ /* Optional query unavailable: retain the existing fallback. */ }
     function stop() {
         if (stopped) return;
-        stopped = true; clearTimeout(timer); hudGuidance.stop(); routeEvents.stop(); controller.close();
+        stopped = true; batteryVoltage.stop(); clearTimeout(timer); hudGuidance.stop(); routeEvents.stop(); controller.close();
         process.removeListener('exit', stop);
         if (ctx.app && ctx.app.removeListener) ctx.app.removeListener('shutdown', stop);
         subs.forEach((s) => { try { s.shutdown(); } catch (e) {} });
@@ -210,7 +211,9 @@ function start(ctx) {
                 Promise.resolve().then(()=>sub.proxy.getValue(source.field,1000)).then(value=>{
                     if(!stopped&&entry.epoch===epoch&&entry.revision===revision)auxInfo.sample(source,value,mono());
                 },()=>{if(!stopped&&entry.epoch===epoch&&entry.revision===revision)auxInfo.clearSource(source);}).then(()=>{entry.pending=false;});
-            });controller.aux=auxInfo.read(at);
+            });
+            const voltageWanted=live&&['hud','cluster'].some(d=>auxConfig(config[d+'AuxConfig']).mode!=='off'&&auxConfig(config[d+'AuxConfig']).items.includes('batteryVoltage')&&rpmOutput(config,d==='hud'?'Hud':'Cluster',controller.policy.mode));
+            batteryVoltage.tick(at,voltageWanted,controller.policy.rpm>0&&controller.policy.rpmAt!==null&&at-controller.policy.rpmAt<=2500);controller.aux=Object.assign(auxInfo.read(at),{batteryVoltage:batteryVoltage.read(at)});
             const navigationAvailable = !!(guidanceSub && guidanceSub.available === true && !guidanceSub.error);
             if (!navigationAvailable) { navigationRevision++; navigation.clear(); maneuvers.clearGuidance(); }
             Object.keys(PROJECTED).forEach((provider)=>{

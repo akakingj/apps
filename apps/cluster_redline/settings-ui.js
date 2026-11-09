@@ -32,7 +32,7 @@ class SettingsPage{
  back(){if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}else{this.open=null;this.draft=null;}this.changed();}
  move(delta){
   if(!this.open)this.focus=(this.focus+delta+this.keys().length)%this.keys().length;
-  else{const n=this.open==='layout'?this.layoutActions.length:this.open==='auxMode'||this.open==='design'?2:this.open==='auxSelect'?7:options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
+  else{const n=this.open==='layout'?this.layoutActions.length:this.open==='auxMode'||this.open==='design'?2:this.open==='auxSelect'?D.METRICS.length+1:options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
   this.changed();
  }
  value(item,cfg){
@@ -57,7 +57,7 @@ class SettingsPage{
  choose(index){
   if(this.open==='layout'){const a=this.layoutActions[index];if(a)a.act();return;}
   if(this.open==='auxMode'){this.draft={mode:index===1?'values':'gauges',items:[]};this.open='auxSelect';this.choice=0;this.changed();return;}
-  if(this.open==='auxSelect'){if(index===6)this.commitAux();else this.toggleMetric(D.METRICS[index]);return;}
+  if(this.open==='auxSelect'){if(index===D.METRICS.length)this.commitAux();else this.toggleMetric(D.METRICS[index]);return;}
   if(this.open==='design'){this.settings.set(this.display()+'AlertStyle',index===1?'circle':'bar');this.open=null;this.changed();return;}
   const list=options(this.item(),this.config());if(!list[index])return;
   this.settings.set(this.item().key,list[index][0]);if(this.item().key==='navDisplayMode')this.settings.set('hudNavigationEnabled',true);this.open=null;this.changed();
@@ -65,7 +65,7 @@ class SettingsPage{
  toggleMetric(id){if(!this.draft||!D.METRICS.includes(id))return;const a=this.draft.items,i=a.indexOf(id);if(i>=0)a.splice(i,1);else if(a.length<(this.draft.mode==='gauges'?2:4))a.push(id);this.changed();}
  commitAux(){if(!this.draft||!this.draft.items.length)return;this.settings.set(this.display()+'AuxConfig',JSON.stringify(this.draft));this.open=null;this.draft=null;this.changed();}
  button(cv,targets,label,x,y,w,h,act,on,id){
-  const layoutFocus=this.open==='layout'&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===6);
+  const layoutFocus=this.open==='layout'&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===D.METRICS.length);
   cv.roundRect(x,y,w,h,6,on||focused?'#57202d':'#252a31');if(layoutFocus&&/^part/.test(id||'')&&!on)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],2,'#9bacc4');let size=30;while(size>18&&cv.textWidth(t(label),size)>w-24)size--;
   if(label==='−'||label==='+'){cv.line(x+w/2-17,y+h/2,x+w/2+17,y+h/2,3,'#f3f5f7');if(label==='+')cv.line(x+w/2,y+h/2-17,x+w/2,y+h/2+17,3,'#f3f5f7');}
   else cv.text(label,x+w/2,y+h/2+size*0.36,size,'#f3f5f7',{align:'center',font:'bold'});targets.push({x,y,w,h,act,label,id:id||label});
@@ -116,17 +116,17 @@ class SettingsPage{
  }
  drawAuxSelect(cv,cfg,targets){
   const draft=this.draft,limit=draft.mode==='gauges'?2:4;cv.text(t(draft.mode==='gauges'?'Select gauges':'Select text items')+' (1–'+limit+')',100,128,32,'#ef4050',{literal:true});
-  D.METRICS.forEach((id,i)=>{const index=draft.items.indexOf(id),x=84+(i%3)*490,y=170+Math.floor(i/3)*104;
-   this.button(cv,targets,(index>=0?(index+1)+'. ':'')+t(D.LABELS[id]),x,y,464,80,()=>this.toggleMetric(id),index>=0,'metric-'+id);
+  D.METRICS.forEach((id,i)=>{const index=draft.items.indexOf(id),x=84+(i%3)*490,y=152+Math.floor(i/3)*82;
+   this.button(cv,targets,(index>=0?(index+1)+'. ':'')+t(D.LABELS[id]),x,y,464,70,()=>this.toggleMetric(id),index>=0,'metric-'+id);
   });
   cv.text('Selection order sets the left and right positions.',100,410,24,'#a8b6c8');
   this.button(cv,targets,'OK',84,448,326,64,()=>this.commitAux(),draft.items.length>0,'ok');this.backButton(cv,targets);
  }
  preview(cv,cfg,x,y,width,display){
   const painter=display==='cluster'?CLUSTER:HUD,clean=Object.assign({},cfg);
-  D.PARTS.forEach(p=>['OffsetX','OffsetY','WidthScale','HeightScale'].forEach(k=>{clean[display+p+k]=k.indexOf('Offset')===0?0:100;}));
+  D.PARTS.forEach(p=>['OffsetX','OffsetY','WidthScale','HeightScale'].forEach(k=>{clean[display+p+k]=D.defaults[display+p+k];}));
   const s=width/painter.W,state={config:clean,rpm:Math.round(cfg.shiftRpm*0.92/10)*10,gear:'M3',shift:false,flash:true,torqueNm:300,powerPS:180,torquePeak:380,powerPeak:220,aux:{boost:0.85,oil:95,outside:18,gforce:0.35,gLat:0.25,gLong:0.24}};
-  painter.draw(state,vector(cv,x,y,s));
+  const target=vector(cv,x,y,s);target.part=(cfg,d,name,bounds,paint)=>paint(vector(cv,x+(cfg[d+name+'OffsetX']||0)*s,y+(cfg[d+name+'OffsetY']||0)*s,s));painter.draw(state,target);
  }
  previewHUD(cv,cfg,x,y,width){this.preview(cv,cfg,x,y,width,'hud');}
  drawDesign(cv,cfg,targets){
@@ -136,36 +136,41 @@ class SettingsPage{
   });this.backButton(cv,targets);
  }
  drawColors(cv,cfg,targets){
-  [['gray','Light gray'],['white','White'],['blue','Blue']].forEach((o,i)=>{
+  [['gray','Gray'],['white','White'],['blue','Blue']].forEach((o,i)=>{
    const x=84+i*490;this.button(cv,targets,o[1],x,112,464,70,()=>this.choose(i),this.choice===i,'color'+i);
    NAV.draw({visible:true,maneuver:'RIGHT',color:o[0],distanceText:'300 m'},vector(cv,x+75,225,1.25));
   });this.backButton(cv,targets);
  }
  adjust(param,delta){
   this.layoutParam=param;const cfg=this.config(),nav=this.tab===3;
-  const prefix=nav?(this.layoutPart===1?'hudText':'hudNav'):this.display()+D.PARTS[this.layoutPart];
+  const prefix=nav?(this.layoutPart===1?'hudText':'hudNav'):this.display()+D.partsFor(this.display(),cfg)[this.layoutPart].key;
   if(param<2){const key=prefix+(param?'OffsetY':'OffsetX');this.settings.set(key,Math.max(-1000,Math.min(1000,cfg[key]+delta*10)));}
   else if(nav){const key=this.layoutPart===1?'hudTextScale':'navUniformScale';this.settings.set(key,Math.max(20,Math.min(200,cfg[key]+delta*5)));}
   else{const suffix=param===2?'WidthScale':'HeightScale',other=prefix+(param===2?'HeightScale':'WidthScale'),key=prefix+suffix;this.settings.set(key,Math.max(20,Math.ceil(cfg[other]/1.3/5)*5,Math.min(200,Math.floor(cfg[other]*1.3/5)*5,cfg[key]+delta*5)));}
   this.changed();
  }
  drawLayout(cv,cfg,targets){
-  const local=[],nav=this.tab===3,parts=nav?['Direction','Text']:D.PART_LABELS;
-  parts.forEach((name,i)=>this.button(cv,local,name,84+i*(nav?400:290),108,nav?380:274,64,()=>{this.layoutPart=i;this.choice=i;this.changed();},this.layoutPart===i,'part'+i));
-  const prefix=nav?(this.layoutPart===1?'hudText':'hudNav'):this.display()+D.PARTS[this.layoutPart];
-  cv.text('Position',100,220,30,'#b8c5d4');
-  const btn=(label,x,y,act,id)=>this.button(cv,local,label,x,y,110,66,act,false,id);
-  btn('Up',300,235,()=>this.adjust(1,-1),'up');btn('Left',170,315,()=>this.adjust(0,-1),'left');btn('Right',430,315,()=>this.adjust(0,1),'right');btn('Down',300,395,()=>this.adjust(1,1),'down');
+  const local=[],nav=this.tab===3,display=this.display(),parts=nav?[{key:'Direction',label:'Direction'},{key:'Text',label:'Text'}]:D.partsFor(display,cfg);
+  this.layoutPart=Math.min(this.layoutPart,parts.length-1);
+  parts.forEach((p,i)=>this.button(cv,local,p.label,84+(i%4)*368,98+Math.floor(i/4)*64,350,54,()=>{this.layoutPart=i;this.choice=i;this.changed();},this.layoutPart===i,'part'+i));
+  const selected=parts[this.layoutPart].key,prefix=nav?(this.layoutPart===1?'hudText':'hudNav'):display+selected;
+  cv.text('Position',100,245,30,'#b8c5d4');
+  const btn=(label,x,y,act,id)=>this.button(cv,local,label,x,y,110,58,act,false,id);
+  btn('Up',300,260,()=>this.adjust(1,-1),'up');btn('Left',170,330,()=>this.adjust(0,-1),'left');btn('Right',430,330,()=>this.adjust(0,1),'right');btn('Down',300,400,()=>this.adjust(1,1),'down');
   const rows=nav?['Size']:['Width','Height'];rows.forEach((label,i)=>{
-   const y=235+i*110,key=nav?(this.layoutPart===1?'hudTextScale':'navUniformScale'):prefix+(i?'HeightScale':'WidthScale');
+   const y=240+i*90,key=nav?(this.layoutPart===1?'hudTextScale':'navUniformScale'):prefix+(i?'HeightScale':'WidthScale');
    cv.text(label,790,y+20,28,'#b8c5d4');btn('−',1010,y+30,()=>this.adjust(i+2,-1),'size-minus'+i);btn('+',1140,y+30,()=>this.adjust(i+2,1),'size-plus'+i);cv.text(String(cfg[key])+' %',1500,y+75,32,'#f3f5f7',{align:'right',font:'num'});
   });
   let width,height;
   if(nav){const painter=this.layoutPart===1?NAV_TEXT:NAV,scale=cfg[this.layoutPart===1?'hudTextScale':'navUniformScale']/100;width=Math.min(800,Math.round(painter.W*scale));height=Math.min(480,Math.round(painter.H*scale));}
-  else{const display=this.display(),painter=display==='hud'?HUD:CLUSTER,b=measurePart(painter,{config:cfg,rpm:0,gear:this.liveState&&this.liveState.gear||'--'},display,D.PARTS[this.layoutPart],cv),r=placement(cfg,display==='hud'?'hud':cfg.displayTarget==='panel'?'panel':'map',painter);width=Math.round(b.w*cfg[prefix+'WidthScale']/100*r.w/painter.W);height=Math.round(b.h*cfg[prefix+'HeightScale']/100*r.h/painter.H);}
+  else{const painter=display==='hud'?HUD:CLUSTER,b=measurePart(painter,{config:cfg,rpm:0,gear:this.liveState&&this.liveState.gear||'--'},display,selected,cv)||{w:0,h:0},r=placement(cfg,display==='hud'?'hud':cfg.displayTarget==='panel'?'panel':'map',painter);width=Math.round(b.w*cfg[prefix+'WidthScale']/100*r.w/painter.W);height=Math.round(b.h*cfg[prefix+'HeightScale']/100*r.h/painter.H);}
   cv.text('X '+cfg[prefix+'OffsetX']+' · Y '+cfg[prefix+'OffsetY']+' · '+width+' × '+height+' px',84,500,23,'#ffad45',{literal:true});
-  cv.text(nav?'Width and height scale together.':'Width / height difference limited to 30%.',630,500,22,'#a8b6c8');
+  cv.text(nav?'Width and height scale together.':'Width / height difference limited to 30%.',790,440,18,'#a8b6c8');
+  if(!nav&&/^Mark/.test(selected)){
+   [['LineHidden','Hide line','Show line'],['Hidden','Hide M mark','Show M mark']].forEach((v,i)=>this.button(cv,local,cfg[prefix+v[0]]?v[2]:v[1],650+i*280,448,260,56,()=>{this.settings.set(prefix+v[0],!this.config()[prefix+v[0]]);this.changed();},cfg[prefix+v[0]],'toggle-'+v[0]));
+  }
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
+
 }
 module.exports={SettingsPage,GROUPS,TABS,options,W,H,MAP_WARNING,HUD_WARNING,RENDERER_NOTICE,WARNING:MAP_WARNING};

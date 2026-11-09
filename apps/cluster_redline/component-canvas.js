@@ -18,7 +18,7 @@ function part(cv,cfg,display,name,bounds,paint){
  if(typeof cv.part==='function'){cv.part(cfg,display,name,bounds,paint);return;}
  const prefix=display+name,x=cfg[prefix+'OffsetX']||0,y=cfg[prefix+'OffsetY']||0,sx=(cfg[prefix+'WidthScale']||100)/100,sy=(cfg[prefix+'HeightScale']||100)/100;
  if(!x&&!y&&sx===1&&sy===1){paint(cv);return;}
- const image=new Canvas(bounds.w,bounds.h);image.clear([0,0,0,0]);paint(translated(image,-bounds.x,-bounds.y));
+ const image=new Canvas(Math.ceil(bounds.w),Math.ceil(bounds.h));image.clear([0,0,0,0]);paint(translated(image,-bounds.x,-bounds.y));
  const r={x:Math.round(bounds.x+bounds.w*(1-sx)/2+x),y:Math.round(bounds.y+bounds.h*(1-sy)/2+y),w:Math.round(bounds.w*sx),h:Math.round(bounds.h*sy)};
  if(cv.d){blitScaled(cv,image,r);return;}
  // Native settings previews use default component transforms (no image opcode).

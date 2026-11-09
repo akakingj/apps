@@ -1,0 +1,646 @@
+[
+  {
+    "file": "hud-circle-ko.png",
+    "title": "hud / circle",
+    "language": "ko",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-circle-red-on-ko.png",
+    "title": "hud / circle / red on at 5650rpm",
+    "language": "ko",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-circle-red-off-ko.png",
+    "title": "hud / circle / red off at 5650rpm",
+    "language": "ko",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-bar-ko.png",
+    "title": "hud / bar",
+    "language": "ko",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-bar-red-on-ko.png",
+    "title": "hud / bar / red on at 5650rpm",
+    "language": "ko",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-bar-red-off-ko.png",
+    "title": "hud / bar / red off at 5650rpm",
+    "language": "ko",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "cluster-circle-ko.png",
+    "title": "cluster / circle",
+    "language": "ko",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-circle-red-on-ko.png",
+    "title": "cluster / circle / red on at 5650rpm",
+    "language": "ko",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-circle-red-off-ko.png",
+    "title": "cluster / circle / red off at 5650rpm",
+    "language": "ko",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-bar-ko.png",
+    "title": "cluster / bar",
+    "language": "ko",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-bar-red-on-ko.png",
+    "title": "cluster / bar / red on at 5650rpm",
+    "language": "ko",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-bar-red-off-ko.png",
+    "title": "cluster / bar / red off at 5650rpm",
+    "language": "ko",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "hud-gauges-boost-torque-ko.png",
+    "title": "hud / gauges boost, torque",
+    "language": "ko",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-gauges-power-oil-ko.png",
+    "title": "hud / gauges power, oil",
+    "language": "ko",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-gauges-gforce-outside-ko.png",
+    "title": "hud / gauges gforce, outside",
+    "language": "ko",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-gauges-batteryCharge-batteryVoltage-ko.png",
+    "title": "hud / gauges batteryCharge, batteryVoltage",
+    "language": "ko",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-gauges-economy-torque-ko.png",
+    "title": "hud / gauges economy, torque",
+    "language": "ko",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-values-four-ko.png",
+    "title": "hud / four text metrics",
+    "language": "ko",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "cluster-gauges-boost-torque-ko.png",
+    "title": "cluster / gauges boost, torque",
+    "language": "ko",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-gauges-power-oil-ko.png",
+    "title": "cluster / gauges power, oil",
+    "language": "ko",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-gauges-gforce-outside-ko.png",
+    "title": "cluster / gauges gforce, outside",
+    "language": "ko",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-gauges-batteryCharge-batteryVoltage-ko.png",
+    "title": "cluster / gauges batteryCharge, batteryVoltage",
+    "language": "ko",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-gauges-economy-torque-ko.png",
+    "title": "cluster / gauges economy, torque",
+    "language": "ko",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-values-four-ko.png",
+    "title": "cluster / four text metrics",
+    "language": "ko",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "settings-basic-ko.png",
+    "title": "basic settings",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-hud-ko.png",
+    "title": "hud settings",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-ko.png",
+    "title": "cluster settings",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-nav-ko.png",
+    "title": "nav settings",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-hud-metric-mode-ko.png",
+    "title": "Gauge / text selection",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-hud-metric-picker-ko.png",
+    "title": "Ordered metric selection; commit only by OK",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-hud-design-ko.png",
+    "title": "RPM design selection",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-hud-position-circle-ko.png",
+    "title": "hud component positioning / circle",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-hud-position-bar-ko.png",
+    "title": "hud component positioning / bar",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-hud-mark-ko.png",
+    "title": "M placement and independent line/M visibility",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-metric-mode-ko.png",
+    "title": "Gauge / text selection",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-metric-picker-ko.png",
+    "title": "Ordered metric selection; commit only by OK",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-design-ko.png",
+    "title": "RPM design selection",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-position-circle-ko.png",
+    "title": "cluster component positioning / circle",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-position-bar-ko.png",
+    "title": "cluster component positioning / bar",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-marktop-ko.png",
+    "title": "M placement and independent line/M visibility",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-markbottom-ko.png",
+    "title": "M placement and independent line/M visibility",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-nav-colors-ko.png",
+    "title": "Gray / white / blue",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-nav-direction-ko.png",
+    "title": "Direction offset (210,30), size 168×78",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-nav-text-ko.png",
+    "title": "Text offset (180,10), size 156×31",
+    "language": "ko",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "navigation-directions-ko.png",
+    "title": "Supported maneuver symbols; roundabout exit number is example data",
+    "language": "ko",
+    "width": 960,
+    "height": 640
+  },
+  {
+    "file": "navigation-highway-ko.png",
+    "title": "Six highway entry/exit direction diagrams, not map or lane images",
+    "language": "ko",
+    "width": 840,
+    "height": 380
+  },
+  {
+    "file": "hud-circle-en.png",
+    "title": "hud / circle",
+    "language": "en",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-circle-red-on-en.png",
+    "title": "hud / circle / red on at 5650rpm",
+    "language": "en",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-circle-red-off-en.png",
+    "title": "hud / circle / red off at 5650rpm",
+    "language": "en",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-bar-en.png",
+    "title": "hud / bar",
+    "language": "en",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-bar-red-on-en.png",
+    "title": "hud / bar / red on at 5650rpm",
+    "language": "en",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-bar-red-off-en.png",
+    "title": "hud / bar / red off at 5650rpm",
+    "language": "en",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "cluster-circle-en.png",
+    "title": "cluster / circle",
+    "language": "en",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-circle-red-on-en.png",
+    "title": "cluster / circle / red on at 5650rpm",
+    "language": "en",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-circle-red-off-en.png",
+    "title": "cluster / circle / red off at 5650rpm",
+    "language": "en",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-bar-en.png",
+    "title": "cluster / bar",
+    "language": "en",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-bar-red-on-en.png",
+    "title": "cluster / bar / red on at 5650rpm",
+    "language": "en",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-bar-red-off-en.png",
+    "title": "cluster / bar / red off at 5650rpm",
+    "language": "en",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "hud-gauges-boost-torque-en.png",
+    "title": "hud / gauges boost, torque",
+    "language": "en",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-gauges-power-oil-en.png",
+    "title": "hud / gauges power, oil",
+    "language": "en",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-gauges-gforce-outside-en.png",
+    "title": "hud / gauges gforce, outside",
+    "language": "en",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-gauges-batteryCharge-batteryVoltage-en.png",
+    "title": "hud / gauges batteryCharge, batteryVoltage",
+    "language": "en",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-gauges-economy-torque-en.png",
+    "title": "hud / gauges economy, torque",
+    "language": "en",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "hud-values-four-en.png",
+    "title": "hud / four text metrics",
+    "language": "en",
+    "width": 800,
+    "height": 480
+  },
+  {
+    "file": "cluster-gauges-boost-torque-en.png",
+    "title": "cluster / gauges boost, torque",
+    "language": "en",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-gauges-power-oil-en.png",
+    "title": "cluster / gauges power, oil",
+    "language": "en",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-gauges-gforce-outside-en.png",
+    "title": "cluster / gauges gforce, outside",
+    "language": "en",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-gauges-batteryCharge-batteryVoltage-en.png",
+    "title": "cluster / gauges batteryCharge, batteryVoltage",
+    "language": "en",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-gauges-economy-torque-en.png",
+    "title": "cluster / gauges economy, torque",
+    "language": "en",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "cluster-values-four-en.png",
+    "title": "cluster / four text metrics",
+    "language": "en",
+    "width": 1088,
+    "height": 480
+  },
+  {
+    "file": "settings-basic-en.png",
+    "title": "basic settings",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-hud-en.png",
+    "title": "hud settings",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-en.png",
+    "title": "cluster settings",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-nav-en.png",
+    "title": "nav settings",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-hud-metric-mode-en.png",
+    "title": "Gauge / text selection",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-hud-metric-picker-en.png",
+    "title": "Ordered metric selection; commit only by OK",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-hud-design-en.png",
+    "title": "RPM design selection",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-hud-position-circle-en.png",
+    "title": "hud component positioning / circle",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-hud-position-bar-en.png",
+    "title": "hud component positioning / bar",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-hud-mark-en.png",
+    "title": "M placement and independent line/M visibility",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-metric-mode-en.png",
+    "title": "Gauge / text selection",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-metric-picker-en.png",
+    "title": "Ordered metric selection; commit only by OK",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-design-en.png",
+    "title": "RPM design selection",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-position-circle-en.png",
+    "title": "cluster component positioning / circle",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-position-bar-en.png",
+    "title": "cluster component positioning / bar",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-marktop-en.png",
+    "title": "M placement and independent line/M visibility",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-cluster-markbottom-en.png",
+    "title": "M placement and independent line/M visibility",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-nav-colors-en.png",
+    "title": "Gray / white / blue",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-nav-direction-en.png",
+    "title": "Direction offset (210,30), size 168×78",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "settings-nav-text-en.png",
+    "title": "Text offset (180,10), size 156×31",
+    "language": "en",
+    "width": 1600,
+    "height": 520
+  },
+  {
+    "file": "navigation-directions-en.png",
+    "title": "Supported maneuver symbols; roundabout exit number is example data",
+    "language": "en",
+    "width": 960,
+    "height": 640
+  },
+  {
+    "file": "navigation-highway-en.png",
+    "title": "Six highway entry/exit direction diagrams, not map or lane images",
+    "language": "en",
+    "width": 840,
+    "height": 380
+  }
+]

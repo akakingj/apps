@@ -1,0 +1,21 @@
+'use strict';
+const assert=require('assert'),{BatteryVoltage,supported,IFACE}=require('../../apps/cluster_redline/battery-voltage');
+const settle=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
+(async()=>{
+ let now=0,created=0,shut=0,resolveRead,requests=[],initResolve;
+ const create=()=>{created++;return {available:true,p:{shutdown(){shut++;}},init(){return Promise.resolve(this);},removeAllListeners(){},physical(ecu,sid,bytes,timeout,accept,opts){requests.push({ecu,sid,bytes,timeout,accept,opts});return new Promise(r=>{resolveRead=r;});}};};
+ const b=new BatteryVoltage({}, {},()=>now,create);
+ b.tick(now,false,true);await settle();assert.strictEqual(created,0,'no voltage proxy until selected');
+ b.tick(now,true,true);await settle();assert.strictEqual(created,1);
+ now=2100;b.tick(now,true,true);b.tick(now+1,true,true);assert.strictEqual(requests.length,0);await settle();assert.strictEqual(requests.length,1);
+ assert.deepStrictEqual([requests[0].ecu,requests[0].sid,requests[0].bytes],[18,1,[0x42]]);assert.strictEqual(requests[0].opts.maxRetries,0);assert(requests[0].accept([0x41,0x42,0x36,0xB0]));assert(!requests[0].accept([0x41,0x43,0,0]));
+ resolveRead([0x41,0x42,0x36,0xB0]);await settle();assert.strictEqual(b.read(now),14);assert.strictEqual(b.read(now+10001),null);
+ now+=2100;b.tick(now,true,true);await settle();b.tick(now+50,true,true);await settle();assert.strictEqual(requests.length,2,'one request in flight');b.tick(now,false,true);await settle();resolveRead([0x41,0x42,0x35,0x10]);await settle();assert.strictEqual(b.read(now),null,'late result after deselection must not reappear');assert(shut>=1);
+ b.stop();now+=4000;b.tick(now,true,true);await settle();assert.strictEqual(created,1,'stopped reader cannot reinitialize');
+ let closes=0,calls=0,finishOld,finishNew;
+ const racing=new BatteryVoltage({}, {},()=>now,()=>{calls++;const d={p:{shutdown(){closes++;}},available:true,removeAllListeners(){},init(){return new Promise(r=>{if(calls===1)finishOld=()=>r(d);else finishNew=()=>r(d);});}};return d;});
+ racing.tick(now,true,true);await settle();racing.tick(now,false,true);now+=2100;racing.tick(now,true,true);await settle();assert.strictEqual(calls,2);finishOld();await settle();assert.strictEqual(racing.initializing,true,'late old init cannot clear newer pending init');assert.strictEqual(closes,1);finishNew();await settle();assert(racing.diag);racing.stop();await settle();assert.strictEqual(closes,2);
+ const good={interfaces:{[IFACE]:{serviceId:63654,version:{major:1},methods:{sendTasuRequest:{methodId:1}},events:{sendTasuResponse:{eventId:32769}}}},instanceIDs:{[IFACE]:{SystemFunctionsInternalTasuInst1:128}}};
+ assert(supported(good));assert(!supported({}));const bad=JSON.parse(JSON.stringify(good));bad.interfaces[IFACE].methods.sendTasuRequest.methodId=3;assert(!supported(bad));
+ console.log('PASS: lazy standardized voltage reads, one in-flight request, freshness, stop/deselect and initialization-race guards, bounded request options and strict catalog whitelist');
+})().catch(e=>{console.error(e);process.exitCode=1;});

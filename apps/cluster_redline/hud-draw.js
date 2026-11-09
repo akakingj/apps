@@ -13,8 +13,9 @@ const L = { left:64, right:612, slant:12, alertTop:14, barTop:52, barBottom:84.4
 const RED='#ff2a2a',WHITE='#f4f7fb';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 function layoutFor(cfg) {
-    return cfg.hudAlertStyle==='circle'?Object.assign({},L,{barTop:18,barBottom:50.4,tickBaseline:82,baseline:146,
-        miniBaseline:120,miniTop:134,miniHeight:32,miniLabels:184,frameY:198}):L;
+    if(cfg.hudAlertStyle!=='circle')return L;
+    const result=Object.assign({},L,{barTop:18,barBottom:50.4,tickBaseline:82,baseline:146,miniBaseline:120,miniTop:134,miniHeight:32,miniLabels:184,frameY:198});
+    ['alertTop','barTop','barBottom','tickBaseline','baseline','miniBaseline','miniTop','miniLabels','frameY'].forEach(k=>{result[k]+=20;});return result;
 }
 function alertStage(state) { return state.rpm>=state.config.shiftRpm?'red':state.rpm>=state.config.shiftRpm*0.85?'yellow':'green'; }
 function alertState(state) {
@@ -53,7 +54,10 @@ function metric(cv,value,unit,left,right,baseline,size,tint) {
 function draw(state,target) {
     const cv=target||new Canvas(W,H),cfg=state.config,l=layoutFor(cfg),alert=alertState(state);
     if(!target)cv.clear([0,0,0,0]);
-    cv.line(l.left,l.frameY,294,l.frameY,1,'#8993a0');cv.line(365,l.frameY,l.right,l.frameY,1,'#8993a0');drawMark(cv,330,l.frameY-9,54,17);
+    part(cv,cfg,'hud','MarkLine',{x:l.left-3,y:l.frameY-2,w:l.right-l.left+6,h:4},c=>{
+        if(!cfg.hudMarkLineHidden){c.line(l.left,l.frameY,294,l.frameY,1,'#8993a0');c.line(365,l.frameY,l.right,l.frameY,1,'#8993a0');}
+    });
+    part(cv,cfg,'hud','Mark',{x:303,y:l.frameY-9,w:54,h:17},c=>{if(!cfg.hudMarkHidden)drawMark(c,330,l.frameY-9,54,17);});
     const span=l.right-l.left-l.slant;
     part(cv,cfg,'hud','RpmGauge',{x:50,y:l.barTop-5,w:580,h:l.tickBaseline-l.barTop+14},c=>{
         const band=(a,b,tint)=>{if(b<=a)return;const x=l.left+span*a/cfg.maxRpm,z=l.left+span*b/cfg.maxRpm;c.quad([[x+l.slant,l.barTop],[z+l.slant,l.barTop],[z,l.barBottom],[x,l.barBottom]],tint);};
@@ -65,20 +69,23 @@ function draw(state,target) {
     });
     const gear=typeof state.gear==='string'&&/^(?:[DSM]?(?:[1-9]|10)|P|R|N|D|--)$/.test(state.gear)?state.gear:'--',gl=gearLayout(cv,gear,cfg);
     const alertBounds=cfg.hudAlertStyle==='circle'?{x:gl.cx-gl.diameter/2-3,y:gl.cy-gl.diameter/2-3,w:gl.diameter+6,h:gl.diameter+6}:{x:l.left-2,y:l.alertTop-2,w:span+l.slant+4,h:16};
-    part(cv,cfg,'hud','Alert',alertBounds,c=>{
+    const paintAlert=c=>{
         if(cfg.hudAlertStyle!=='circle')for(let i=0;i<12;i++){
             const a=l.left+span*i/12,b=l.left+span*(i+1)/12-1,color=alert.stage==='red'&&!state.flash?'#711318':alert.color;
             c.quad([[a+l.slant,l.alertTop],[b+l.slant,l.alertTop],[b,l.alertTop+12],[a,l.alertTop+12]],i<alert.lit?color:'#000000');
         }
         else if(alert.visible&&(alert.stage!=='red'||state.flash))c.arc(gl.cx,gl.cy,0,gl.diameter/2,0,360,alert.color);
-    });
+    };
+    if(cfg.hudAlertStyle!=='circle')part(cv,cfg,'hud','Alert',alertBounds,paintAlert);
     part(cv,cfg,'hud','RpmValue',{x:l.rpmLeft-3,y:l.baseline-70,w:l.rpmRight-l.rpmLeft+6,h:76},c=>{
         const num=String(Math.round(state.rpm/10)*10);let size=TYPE.rpm;
         while(size>24&&c.textWidth(num,size,{font:'num',literal:true})+8+c.textWidth('RPM',TYPE.unit,{font:'bold',literal:true})>l.rpmRight-l.rpmLeft)size--;
         metric(c,num,'RPM',l.rpmLeft,l.rpmRight,l.baseline,size,state.shift?RED:WHITE);
     });
-    part(cv,cfg,'hud','Aux',{x:50,y:90,w:580,h:122},c=>drawAux(c,state,'hud',{left:l.torqueLeft,right:l.powerLeft,width:l.miniWidth,top:cfg.hudAlertStyle==='circle'?105:133,bottom:cfg.hudAlertStyle==='circle'?184:211}));
-    part(cv,cfg,'hud','Gear',{x:620,y:gl.baseline-TYPE.gear,w:170,h:TYPE.gear+14},c=>c.text(gear,gl.right,gl.baseline,gl.size,WHITE,{font:'bold',align:'right',literal:true}));
+    drawAux(cv,state,'hud',{left:l.torqueLeft,right:l.powerLeft,width:l.miniWidth,top:cfg.hudAlertStyle==='circle'?125:133,bottom:cfg.hudAlertStyle==='circle'?204:211,textShift:cfg.hudAlertStyle==='circle'?20:0});
+    const circle=cfg.hudAlertStyle==='circle',left=circle?Math.min(620,alertBounds.x):620,right=790;
+    const top=Math.min(gl.baseline-TYPE.gear,circle?alertBounds.y:Infinity),bottom=Math.max(gl.baseline+14,circle?alertBounds.y+alertBounds.h:0);
+    part(cv,cfg,'hud','Gear',{x:left,y:top,w:right-left,h:bottom-top},c=>{c.text(gear,gl.right,gl.baseline,gl.size,WHITE,{font:'bold',align:'right',literal:true});if(circle)paintAlert(c);});
     return cv;
 }
 function difference(previous, next) {

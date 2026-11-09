@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Independent stock/Redline cluster and HUD outputs, adjustable placement and native-guidance priority",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
@@ -10,7 +10,8 @@
   "signals": {
     "de.bmw.infotainment.vehicle.CDS": {
       "statusEngineSpeed2": "rs",
-      "statusEngineTemperature": "rs"
+      "statusEngineTemperature": "rs",
+      "statusBattery2": "rs"
     },
     "de.bmw.infotainment.drivingexcitement.FES": {
       "statusFESVehicleDynamicSwitchHMI": "rs",
@@ -70,6 +71,20 @@
     "de.bmw.infrastructure.EnvironmentalInformation": {
       "_optional": "Optional outside temperature; unavailable values display --",
       "ExteriorTemperature": "rs"
+    },
+    "de.bmw.infotainment.KombiIF": {
+      "_optional": "Average fuel economy unavailable",
+      "statusBordcomputerAverage": "rs"
+    },
+    "com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu": {
+      "_optional": "Battery voltage unavailable",
+      "_instances": "SystemFunctionsInternalTasuInst1",
+      "_methods": [
+        "sendTasuRequest"
+      ],
+      "_broadcasts": [
+        "sendTasuResponse"
+      ]
     }
   },
   "screens": [
@@ -420,7 +435,7 @@
       "key": "hudNavOffsetX",
       "label": "Navigation OffsetX",
       "type": "number",
-      "default": 280,
+      "default": 210,
       "unit": "px",
       "hidden": true
     },
@@ -428,7 +443,7 @@
       "key": "hudNavOffsetY",
       "label": "Navigation OffsetY",
       "type": "number",
-      "default": 60,
+      "default": 30,
       "unit": "px",
       "hidden": true
     },
@@ -436,7 +451,7 @@
       "key": "hudNavWidthScale",
       "label": "Navigation WidthScale",
       "type": "number",
-      "default": 100,
+      "default": 70,
       "unit": "%",
       "hidden": true
     },
@@ -444,7 +459,7 @@
       "key": "hudNavHeightScale",
       "label": "Navigation HeightScale",
       "type": "number",
-      "default": 100,
+      "default": 70,
       "unit": "%",
       "hidden": true
     },
@@ -490,7 +505,7 @@
       "key": "displaySettingsRevision",
       "label": "displaySettingsRevision",
       "type": "number",
-      "default": 2,
+      "default": 3,
       "hidden": true
     },
     {
@@ -550,7 +565,7 @@
       "options": [
         [
           "gray",
-          "Light gray"
+          "Gray"
         ],
         [
           "white",
@@ -566,28 +581,28 @@
       "key": "navUniformScale",
       "label": "navUniformScale",
       "type": "number",
-      "default": 100,
+      "default": 70,
       "hidden": true
     },
     {
       "key": "hudTextOffsetX",
       "label": "hudTextOffsetX",
       "type": "number",
-      "default": 280,
+      "default": 180,
       "hidden": true
     },
     {
       "key": "hudTextOffsetY",
       "label": "hudTextOffsetY",
       "type": "number",
-      "default": 0,
+      "default": 10,
       "hidden": true
     },
     {
       "key": "hudTextScale",
       "label": "hudTextScale",
       "type": "number",
-      "default": 100,
+      "default": 65,
       "hidden": true
     },
     {
@@ -868,6 +883,370 @@
       "label": "clusterRpmValueHeightScale",
       "type": "number",
       "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxLeftOffsetX",
+      "label": "hudAuxLeftOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxLeftOffsetY",
+      "label": "hudAuxLeftOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxLeftWidthScale",
+      "label": "hudAuxLeftWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxLeftHeightScale",
+      "label": "hudAuxLeftHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxRightOffsetX",
+      "label": "hudAuxRightOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxRightOffsetY",
+      "label": "hudAuxRightOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxRightWidthScale",
+      "label": "hudAuxRightWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxRightHeightScale",
+      "label": "hudAuxRightHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkOffsetX",
+      "label": "hudMarkOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkOffsetY",
+      "label": "hudMarkOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkWidthScale",
+      "label": "hudMarkWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkHeightScale",
+      "label": "hudMarkHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkTopOffsetX",
+      "label": "hudMarkTopOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkTopOffsetY",
+      "label": "hudMarkTopOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkTopWidthScale",
+      "label": "hudMarkTopWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkTopHeightScale",
+      "label": "hudMarkTopHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkBottomOffsetX",
+      "label": "hudMarkBottomOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkBottomOffsetY",
+      "label": "hudMarkBottomOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkBottomWidthScale",
+      "label": "hudMarkBottomWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkBottomHeightScale",
+      "label": "hudMarkBottomHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkHidden",
+      "label": "hudMarkHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkLineHidden",
+      "label": "hudMarkLineHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkTopHidden",
+      "label": "hudMarkTopHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkTopLineHidden",
+      "label": "hudMarkTopLineHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkBottomHidden",
+      "label": "hudMarkBottomHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "hudMarkBottomLineHidden",
+      "label": "hudMarkBottomLineHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxLeftOffsetX",
+      "label": "clusterAuxLeftOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxLeftOffsetY",
+      "label": "clusterAuxLeftOffsetY",
+      "type": "number",
+      "default": 50,
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxLeftWidthScale",
+      "label": "clusterAuxLeftWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxLeftHeightScale",
+      "label": "clusterAuxLeftHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxRightOffsetX",
+      "label": "clusterAuxRightOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxRightOffsetY",
+      "label": "clusterAuxRightOffsetY",
+      "type": "number",
+      "default": 50,
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxRightWidthScale",
+      "label": "clusterAuxRightWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxRightHeightScale",
+      "label": "clusterAuxRightHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkOffsetX",
+      "label": "clusterMarkOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkOffsetY",
+      "label": "clusterMarkOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkWidthScale",
+      "label": "clusterMarkWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkHeightScale",
+      "label": "clusterMarkHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkTopOffsetX",
+      "label": "clusterMarkTopOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkTopOffsetY",
+      "label": "clusterMarkTopOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkTopWidthScale",
+      "label": "clusterMarkTopWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkTopHeightScale",
+      "label": "clusterMarkTopHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkBottomOffsetX",
+      "label": "clusterMarkBottomOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkBottomOffsetY",
+      "label": "clusterMarkBottomOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkBottomWidthScale",
+      "label": "clusterMarkBottomWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkBottomHeightScale",
+      "label": "clusterMarkBottomHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkHidden",
+      "label": "clusterMarkHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkLineHidden",
+      "label": "clusterMarkLineHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkTopHidden",
+      "label": "clusterMarkTopHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkTopLineHidden",
+      "label": "clusterMarkTopLineHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkBottomHidden",
+      "label": "clusterMarkBottomHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "clusterMarkBottomLineHidden",
+      "label": "clusterMarkBottomLineHidden",
+      "type": "bool",
+      "default": false,
       "hidden": true
     }
   ],

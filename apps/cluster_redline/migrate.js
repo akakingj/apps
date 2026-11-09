@@ -1,6 +1,6 @@
 'use strict';
 // Entry-only migration; never writes a BMW setting.
-function migrate(store,old){
+function previous(store,old){
  old=old||{};
  if(old.autoStart===undefined)store.set('autoStart',old.appEnabled!==undefined?old.appEnabled===true:old.autoSport!==false);
  if(old.appEnabled===undefined&&old.autoSport===false)store.set('appEnabled',false);
@@ -27,5 +27,14 @@ function migrate(store,old){
  if(navY<60)store.set('hudNavOffsetY',60);
  if(old.hudTextOffsetY===undefined)store.set('hudTextOffsetY',Math.max(0,navY-60));
  store.set('displaySettingsRevision',2);store.set('_displaySettingsV',2);
+}
+function migrate(store,old){
+ old=old||{};previous(store,old);if(store.get('_layoutV3')===1)return;
+ ['hud','cluster'].forEach(d=>['Left','Right'].forEach(side=>['OffsetX','OffsetY','WidthScale','HeightScale'].forEach(s=>{
+  const key=d+'Aux'+side+s,legacy=old[d+'Aux'+s];
+  if(old[key]===undefined){const value=typeof legacy==='number'&&isFinite(legacy)?legacy:/Scale/.test(s)?100:0;store.set(key,d==='cluster'&&s==='OffsetY'&&value===0?50:value);}
+ })));
+ [['hudNavOffsetX',210],['hudNavOffsetY',30],['hudNavWidthScale',70],['hudNavHeightScale',70],['navUniformScale',70],['hudTextOffsetX',180],['hudTextOffsetY',10],['hudTextScale',65]].forEach(v=>store.set(v[0],v[1]));
+ store.set('displaySettingsRevision',3);store.set('_layoutV3',1);
 }
 module.exports={migrate};

@@ -11,16 +11,18 @@ const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const C = { track: '#1b212b', text: '#f4f7fb', red: '#ff2a2a' };
 const L = { left: 220, right: 868, slant: 14, top: 112, bottom: 153,
     upperFrame: 31, alertTop: 59, alertBottom: 77, miniHeight: 26 };
-function frame(cv, y, lower) {
-    const side = lower ? -12 : 12;
-    cv.polyline([[98, y + side], [124, y], [499, y]], 1.5, '#8993a0');
-    cv.polyline([[589, y], [964, y], [990, y + side]], 1.5, '#8993a0');
-    drawMark(cv, W / 2, y - 14);
+function frame(cv, cfg, y, lower) {
+    const key=lower?'MarkBottom':'MarkTop';
+    part(cv,cfg,'cluster',key+'Line',{x:92,y:y-18,w:904,h:40},c=>{
+        const side=lower?-12:12;
+        if(!cfg['cluster'+key+'LineHidden']){c.polyline([[98,y+side],[124,y],[499,y]],1.5,'#8993a0');c.polyline([[589,y],[964,y],[990,y+side]],1.5,'#8993a0');}
+    });
+    part(cv,cfg,'cluster',key,{x:W/2-44,y:y-14,w:88,h:28},c=>{if(!cfg['cluster'+key+'Hidden'])drawMark(c,W/2,y-14);});
 }
 function draw(state,target) {
     const cv=target||new Canvas(W,H),cfg=state.config,rpm=state.rpm;
     if(!target)cv.clear([0,0,0,0]);
-    frame(cv,L.upperFrame,false);frame(cv,450,true);
+    frame(cv,cfg,L.upperFrame,false);frame(cv,cfg,450,true);
     const span=L.right-L.left-L.slant;
     part(cv,cfg,'cluster','RpmGauge',{x:204,y:L.top-5,w:680,h:90},c=>{
         const polygon=(a,b,color)=>{if(b<=a)return;const xa=L.left+span*a/cfg.maxRpm,xb=L.left+span*b/cfg.maxRpm;c.quad([[xa+L.slant,L.top],[xb+L.slant,L.top],[xb,L.bottom],[xa,L.bottom]],color);};
@@ -48,7 +50,7 @@ function draw(state,target) {
         c.text(num,nx,270,size,tint,{font:'num'});c.text('RPM',nx+nw+10,270,22,tint,{font:'bold',literal:true});
     });
     part(cv,cfg,'cluster','Gear',{x:W/2-gearWidth/2-4,y:320,w:gearWidth+8,h:96},c=>c.text(gear,W/2,400,74,C.text,{align:'center',font:'bold'}));
-    part(cv,cfg,'cluster','Aux',{x:180,y:280,w:720,h:150},c=>drawAux(c,state,'cluster'));
+    drawAux(cv,state,'cluster');
     return cv;
 }
 // Four independent horizontal regions keep updates below the link budget.

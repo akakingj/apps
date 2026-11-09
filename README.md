@@ -1,58 +1,27 @@
 # iDrive 7 Jam Apps
 
-Cluster Redline **1.1.0** adds independent HUD / CLUSTER / NAV settings, six optional auxiliary metrics, per-element position/size controls and received navigation text. HUD guidance defaults just beyond the RPM bar on the right. [Guide](docs/CLUSTER-REDLINE.ko.md).
+**Cluster Redline 1.2.0** adds separate side metrics/M controls, two cluster/HUD designs, battery/economy readings and combined navigation. **iDrive Circuit 1.0.0** is also available.
 
-English | [한국어](README.ko.md)
+[한국어](README.ko.md)
 
-Two ordinary apps for the existing [idrive7-apps](https://github.com/cauliflowermossgrape/idrive7-apps) build and deployment workflow.
-
-| App | English guide | 한국어 설명서 |
+| Documentation | English | 한국어 |
 |---|---|---|
-| iDrive Circuit — parked-only puzzle | [Circuit](apps/idrive_circuit/README.md) | [회로 퍼즐](apps/idrive_circuit/README.ko.md) |
-| Cluster Redline — configurable cluster RPM and shift lights | [Cluster Redline](apps/cluster_redline/README.md) | [계기판 레드라인](apps/cluster_redline/README.ko.md) |
+| Install | [Installation](docs/INSTALL.md) | [설치 안내](docs/INSTALL.ko.md) |
+| Use Redline | [User guide](docs/CLUSTER-REDLINE.md) | [사용 설명서](docs/CLUSTER-REDLINE.ko.md) |
+| Use Circuit | [Circuit](apps/idrive_circuit/README.md) | [회로 퍼즐](apps/idrive_circuit/README.ko.md) |
 
-## Install through MGU Store
+Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and choose Korean or English. Redline requires **`cluster-render` 0.4.0+**. Update existing installs in Installed and check **v1.2.0** in the app. Stop and disable auto-start in an unused language edition if both are installed.
 
-This repository now supports the **Repo tree** layout. In MGU Store, open
-**Settings → Add source**, enter `jaimeen77-cmyk/apps`, choose
-**main**, then **Check now**. Choose the listing marked **한국어** or **English**
-for each app. The head unit builds the selected language; no build flag is needed.
-Existing Korean app ids are retained. English editions have separate ids and settings.
-For Cluster Redline, enable Sport auto-display in only the edition you use.
-No GitHub token or publicly redistributed SDK is needed for this public source.
+| HUD circle | HUD bar |
+|---|---|
+| ![HUD circle](screenshots/cluster_redline/hud-circle-en.png) | ![HUD bar](screenshots/cluster_redline/hud-bar-en.png) |
 
-[Store registration and migration guide](docs/MGU-STORE.ko.md).
-The committed `store/runtime/*.tgz.part-*` files are SDK-free runtime/UI templates,
-not the SDK-containing packages produced by an ordinary PC car-kit build.
+| Cluster circle | Cluster bar |
+|---|---|
+| ![Cluster circle](screenshots/cluster_redline/cluster-circle-en.png) | ![Cluster bar](screenshots/cluster_redline/cluster-bar-en.png) |
 
-## Merge once, then use the normal commands
+[All screenshots: metrics, navigation, settings and red alerts](screenshots/README.md). Images use the actual app renderer with example data; real-vehicle verification of this release remains pending.
 
-If this checkout contains the complete upstream kit (`kit/tools/build.py`), skip the merge step.
-For the source-overlay checkout, place upstream beside it and run:
+[Source integration / 소스 통합](docs/JAM-INTEGRATION.ko.md) · [Changelog / 업데이트 이력](CHANGELOG.md) · [Licenses](NOTICE.cluster-redline.md)
 
-```powershell
-python tools/install-overlay.py ../idrive7-apps-main
-```
-
-Then run all commands below **from the merged upstream folder**:
-
-```powershell
-python kit/tools/build.py --language ko --preview-only idrive_circuit cluster_redline
-node kit/tools/preview.js dist/cluster_redline preview/cluster_redline-ui frames=3
-```
-
-English is the default: omit `--language ko` and rebuild for English.
-The normal all-app car kit includes these apps alongside Redline, Service and every other app:
-
-```powershell
-deploy\make-car-kit.cmd --language ko
-```
-
-On macOS/Linux use `deploy/make-car-kit.sh --language ko`.
-Output: **`dist/mgu-custom-apps-ko.tar.gz`**. Omit app names to include every app.
-Use the existing `deploy/push-to-car.ps1` or `.sh` **check**, then **install**, commands.
-The normal backup/restore path is retained. No separate mgu-deploy installation is required.
-
-[Full integration and installation guide](docs/JAM-INTEGRATION.ko.md).
-
-[Update history](CHANGELOG.md)
+For the 15 localized upstream iDrive apps, use the separate [appsKOR repository](https://github.com/jaimeen77-cmyk/appsKOR). This repository contains the two custom apps above.

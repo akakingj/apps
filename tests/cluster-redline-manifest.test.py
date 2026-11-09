@@ -29,7 +29,11 @@ with tempfile.TemporaryDirectory(prefix='redline-manifest-') as temp:
             if key.startswith('_'):
                 continue
             definitions[key] = {'getter': {'id': 1}, 'notifier': {'id': 32769}}
-        catalog['interfaces'][name] = {'fields': definitions, 'methods': {method: {'methodId': index+1} for index, method in enumerate(fields.get('_methods', []))}}
+        catalog['interfaces'][name] = {
+            'fields': definitions,
+            'methods': {method: {'methodId': index+1} for index, method in enumerate(fields.get('_methods', []))},
+            'events': {event: {'eventId': 32769+index} for index, event in enumerate(fields.get('_broadcasts', []))},
+        }
     # Matches the reported firmware: the S/M programme only notifies.
     del catalog['interfaces'][iface]['fields'][field]['getter']
     fixture = root / 'catalog.json'

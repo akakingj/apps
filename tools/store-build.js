@@ -45,7 +45,7 @@ function uuidFor(id, original) {
 // Optional read-only inputs must be supported by this unit's catalog.
 // Mutate only our app manifest; the vehicle catalog is never changed or copied.
 function filterOptionalProxies(manifest, catalog, optional) {
-    if(optional&&optional['de.bmw.infotainment.vehicle.CDS2'])require('../apps/cluster_redline/aux-info').filterAux(manifest,catalog);
+    if(optional&&['de.bmw.infotainment.vehicle.CDS2','de.bmw.infotainment.KombiIF','com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu'].some(i=>optional[i]))require('../apps/cluster_redline/aux-info').filterAux(manifest,catalog);
     const proxies = manifest.proxies || {}, interfaces = catalog.interfaces || {};
     const program = 'de.bmw.infotainment.misc.MDrive';
     const guidance = 'de.bmw.infotainment.navigation.guiding.Guidance';

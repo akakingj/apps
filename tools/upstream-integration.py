@@ -135,14 +135,13 @@ OPTIONAL_ROUTE_EVENTS_MARKER = '// Jam optional route events query v6'
 
 
 def optional_aux_source(text):
-    marker = '// Jam optional auxiliary fields v7'
-    if marker in text:
-        old = '            if(!field || !field.getter || !field.getter.id)delete proxy.attributes[name];\n            else proxy.attributes[name]=field.notifier && field.notifier.id ? "rs" : "r";'
-        new = '            const validId=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;\n            if(!field || !field.getter || !validId(field.getter.id,1,32767))delete proxy.attributes[name];\n            else proxy.attributes[name]=field.notifier && validId(field.notifier.id,32768,65535) ? "rs" : "r";'
-        return replace_once(text, old, new) if old in text else text
-    addition = r"""        // Jam optional auxiliary fields v7: never drop required RPM/torque for an absent extra field.
+    if '// Jam optional auxiliary fields v8' in text:
+        return text
+    addition = r"""        // Jam optional auxiliary fields v8: never drop required RPM/torque for an absent extra field.
         const auxiliaryFields = [
             ["de.bmw.infotainment.vehicle.CDS", "statusEngineTemperature"],
+            ["de.bmw.infotainment.vehicle.CDS", "statusBattery2"],
+            ["de.bmw.infotainment.KombiIF", "statusBordcomputerAverage"],
             ["de.bmw.infotainment.drivingexcitement.FES", "statusSwitchDriveDynamicSport2"],
             ["de.bmw.infotainment.vehicle.CDS2", "statusInjectionVolume"],
             ["de.bmw.infotainment.vehicle.CDS2", "statusLateralAccelerationMassCenter"],
@@ -157,9 +156,18 @@ def optional_aux_source(text):
             if(!field || !field.getter || !validId(field.getter.id,1,32767))delete proxy.attributes[name];
             else proxy.attributes[name]=field.notifier && validId(field.notifier.id,32768,65535) ? "rs" : "r";
         });
-        const auxCds2=m.proxies["de.bmw.infotainment.vehicle.CDS2"];
-        if(auxCds2 && !Object.keys(auxCds2.attributes||{}).length)delete m.proxies["de.bmw.infotainment.vehicle.CDS2"];
+        ["de.bmw.infotainment.vehicle.CDS2","de.bmw.infotainment.KombiIF"].forEach(iface=>{if(m.proxies[iface]&&!Object.keys(m.proxies[iface].attributes||{}).length)delete m.proxies[iface];});
+        const tasu="com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu",def=have[tasu],ids=all.instanceIDs&&all.instanceIDs[tasu];
+        if(m.proxies[tasu]){
+            if(!def||def.serviceId!==63654||!def.version||def.version.major!==1||!ids||ids.SystemFunctionsInternalTasuInst1!==128||!def.methods||!def.methods.sendTasuRequest||def.methods.sendTasuRequest.methodId!==1||!def.events||!def.events.sendTasuResponse||def.events.sendTasuResponse.eventId!==32769)delete m.proxies[tasu];
+            else m.proxies[tasu]={instances:"SystemFunctionsInternalTasuInst1",methods:["sendTasuRequest"],broadcasts:["sendTasuResponse"]};
+        }
 """
+    marker = '        // Jam optional auxiliary fields v7'
+    if marker in text:
+        start = text.index(marker)
+        end = text.index('        // Jam optional guidance field persistence v3', start)
+        return text[:start] + addition + text[end:]
     return replace_once(text, '        // Jam optional guidance field persistence v3', addition + '        // Jam optional guidance field persistence v3')
 
 

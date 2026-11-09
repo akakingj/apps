@@ -21,7 +21,7 @@ const DEFAULTS = { appEnabled: true, autoStart: true, engineProfile: 'petrol', d
 Object.assign(DEFAULTS, { sportClusterOutput: 'redline', sportHudOutput: 'stock', allClusterOutput: 'stock', allHudOutput: 'stock',
     clusterOffsetX: 0, clusterOffsetY: 0, clusterWidthScale: 80, clusterHeightScale: 80,
     hudOffsetX: 0, hudOffsetY: -100, hudWidthScale: 75, hudHeightScale: 75,
-    hudNavigationEnabled: true, hudNavOffsetX: 280, hudNavOffsetY: 60, hudNavWidthScale: 100, hudNavHeightScale: 100,
+    hudNavigationEnabled: true, hudNavOffsetX: 210, hudNavOffsetY: 30, hudNavWidthScale: 70, hudNavHeightScale: 70,
     hudAlertStyle: 'circle', hudAuxDisplay: 'gauges' });
 const MODES = { 1: 'SPORT', 2: 'SPORT_PLUS', 3: 'SPORT_INDIVIDUAL', 4: 'COMFORT', 5: 'COMFORT_PLUS',
     6: 'COMFORT_INDIVIDUAL', 7: 'ECO_PRO', 8: 'ECO_PRO_PLUS', 9: 'ECO_PRO_INDIVIDUAL', 10: 'ADAPTIVE',

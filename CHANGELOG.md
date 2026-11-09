@@ -4,6 +4,14 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.0
+
+- Split HUD/cluster auxiliary placement into left and right groups, retaining ordered one-to-four text placement. HUD circle alerts transform together with gear; the top alert bar remains independent.
+- Move the circle HUD face down two existing 10px source steps and default both cluster auxiliary groups to (0,50) in either style. Add independently positioned HUD M and cluster upper/lower M marks, each with separate line/mark visibility controls. Moving an M leaves its line anchored.
+- Rename Light gray to Gray and use medium gray arrows. Default NAV text offsets to (180,10), 156×31px (65%); direction offsets (210,30), 168×78px (70%). Migrate once, then preserve later edits.
+- Add optional 12V battery SOC, battery voltage and average fuel economy (km/L). Render SOC as a battery, lateral G as a filled dot in a rectangular track, and voltage/economy as text even in gauge mode. Battery voltage uses lazy bounded read-only OBD 01/PID42 or UDS22/F442 queries, only for a selected active display and within an engine-activity window; stop/deselect/provider/freshness guards retain -- for unavailable data.
+- Expand capability filtering without dropping required RPM/torque/unit inputs; validate the optional voltage transport's service/version/instance/method/event and keep only the named request/response pair. Korean/English host and optional-installer checks pass; real-vehicle validation remains pending.
+
 ### 1.1.0
 
 - Show selected component width × height in pixels alongside placement coordinates. Move default HUD navigation text/direction just beyond the RPM gauge right edge, migrate once and retain subsequent user positioning; bound long text to the right-hand column.

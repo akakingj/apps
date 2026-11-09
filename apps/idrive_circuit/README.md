@@ -4,6 +4,10 @@ English | [한국어](README.ko.md)
 
 A parked-only circuit puzzle for BMW MGU / iDrive 7. Rotate wiring tiles until battery power reaches every simulated module. Includes 30 levels, touch/controller input, Undo, Hint, Restart, PAR scores, stars and saved progress.
 
+[Install from MGU Store](../../docs/INSTALL.md) · [Screenshot gallery](../../screenshots/README.md)
+
+![Circuit: first level, example game state](../../screenshots/circuit-board-en.png)
+
 GPU controls: turn to select, tilt to move to a neighbour, press/touch to rotate. The software path provides Next tile and Rotate buttons. With Parked only enabled (default), actions lock above 3 km/h. No vehicle-control writes are sent.
 
 ## Normal upstream workflow

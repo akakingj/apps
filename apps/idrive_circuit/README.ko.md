@@ -4,7 +4,7 @@
 
 BMW MGU / iDrive 7용 주차 전용 회로 퍼즐입니다. 타일을 회전해 모든 모듈에 전력을 연결하세요. 회로와 전력은 게임 속 시뮬레이션입니다.
 
-![한국어 퍼즐](../../screenshots/idrive_circuit/preview-ko.png)
+![한국어 퍼즐](../../screenshots/circuit-board-ko.png)
 
 ## 기능과 조작
 

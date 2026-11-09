@@ -54,6 +54,7 @@ function harness(options) {
         if(name === './route-events')return require('../../apps/cluster_redline/route-events');
         if (name === './gear') return require('../../apps/cluster_redline/gear');
         if (name === './renderer') return { inspect: () => ({ compatible: true, version: '0.4.0', hudGuidanceSafe: true }) };
+        if(name==='./battery-voltage')return require('../../apps/cluster_redline/battery-voltage');
         throw new Error('Unexpected dependency ' + name);
     }, process: {
         hrtime: () => [Math.floor(time / 1000), Math.round((time % 1000) * 1000000)],
@@ -348,7 +349,7 @@ async function optionalAuxiliaryWorker(){
  try{
   await flush();h.navigate('INACTIVE');h.tick(1000);await flush();
   const watched=h.watches.filter(w=>Object.keys(w.handlers).every(f=>SOURCES.some(s=>s.iface===w.iface&&s.field===f)));
-  assert.strictEqual(watched.length,4,'auxiliary fields reuse one proxy per interface');assert.strictEqual(h.auxReads.length,6);
+  assert.strictEqual(watched.length,new Set(SOURCES.map(s=>s.iface)).size,'auxiliary fields reuse one proxy per interface');assert.strictEqual(h.auxReads.length,SOURCES.length);
   const boost=watched.find(w=>w.handlers.statusSwitchDriveDynamicSport2);boost.handlers.statusSwitchDriveDynamicSport2({displayBoostPressure:85});
   for(const read of h.auxReads){const source=SOURCES.find(s=>s.iface===read.iface&&s.field===read.field),value={};for(const [name,spec] of Object.entries(source.members))value[spec[0]]=name==='boost'?40:name==='oil'||name==='oilFallback'?143:name==='outside'?116:32500;read.resolve(value);}
   await flush();h.tick(1050);assert.strictEqual(h.worker.controller.aux.boost,0.85,'an older getter must not overwrite a newer notification');assert.strictEqual(h.worker.controller.aux.oil,95);assert.strictEqual(h.worker.controller.aux.outside,18);

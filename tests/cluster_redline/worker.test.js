@@ -43,6 +43,7 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
         if (name === './renderer') return require('../../apps/cluster_redline/renderer');
         if (name === './guidance') return require('../../apps/cluster_redline/guidance');
         if (name === './gear') return require('../../apps/cluster_redline/gear');
+        if(name==='./battery-voltage')return require('../../apps/cluster_redline/battery-voltage');
         throw new Error('Unexpected dependency ' + name);
     }, process: { hrtime: () => [Math.floor(time / 1000), Math.floor((time % 1000) * 1000000)], once() {}, removeListener() {} },
     setTimeout: (fn, ms) => { timer = fn; delay = ms; return 1; }, clearTimeout: () => { timer = null; }, console };

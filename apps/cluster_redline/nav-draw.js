@@ -27,7 +27,7 @@ function highwayDiagram(cv,info,color) {
     cv.polyline(mirror(path),8,color);cv.polyline(mirror(head),8,color);
 }
 function highwayPanel(cv,state,info) {
-    highwayDiagram(cv,info,state.color==='gray'?'#bcc6d0':state.color==='white'?WHITE:ARROW);
+    highwayDiagram(cv,info,state.color==='gray'?'#929aa3':state.color==='white'?WHITE:ARROW);
     let size=22;
     while(size>14&&cv.textWidth(info.label,size,{font:'bold'})>130)size--;
     cv.text(info.label,108,32,size,WHITE,{font:'bold'});
@@ -41,7 +41,7 @@ function draw(state,target) {
     const highway=highwayInfo(state);
     if(highway){highwayPanel(cv,state,highway);return cv;}
     const dir=state.maneuver;
-    const color=state.color==='gray'?'#bcc6d0':state.color==='white'?WHITE:ARROW;
+    const color=state.color==='gray'?'#929aa3':state.color==='white'?WHITE:ARROW;
     const line=(points)=>cv.polyline(points,10,color);
     const mirror=(points)=>points.map((p)=>[104-p[0],p[1]]);
     if(/^ARRIVAL_/.test(dir)) {

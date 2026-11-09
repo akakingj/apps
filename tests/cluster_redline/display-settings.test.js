@@ -20,7 +20,7 @@ for(const tab of [1,2]){
  page.selectTab(tab);page.activate(3);draw(page);page.choose(0);assert.strictEqual(s.get(disp+'AlertStyle'),'bar');page.activate(3);page.choose(1);assert.strictEqual(s.get(disp+'AlertStyle'),'circle');
  page.activate(4);draw(page);page.layoutPart=0;for(let n=0;n<50;n++)page.adjust(2,1);let cfg=page.config();assert(cfg[disp+'RpmGaugeWidthScale']/cfg[disp+'RpmGaugeHeightScale']<=1.3);
  for(let n=0;n<50;n++)page.adjust(3,-1);cfg=page.config();assert(cfg[disp+'RpmGaugeWidthScale']/cfg[disp+'RpmGaugeHeightScale']<=1.3);
- const gear=s.get(disp+'GearOffsetX');page.layoutPart=4;page.adjust(0,1);assert.strictEqual(s.get(disp+'GearOffsetX'),gear,'editing RPM number must leave gear placement unchanged');
+ const gear=s.get(disp+'GearOffsetX');page.layoutPart=D.partsFor(disp,page.config()).findIndex(p=>p.key==='RpmValue');page.adjust(0,1);assert.strictEqual(s.get(disp+'GearOffsetX'),gear,'editing RPM number must leave gear placement unchanged');
 }
 assert.deepStrictEqual(D.metricSlots(['boost','torque','oil']).map(s=>[s.side,s.row]),[[0,0],[0,1],[1,0]]);
 assert.deepStrictEqual(D.metricSlots(['boost','torque']).map(s=>s.side),[0,1]);assert.deepStrictEqual(D.metricSlots(['oil']).map(s=>s.side),[0]);
@@ -32,10 +32,10 @@ assert.deepStrictEqual(D.metricSlots(['boost','torque']).map(s=>s.side),[0,1]);a
 }
 {
  const old={_outputsV:1,displayMode:'sport',sportHudOutput:'redline',allHudOutput:'redline',allClusterOutput:'redline',hudAlertStyle:'bar',hudNavOffsetY:0,hudNavWidthScale:125};
- const s=store(old);migrate(s,old);assert.strictEqual(s.get('hudAlertStyle'),'circle');assert.strictEqual(s.get('allHudOutput'),'stock');assert.strictEqual(s.get('allClusterOutput'),'stock');assert.strictEqual(s.get('sportHudOutput'),'redline');assert.strictEqual(s.get('navUniformScale'),125);assert.strictEqual(s.get('hudNavOffsetY'),60);
+ const s=store(old);migrate(s,old);assert.strictEqual(s.get('hudAlertStyle'),'circle');assert.strictEqual(s.get('allHudOutput'),'stock');assert.strictEqual(s.get('allClusterOutput'),'stock');assert.strictEqual(s.get('sportHudOutput'),'redline');assert.strictEqual(s.get('navUniformScale'),70);assert.strictEqual(s.get('hudNavOffsetY'),30);
  s.set('hudAlertStyle','bar');const n=s.writes.length;migrate(s,s.values);assert.strictEqual(s.writes.length,n);assert.strictEqual(s.get('hudAlertStyle'),'bar','later chosen design is never reset');
 }
-for(const y of [20,80]){const old={_outputsV:1,hudNavOffsetY:y},saved=store(old);migrate(saved,old);assert.strictEqual(saved.get('hudNavOffsetY'),Math.max(60,y));assert.strictEqual(saved.get('hudTextOffsetY'),Math.max(0,y-60));}
+for(const y of [20,80]){const old={_outputsV:1,hudNavOffsetY:y},saved=store(old);migrate(saved,old);assert.strictEqual(saved.get('hudNavOffsetY'),30);assert.strictEqual(saved.get('hudTextOffsetY'),10);}
 const cfg=settings();assert.strictEqual(cfg.hudAlertStyle,'circle');assert.strictEqual(cfg.clusterAlertStyle,'circle');
 const aux=new AuxInfo();for(const source of SOURCES){const raw={};Object.entries(source.members).forEach(([id,scale])=>{raw[scale[0]]=id==='boost'?85:id==='outside'?116:id==='oil'||id==='oilFallback'?143:32500;});aux.sample(source,raw,0);}
 let data=aux.read(100);assert.strictEqual(data.boost,0.85);assert.strictEqual(data.outside,18);assert.strictEqual(data.oil,95);assert(Math.abs(data.gforce)<0.001);assert.strictEqual(aux.read(2501).boost,null);
@@ -58,7 +58,7 @@ function delta(painter,a,b){const old=Buffer.from(a.d),next=Buffer.from(b.d),cop
 delta(HUD,frame,alternate);delta(HUD,frame,off);delta(HUD,frame,shifted);
 for(const display of ['hud','cluster']){
  const painter=display==='hud'?FACE:CLUSTER,original=painter.draw(state);
- for(const part of D.PARTS){const config=settings({[display+part+'OffsetX']:10,[display+part+'WidthScale']:125,[display+part+'HeightScale']:105});const image=painter.draw(Object.assign({},state,{config}));assert(!Buffer.from(image.d).equals(Buffer.from(original.d)),display+' '+part+' must transform independently');delta(painter,original,image);}
+ for(const part of D.partsFor(display,state.config).map(p=>p.key)){const config=settings({[display+part+'OffsetX']:10,[display+part+'WidthScale']:125,[display+part+'HeightScale']:105});const image=painter.draw(Object.assign({},state,{config}));assert(!Buffer.from(image.d).equals(Buffer.from(original.d)),display+' '+part+' must transform independently');delta(painter,original,image);}
  for(const mode of ['gauges','values'])for(const items of [['oil'],['outside','oil'],['boost','torque','power','gforce'],['boost','torque','outside','oil']]){
   if(mode==='gauges'&&items.length>2)continue;const image=painter.draw(Object.assign({},state,{config:settings({[display+'AuxConfig']:JSON.stringify({mode,items})})}));delta(painter,original,image);
  }
@@ -71,11 +71,11 @@ console.log('PASS: four tabs, transactional ordered aux choices, defaults and mi
  const labels=[],cv=new Canvas(1600,520),text=cv.text;cv.text=function(v){labels.push(v);return text.apply(this,arguments);};page.draw(cv);
  assert(labels.some(v=>String(v).includes('435 × 59 px')),'HUD RPM region dimensions include global scaling');
  const saved=store({_outputsV:1,_displaySettingsV:2,hudNavOffsetX:0,hudTextOffsetX:0});migrate(saved,saved.values);
- assert.strictEqual(saved.get('hudNavOffsetX'),280);assert.strictEqual(saved.get('hudTextOffsetX'),280);
+ assert.strictEqual(saved.get('hudNavOffsetX'),210);assert.strictEqual(saved.get('hudTextOffsetX'),180);
  saved.set('hudNavOffsetX',190);saved.set('hudTextOffsetX',200);migrate(saved,saved.values);assert.strictEqual(saved.get('hudNavOffsetX'),190);assert.strictEqual(saved.get('hudTextOffsetX'),200);
  const r=require(root+'/layout').placement(settings(),'hudNav',require(root+'/nav-draw'));
  const face=require(root+'/layout').placement(settings(),'hud',FACE),barEnd=face.x+612*face.w/FACE.W;
- assert(r.x>=barEnd&&r.x-barEnd<8,'NAV begins just after the RPM bar');assert(r.x+r.w<=800);
+ assert.deepStrictEqual([r.w,r.h],[168,78]);assert.strictEqual(settings().hudNavOffsetX,210);assert.strictEqual(settings().hudTextOffsetX,180);assert(r.x+r.w<=800);
  const nt=require(root+'/nav-text');assert.strictEqual(nt.W,240);
  assert(nt.draw({visible:true,description:'아주 긴 한글 안내 문구입니다 '.repeat(12)}).d.some((v,i)=>i%4===3&&v),'long text still renders within its column');
 }

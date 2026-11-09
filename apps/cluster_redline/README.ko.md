@@ -1,21 +1,13 @@
-# 계기판 레드라인 1.1.0
+# 계기판 레드라인 1.2.0
 
-[English](README.md) · [현재 사용 안내](../../docs/CLUSTER-REDLINE.ko.md) · [업데이트 이력](../../CHANGELOG.md)
+[English](README.md)
 
-iDrive 7 계기판과 HUD에 RPM·기어·변속 알림을 표시하며 받은 길안내를 HUD에 함께 합성합니다. **cluster-render 0.4.0 이상**이 필요합니다.
+HUD·클러스터 RPM·기어·변속 알림과 수신 길안내를 표시하는 iDrive 7 앱입니다.
 
-설정은 **기본설정 / HUD 표시 설정 / CLUSTER 표시 설정 / NAV 표시 설정** 네 탭입니다. 기본설정에서 다음 시작 시 자동 실행 여부와 현재 앱 켜기/끄기를 별도로 조절합니다.
+- [한국어 설치 안내](../../docs/INSTALL.ko.md)
+- [한국어 사용 설명서](../../docs/CLUSTER-REDLINE.ko.md)
+- [새 스크린샷 전체](../../screenshots/README.md)
+- [업데이트 이력](../../CHANGELOG.md)
 
-HUD와 CLUSTER는 스포츠·모든 모드 출력, 부가정보, 상단선·원형 알림 디자인, 요소별 위치·크기를 각각 저장합니다. 부가정보는 부스트·토크·마력*·G포스·외부 온도·오일 온도 중 게이지 1~2개 또는 텍스트 1~4개를 고릅니다. 선택 순서대로 배치하며 확인(OK)을 눌러야 저장합니다. 기본은 부스트·토크 게이지입니다. 지원되지 않거나 오래된 신호는 `--`로 표시합니다. 마력*은 엔진 토크와 RPM으로 계산한 추정 출력이며 eDrive 합산 출력이 아닙니다.
-
-원형 변속 알림은 기어 글자 높이의 70%이며 기존 초록·노랑·빨강 깜빡임 시점을 유지합니다. 가로·세로 배율 차이는 최대 1.3배로 제한합니다. 위치 조절 화면에는 X/Y 오프셋과 실제 출력 영역의 가로×세로 픽셀 크기를 함께 표시합니다.
-
-NAV는 모든 모드 / 스포츠 제외, 회색·흰색·파란색 화살표, 방향과 텍스트의 독립 위치·크기를 설정합니다. 현재 안내에서 받은 설명문은 화살표 위에 표시하며, 기본 위치는 RPM 게이지 끝보다 조금 오른쪽입니다. 기존 설치에 새 위치를 한 번 적용하고 이후 사용자 조절은 유지합니다. 고속도로 진입·진출 여섯 방향의 그림과 알림을 포함합니다. 지도 이미지·추천 차선 그림을 합성하는 기능은 아닙니다. 지원하지 않는 안내나 오래된 데이터는 순정 안내에 양보합니다.
-
-![HUD](../../screenshots/cluster_redline/hud-navigation-text-preview.png)
-
-![위치와 크기](../../screenshots/cluster_redline/settings-parts-layout-preview.png)
-
-MGU Store 소스 `jaimeen77-cmyk/apps` / `main`을 새로고침해 한국어 또는 English판을 설치합니다. 전체 PC 소스에 합칠 때는 [통합 안내](../../docs/JAM-INTEGRATION.ko.md)를 사용합니다. 생성된 SDK 포함 패키지는 공개하지 마세요.
-
-계기판 중심 표시 영역은 지도 보기 또는 꺼짐을 사용합니다. Assist 가림과 복귀는 차량에서 확인해야 합니다. 호스트 검증과 실차 검증은 다르며 이번 설정·배치 변경의 실차 확인은 남아 있습니다.
+![HUD 원형](../../screenshots/cluster_redline/hud-circle-ko.png)
+![클러스터 상단선](../../screenshots/cluster_redline/cluster-bar-ko.png)
