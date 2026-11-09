@@ -28,10 +28,12 @@ with tempfile.TemporaryDirectory(prefix='jam-overlay-test-') as temporary:
     assert run(target).returncode != 0
     assert not (target / 'apps/idrive_circuit').exists()
     (target / 'kit/runtime/locales').mkdir(parents=True)
+    shutil.copy2(UPSTREAM / 'kit/runtime/mgu.js', target / 'kit/runtime/mgu.js')
     locale = target / 'kit/runtime/locales/ko.json'
     locale.write_text('{"Existing":"기존"}', encoding='utf-8')
     assert run(target, '--apps', 'cluster_redline').returncode == 0
     assert (target / 'apps/cluster_redline/app.json').is_file()
+    assert '// Jam custom settings isolation v1' in (target / 'kit/runtime/mgu.js').read_text()
     assert not (target / 'apps/idrive_circuit').exists()
     assert json.loads(locale.read_text(encoding='utf-8'))['Existing'] == '기존'
     # An unchanged overlay may be applied twice without requiring --force.

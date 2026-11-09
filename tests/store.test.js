@@ -27,6 +27,9 @@ function checkPackage(file, id, version, start, language) {
     const spec = json(file, 'javascript/kit/app-spec.json');
     assert.strictEqual(spec.id, id);
     if (id.indexOf('cluster_redline') === 0) {
+        const runtime=read(file,'package/javascript/kit/mgu.js').toString('utf8');
+        assert(runtime.includes('// Jam custom settings isolation v1')&&runtime.includes('setMany(changes)'), 'Store template must carry custom-settings isolation and batched persistence');
+        assert(names.includes('package/javascript/retained-scene.js')&&names.includes('package/javascript/render-state.js'),'Store source build must include retained-render helpers');
         assert.strictEqual(spec.settings.find((s) => s.key === 'displayTarget').default, 'map');
         assert.strictEqual(spec.settings.find((s) => s.key === 'widgetScale').default, 80);
         assert(!spec.settings.some((s) => ['gearPrefix', 'redlineRpm', 'maxRpm', 'torqueScale', 'powerScale'].includes(s.key)));
@@ -70,7 +73,7 @@ async function checkSettingsEntry(file, id, version) {
     };
     try {
         const box = { require(name) {
-            if (name === './kit/mgu') return { run(impl) { start = impl.start(ctx); } };
+            if (name === './kit/mgu') return { run(impl) { assert.strictEqual(impl.settingsUI,'custom');start = impl.start(ctx); } };
             if (name === './worker') return { start() { return { stop() {} }; } };
             return name[0] === '.' ? require(path.join(js, name)) : require(name);
         } };
@@ -81,8 +84,9 @@ async function checkSettingsEntry(file, id, version) {
         for (const text of ['Basic settings', 'HUD display setting', 'CLUSTER display setting', 'NAV display setting', 'App auto start', 'Vehicle preset']) assert(labels.some((label) => label.toLowerCase() === t(text).toLowerCase()), text);
         assert(labels.includes('v' + version), 'visible version must match the installed package');
         assert(!handlers.BTN_SETTINGS, 'entry must not show the old status page and Settings button');
-        labels.length = 0; handlers.BTN_HUD();
-        await new Promise((resolve) => setImmediate(resolve));
+        labels.length = 0; const before=frames;handlers.BTN_HUD();
+        const deadline=Date.now()+1000;while(frames===before&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,5));
+        assert(frames>before,'coalesced installed UI must deliver its next frame');
         assert(labels.includes(t('Sport mode RPM display')), 'installed HUD tab must be wired');
         assert(!spec.settings.some((s) => s.key === 'frameRate'), 'saved 60fps must not recreate the old menu');
     } finally { Canvas.prototype.text = original; }

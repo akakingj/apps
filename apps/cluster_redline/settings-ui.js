@@ -149,17 +149,21 @@ class SettingsPage{
  }
  selectedLayoutParts(){return this.layoutParts().filter(p=>this.layoutSelected.has(p.key));}
  layoutPrefix(p){return this.tab===3?p.prefix:this.display()+p.key;}
+ setValues(values){
+  if(typeof this.settings.setMany==='function')this.settings.setMany(values);
+  else Object.keys(values).forEach(key=>{if(this.settings.get(key)!==values[key])this.settings.set(key,values[key]);});
+ }
  toggleHidden(line){
   const parts=this.selectedLayoutParts().filter(p=>!line||/^Mark/.test(p.key)),cfg=this.config(),suffix=line?'LineHidden':'Hidden';
   const show=parts.length&&parts.every(p=>cfg[this.layoutPrefix(p)+suffix]);
-  parts.forEach(p=>this.settings.set(this.layoutPrefix(p)+suffix,!show));this.changed();
+  const values={};parts.forEach(p=>{values[this.layoutPrefix(p)+suffix]=!show;});this.setValues(values);this.changed();
  }
  adjust(param,delta){
   this.layoutParam=param;const cfg=this.config(),nav=this.tab===3,parts=this.selectedLayoutParts();if(!parts.length)return;
   if(!nav&&parts.length>1&&param>=2){
    const values=parts.map(p=>{const prefix=this.layoutPrefix(p),w=cfg[prefix+'WidthScale'],h=cfg[prefix+'HeightScale'];return {prefix,w,h,lo:Math.max(20-w,20-h,Math.ceil((Math.max(w-1.3*h,h-1.3*w)/0.3-1e-7)/5)*5),hi:Math.min(200-w,200-h)};});
    const step=Math.max(...values.map(v=>v.lo),Math.min(delta*5,...values.map(v=>v.hi)));
-   values.forEach(v=>{this.settings.set(v.prefix+'WidthScale',v.w+step);this.settings.set(v.prefix+'HeightScale',v.h+step);});this.changed();return;
+   const changes={};values.forEach(v=>{changes[v.prefix+'WidthScale']=v.w+step;changes[v.prefix+'HeightScale']=v.h+step;});this.setValues(changes);this.changed();return;
   }
   const edits=parts.map(p=>{
    const prefix=this.layoutPrefix(p),key=param<2?prefix+(param?'OffsetY':'OffsetX'):nav?p.scale:prefix+(param===2?'WidthScale':'HeightScale');
@@ -168,7 +172,7 @@ class SettingsPage{
    return {key,value:cfg[key],lo,hi};
   });
   const step=Math.max(...edits.map(e=>e.lo-e.value),Math.min(delta*(param<2?10:5),...edits.map(e=>e.hi-e.value)));
-  edits.forEach(e=>this.settings.set(e.key,e.value+step));this.changed();
+  const changes={};edits.forEach(e=>{changes[e.key]=e.value+step;});this.setValues(changes);this.changed();
  }
  drawLayout(cv,cfg,targets){
   const local=[],nav=this.tab===3,display=this.display(),parts=this.layoutParts();this.layoutPart=Math.min(this.layoutPart,parts.length-1);

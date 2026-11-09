@@ -40,7 +40,7 @@
       "kind": "app",
       "path": "apps/cluster_redline",
       "title": "계기판 레드라인 (한국어)",
-      "description": "HUD 깜빡임 완화 · 요소별 숨김·다중 조절 · CarPlay 차선·한글 길안내",
+      "description": "그림 재사용·부분 갱신 · 설정 중복 요청 수정 · 한글 HUD·계기판·길안내",
       "mguHmi": [
         "ID7"
       ],
@@ -112,7 +112,7 @@
       "kind": "app",
       "path": "store/apps/cluster_redline_en",
       "title": "Cluster Redline (English)",
-      "description": "HUD continuity fixes, visibility-based collection, multi-select layout and CarPlay lanes",
+      "description": "Retained partial rendering, independent outputs and batched custom settings with HUD navigation",
       "mguHmi": [
         "ID7"
       ],

@@ -7,17 +7,18 @@ const {placement}=require('./layout');
 const W=800,H=480;
 const {blitScaled,drawWithParts}=require('./component-canvas');
 function draw(state) {
-    const cv=new Canvas(W,H);cv.clear([0,0,0,0]);
+    const cache=state.renderCache,cv=cache?(cache.begin(W,H),cache.surface):new Canvas(W,H);if(!cache)cv.clear([0,0,0,0]);
     if(state.renderRpm!==false)drawWithParts(face,state,cv,placement(state.config,'hud',face),'hud');
     if(D.navAllowed(state.config,state.mode)&&state.navigation&&state.navigation.visible){
         const hasTurn=state.navigation.maneuverVisible!==false;
-        if(hasTurn&&!state.config.hudNavHidden)blitScaled(cv,nav.draw(Object.assign({},state.navigation,{color:state.config.navColor})),D.navRect(state.config,'Direction'));
+        const paintNav=(id,painter,value)=>{if(cache){const key=require('./render-state').navKey(state,id);if(key)cache.navigation(id,key,painter,value,D.navRect(state.config,id));}else blitScaled(cv,painter.draw(value),D.navRect(state.config,id));};
+        if(hasTurn&&!state.config.hudNavHidden)paintNav('Direction',nav,Object.assign({},state.navigation,{color:state.config.navColor}));
         if(!state.config.hudLanesHidden&&state.navigation.lanes&&state.navigation.lanes.visible){
-            blitScaled(cv,lanes.draw(Object.assign({},state.navigation.lanes,{color:state.config.navColor})),D.navRect(state.config,'Lanes'));
+            paintNav('Lanes',lanes,Object.assign({},state.navigation.lanes,{color:state.config.navColor}));
         }
-        if(hasTurn&&!state.config.hudTextHidden)blitScaled(cv,text.draw(state.navigation),D.navRect(state.config,'Text'));
+        if(hasTurn&&!state.config.hudTextHidden)paintNav('Text',text,state.navigation);
     }
-    return cv;
+    return cache?cache.finish():cv;
 }
 function difference(previous,next) {
     const rects=[],parts=[],stride=W*4;
@@ -37,4 +38,4 @@ function difference(previous,next) {
     }
     return {rects,pixels:Buffer.concat(parts)};
 }
-module.exports={draw,difference,W,H,fullTarget:true};
+module.exports={draw,difference,W,H,fullTarget:true,key:state=>require('./render-state').key(state,'hud'),createCache:()=>new (require('./retained-scene').RetainedScene)()};

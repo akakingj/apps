@@ -16,7 +16,7 @@ const back=cv.targets.find(r=>r.x===1210&&r.y===448);assert(back);back.act();ass
 page.activate(4);cv=page.draw(canvas());assert(cv.targets.find(r=>r.x===1210&&r.y===448));
 assert.strictEqual(spec.settings.find(s=>s.key==='displayMode').options.length,2);
 async function lifecycle(autoStart){
- const s=store({autoStart,appEnabled:!autoStart}),calls=[];let entry;
+ const s=store({autoStart,appEnabled:!autoStart}),calls=[],events=new (require('events').EventEmitter)();let entry;
  class Page{constructor(){this.open=null;}draw(c){c.targets=[];return c;}}
  const app=load('main.js',{
   fs:{readFileSync:()=>JSON.stringify({autoStart,appEnabled:!autoStart,_outputsV:1})},path,
@@ -24,7 +24,7 @@ async function lifecycle(autoStart){
   './settings-chrome':{configure(){}},'./worker':{start(){calls.push('start');return {stop(){calls.push('stop');}};}},
   './migrate':require(path.join(dir,'migrate')),'./output-status':{mapStatus:()=>''}
  });
- await entry.start({settings:s,spec,dataDir:'/mock',log:{error:e=>{throw e}},canvas:canvas,
+ await entry.start({app:events,settings:s,spec,dataDir:'/mock',log:{error:e=>{throw e}},canvas:canvas,
  ui:{text:async()=>{},image:async()=>{},onClick(){}},onTap(){},onTab(){},onLayout(){},loop(){}});
  assert.strictEqual(calls.length,autoStart?1:0);
  s.set('autoStart',!autoStart);assert.strictEqual(calls.length,autoStart?1:0,'auto-start preference must not change current operation');
@@ -33,5 +33,6 @@ async function lifecycle(autoStart){
  s.set('appEnabled',false);assert.strictEqual(calls.filter(x=>x==='stop').length,1);
  s.set('appEnabled',true);assert.strictEqual(calls.filter(x=>x==='start').length,2);
  await new Promise(r=>setImmediate(r));
+ events.emit('shutdown');
 }
 (async()=>{await lifecycle(false);await lifecycle(true);console.log('PASS: live app start/stop, independent next-start preference, both launch states, two visible operation buttons, six rows in bounds and submenu Back at bottom right');})().catch(e=>{console.error(e);process.exitCode=1;});

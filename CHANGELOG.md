@@ -4,6 +4,18 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.2
+
+- Retain bounded per-output component rasters and projected tiles. Reuse static RPM tracks/ticks, M marks and unchanged auxiliary/navigation parts; clear/recompose only damaged regions when values, geometry or visibility change. Reuse the sent-frame buffer and cache projection lookups to avoid per-pixel allocation churn.
+- Compare only visible per-display pixel inputs. Ignore navigation age/status metadata and values used only by the other display; direction, text and lanes have separate cache keys. Keep the existing native layer count, freshness/mode guards and stock-popup yielding.
+- Keep RPM/core live sampling unchanged. Poll oil/SOC/economy at 5 seconds, outside temperature at 10 seconds and successful battery voltage at 5 seconds; consume fresh notifications immediately, align bounded slow-source freshness windows, and stop hidden streams as before.
+- While the ordered image transport is blocked, skip intermediate raster work and render current live state when writable. Preserve the one latest image buffer and frame-before-show/contention order.
+- Complete Korean display-tab, option and instruction labels, preserving signal IDs, app names, units and phone-supplied road text. Check the actual Korean settings renders for untranslated UI labels.
+
+- Opt the app's custom settings page out of the unused generic HMI settings synchronizer. Two layout coordinate changes previously triggered 370 generic settings updates in the host reproduction; keep generic settings behavior unchanged for other apps.
+- Persist multi-selection moves, resizes and visibility changes in one settings batch. Coalesce UI requests into the latest complete page, serialize image delivery, and write static native button labels only once.
+- Reproduced the reported output loss in the supplied 1.2.1 logs with inactive navigation: the app PID stayed unchanged while HMI updates timed out, status updates paused for up to 7.949 seconds and stale RPM/mode checks hid both outputs. The fix is host-tested; real-vehicle and unattended-driving validation remain pending.
+
 ### 1.2.1
 
 - Add per-component visibility and toggleable multi-selection to HUD/cluster/NAV position controls. Move selected elements together; resize a HUD/cluster group in both dimensions within the existing aspect limits, and retain separate width/height for one element. Give NAV direction, text and lanes independent position/size/visibility and add Stock NAV mode.

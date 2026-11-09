@@ -568,6 +568,12 @@ class ClusterRender extends EventEmitter {
     }
 
     status() { this._send({ op: 'status' }); }
+    // Keep only the frame already in the ordered transport plus the latest
+    // live state in the controller. Do not rasterize intermediate blocked frames.
+    canPaint(ref) {
+        const l=this.layers.get(ref);
+        return !!(this.ready&&!this.blocked&&(!l||!l.whole&&!l.dirty.length));
+    }
 }
 
 module.exports = { ClusterRender, DEFAULT_PATH };

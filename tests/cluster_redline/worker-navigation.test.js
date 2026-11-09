@@ -361,6 +361,18 @@ async function queriedRouteEventFallback(){
   }finally{h.worker.stop();await flush();h.stopped();}
  }
 }
+async function slowAuxiliaryCadence(){
+ const h=harness({aux:true});
+ try{
+  h.config.hudAuxConfig=JSON.stringify({mode:'gauges',items:['oil','outside']});h.config.clusterAuxConfig=JSON.stringify({mode:'gauges',items:['batteryCharge','economy']});
+  await flush();h.navigate('INACTIVE');h.tick(1000);await flush();h.tick(1025);await flush();
+  const initial=h.auxReads.length;assert(initial>=4);h.auxReads.forEach(read=>read.resolve({}));await flush();
+  h.tick(2000);await flush();assert.strictEqual(h.auxReads.length,initial,'slow metrics do not query every second');
+  h.tick(6030);await flush();const later=h.auxReads.slice(initial);assert(later.length>=3);assert(!later.some(r=>r.field==='ExteriorTemperature'),'outside temperature waits ten seconds');later.forEach(r=>r.resolve({}));await flush();
+  h.tick(11050);await flush();assert(h.auxReads.slice(initial).some(r=>r.field==='ExteriorTemperature'));
+  h.worker.stop();await flush();h.stopped();
+ }finally{h.worker.stop();}
+}
 async function optionalAuxiliaryWorker(){
  const h=harness({aux:true});
  try{
@@ -477,6 +489,7 @@ async function delayedPhoneGuidanceKeepsRpm(){
  }
 }
 (async () => {
+    await slowAuxiliaryCadence();
     await lanesOnlyNeedsNoHiddenRpmOrTurnData();await hiddenComponentsStopTheirStreams();await carplayLaneFeed();await delayedPhoneGuidanceKeepsRpm();await unusedAuxiliaryDoesNotCompeteWithNavigation();await optionalAuxiliaryWorker();await queriedRouteEventFallback();await actualHudViewFallback();await reportedProjectedGuidanceWithNativeInactive();await repeatedNotificationsWhilePolling();await composedNavigation();await eventYield(); await optionalReadSafety(); await pollingAndRaces(); await providerReconnectRace(); await lateReadsAndSubscriptions();
     console.log('PASS: actual worker native-guidance getter gating/instance, immediate HUD-only yield, fresh recovery, optional/stale/provider safety, bounded polling, event/read/provider-reconnect races and complete late-work shutdown');
 })().catch(error => { console.error(error); process.exitCode = 1; });

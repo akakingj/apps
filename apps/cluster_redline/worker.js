@@ -99,7 +99,7 @@ function start(ctx) {
                 auxGroups[iface].forEach(source=>{
                     if(!cfg.fields||!cfg.fields[source.field]||!cfg.fields[source.field].getter)return;
                     const entry={source,sub:null,pending:false,lastPoll:-Infinity,epoch:0,revision:0,available:false,wanted:false};entries.push(entry);
-                    handlers[source.field]=value=>{if(!stopped){entry.revision++;if(entry.wanted)auxInfo.sample(source,value,mono());}};
+                    handlers[source.field]=value=>{if(!stopped){entry.revision++;if(entry.wanted){entry.lastPoll=mono();auxInfo.sample(source,value,entry.lastPoll);}}};
                 });
                 if(!entries.length)return;
                 signals.watch(iface,'1',handlers,log,{}).then(sub=>{entries.forEach(entry=>{entry.sub=sub;auxSubs.push(entry);});keep(sub);}).catch(()=>{});
@@ -241,7 +241,7 @@ function start(ctx) {
                 if(entry.wanted!==wanted){entry.epoch++;entry.wanted=wanted;entry.lastPoll=-Infinity;auxInfo.clearSource(source);}
                 if(entry.available!==available){entry.epoch++;entry.available=available;}
                 if(!available||!wanted){auxInfo.clearSource(source);return;}
-                if(!sub.proxy||typeof sub.proxy.getValue!=='function'||entry.pending||at-entry.lastPoll<1000)return;
+                if(!sub.proxy||typeof sub.proxy.getValue!=='function'||entry.pending||at-entry.lastPoll<source.pollMs)return;
                 entry.pending=true;entry.lastPoll=at;const epoch=entry.epoch,revision=entry.revision;
                 Promise.resolve().then(()=>sub.proxy.getValue(source.field,1000)).then(value=>{
                     if(!stopped&&entry.epoch===epoch&&entry.revision===revision)auxInfo.sample(source,value,mono());

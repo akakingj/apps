@@ -1,6 +1,6 @@
 # iDrive 7 Jam Apps · 한국어
 
-**계기판 레드라인 1.2.1** · HUD/클러스터 두 디자인, 좌우 부가정보·M 개별 조절, 배터리·평균연비와 길안내. **아이드라이브 회로 1.0.0**도 함께 제공합니다.
+**계기판 레드라인 1.2.2** · HUD/클러스터 두 디자인, 좌우 부가정보·M 개별 조절, 배터리·평균연비와 길안내. **아이드라이브 회로 1.0.0**도 함께 제공합니다.
 
 [English](README.md)
 
@@ -10,7 +10,7 @@
 | 레드라인 사용 | [사용 설명서](docs/CLUSTER-REDLINE.ko.md) | [User guide](docs/CLUSTER-REDLINE.md) |
 | Circuit 사용 | [회로 퍼즐](apps/idrive_circuit/README.ko.md) | [Circuit](apps/idrive_circuit/README.md) |
 
-MGU Store에서 소스 **`jaimeen77-cmyk/apps`**, 브랜치 **`main`**을 추가하고 새로고침한 뒤 한국어 또는 English판을 설치하세요. 레드라인은 `cluster-render` **0.4.0 이상**이 필요합니다. 기존 설치는 Installed에서 업데이트하고 앱 상단 **v1.2.1**을 확인하세요. 한국어·영어판을 함께 설치했다면 사용하지 않는 판의 앱 실행과 자동 시작을 끕니다.
+MGU Store에서 소스 **`jaimeen77-cmyk/apps`**, 브랜치 **`main`**을 추가하고 새로고침한 뒤 한국어 또는 English판을 설치하세요. 레드라인은 `cluster-render` **0.4.0 이상**이 필요합니다. 기존 설치는 Installed에서 업데이트하고 앱 상단 **v1.2.2**을 확인하세요. 한국어·영어판을 함께 설치했다면 사용하지 않는 판의 앱 실행과 자동 시작을 끕니다.
 
 | HUD circle | HUD bar |
 |---|---|

@@ -1,4 +1,4 @@
-# Cluster Redline 1.2.1 user guide
+# Cluster Redline 1.2.2 user guide
 
 [한국어](CLUSTER-REDLINE.ko.md) · [Installation](INSTALL.md) · [All screenshots](../screenshots/README.md) · [Changelog](../CHANGELOG.md)
 
@@ -117,3 +117,11 @@ Hidden-only signal reads and notification subscriptions stop, then resume when v
 ## Flicker comparison
 
 Late navigation replies no longer remove the entire RPM image. Stale guidance clears and yields to stock; real-vehicle improvement is not yet verified. If flicker persists, hide both auxiliary groups on both HUD and CLUSTER and compare the same route. Any visible dependent retains shared collection. Then test hiding lanes, text or direction one kind at a time.
+
+## 1.2.2 retained rendering and settings updates
+
+Reuse static tracks/ticks, M marks and unchanged auxiliary/navigation rasters; recompose only damaged regions. Each output compares its own visible pixel inputs, ignoring guidance-age metadata. Skip intermediate raster work while image transport is blocked, then draw current state. Keep signal expiry and native-popup yielding unchanged.
+
+Core RPM/mode/torque delivery is unchanged. Poll oil/SOC/economy every 5 seconds, outside temperature every 10 seconds and successful battery voltage every 5 seconds; consume notifications immediately.
+
+The custom settings UI no longer refreshes the unused generic HMI settings page. Persist multi-component moves/resizes/visibility in one batch and coalesce page updates. Korean tab/button/instruction coverage is checked. Verify v1.2.2 after updating. Host/installation and Store package checks do not replace vehicle validation.

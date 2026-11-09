@@ -14,9 +14,9 @@ function translated(cv,x,y){
   quad:(p,c)=>cv.quad(p.map(v=>[v[0]+x,v[1]+y]),c),arc:(a,b,r0,r1,s,e,c)=>cv.arc(a+x,b+y,r0,r1,s,e,c),
   fillRect:(a,b,w,h,c)=>cv.fillRect(a+x,b+y,w,h,c),roundRect:(a,b,w,h,r,c)=>cv.roundRect(a+x,b+y,w,h,r,c),blit:(im,a,b)=>cv.blit(im,a+x,b+y)};
 }
-function part(cv,cfg,display,name,bounds,paint){
+function part(cv,cfg,display,name,bounds,paint,sub){
  const visiblePaint=c=>{if(!cfg[display+name+'Hidden'])paint(c);};
- if(typeof cv.part==='function'){cv.part(cfg,display,name,bounds,visiblePaint);return;}
+ if(typeof cv.part==='function'){cv.part(cfg,display,name,bounds,visiblePaint,sub);return;}
  if(cfg[display+name+'Hidden'])return;
  const prefix=display+name,x=cfg[prefix+'OffsetX']||0,y=cfg[prefix+'OffsetY']||0,sx=(cfg[prefix+'WidthScale']||100)/100,sy=(cfg[prefix+'HeightScale']||100)/100;
  if(!x&&!y&&sx===1&&sy===1){paint(cv);return;}
@@ -27,6 +27,7 @@ function part(cv,cfg,display,name,bounds,paint){
  const resized=new Canvas(r.w,r.h);blitScaled(resized,image,{x:0,y:0,w:r.w,h:r.h});cv.blit(resized,r.x,r.y);
 }
 function drawWithParts(painter,state,dst,rect,display){
+ if(state.renderCache){state.renderCache.face(painter,state,rect,display);return;}
  const base=new Canvas(painter.W,painter.H),pending=[];base.clear([0,0,0,0]);
  base.part=(cfg,d,name,bounds,paint)=>{
   if(cfg[d+name+'Hidden'])return;

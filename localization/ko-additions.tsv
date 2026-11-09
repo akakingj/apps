@@ -128,8 +128,8 @@ Selected	선택됨
 Status	상태
 Cancel	취소
 Select	선택
-Set Central display area to Map view or Off. Assist or route preview may cover the widget.	중심 표시 영역은 지도 보기 또는 꺼짐으로 설정하세요. Assist·경로 미리보기는 가릴 수 있습니다.
-Install Cluster renderer (cluster-render) from MGU Store first.	먼저 MGU Store에서 클러스터 렌더러(cluster-render)를 설치하세요.
+Set Central display area to Map view or Off. Assist or route preview may cover the widget.	중심 표시 영역은 지도 보기 또는 꺼짐으로 설정하세요. 주행 보조·경로 미리보기는 가릴 수 있습니다.
+Install Cluster renderer (cluster-render) from MGU Store first.	먼저 MGU 스토어에서 클러스터 렌더러(cluster-render)를 설치하세요.
 Fixed 20 fps request limit; actual output depends on the car.	갱신 속도는 20fps로 고정되며 실제 출력 속도는 차량에 따라 달라집니다.
 HUD (RPM / gear / shift)	HUD (회전수·기어·변속 알림)
 HUD only; cluster output stops. Stock HUD guidance may take priority.	HUD만 표시하며 계기판 출력은 중지됩니다. 순정 HUD 안내가 우선할 수 있습니다.
@@ -191,8 +191,8 @@ HUD preview	HUD 미리보기
 Highway entry	고속도로 진입
 Highway exit	고속도로 진출
 HUD display setting	HUD 표시 설정
-CLUSTER display setting	CLUSTER 표시 설정
-NAV display setting	NAV 표시 설정
+CLUSTER display setting	계기판 표시 설정
+NAV display setting	길안내 표시 설정
 Auxiliary information	부가정보
 Design	디자인 변경
 Sport mode RPM display	스포츠 모드 RPM 표시
@@ -203,7 +203,7 @@ Except Sport	스포츠 제외
 Light gray	연한 회색
 White	흰색
 Blue	파란색
-Select items on the next screen. Changes apply only after OK.	다음 화면에서 항목을 고르세요. OK를 눌러야 저장됩니다.
+Select items on the next screen. Changes apply only after OK.	다음 화면에서 항목을 고르세요. 확인을 눌러야 저장됩니다.
 Select gauges	게이지 선택
 Select text items	텍스트 항목 선택
 Selection order sets the left and right positions.	선택 순서대로 왼쪽과 오른쪽에 배치합니다.
@@ -250,3 +250,10 @@ Show selected	선택 항목 보이기
 selected	개 선택
 Select items to adjust	조정할 항목을 선택하세요
 Lane guidance	차선 안내
+Stock	순정
+CLUSTER	계기판
+NAV	길안내
+Power	마력
+Torque	토크
+Text / direction	텍스트 / 방향
+Not available	사용 불가

@@ -5,6 +5,7 @@ const { drawMark } = require('./m-mark');
 const rpmColors = require('./rpm-colors');
 const {part}=require('./component-canvas');
 const {drawAux}=require('./aux-draw');
+const {alertStage,alertState}=require('./shift-alert');
 const W = 800, H = 240;
 const TYPE = { rpm:59.4, rpmUnit:19.8, label:15.4, value:26.4, unit:12.1, scale:13.2, ticks:16.5, gear:70.4 };
 const L = { left:64, right:612, slant:12, alertTop:14, barTop:52, barBottom:84.4, tickBaseline:116, baseline:180,
@@ -16,14 +17,6 @@ function layoutFor(cfg) {
     if(cfg.hudAlertStyle!=='circle')return L;
     const result=Object.assign({},L,{barTop:18,barBottom:50.4,tickBaseline:82,baseline:146,miniBaseline:120,miniTop:134,miniHeight:32,miniLabels:184,frameY:198});
     ['alertTop','barTop','barBottom','tickBaseline','baseline','miniBaseline','miniTop','miniLabels','frameY'].forEach(k=>{result[k]+=20;});return result;
-}
-function alertStage(state) { return state.rpm>=state.config.shiftRpm?'red':state.rpm>=state.config.shiftRpm*0.85?'yellow':'green'; }
-function alertState(state) {
-    const shift=state.config.shiftRpm,start=shift*0.65;
-    // The original twelve-segment alert determines the first visible green.
-    const lit=state.shift?12:Math.floor(clamp((state.rpm-start)/(shift-start),0,1)*12);
-    const stage=alertStage(state);
-    return {lit,stage,visible:lit>0,color:stage==='red'?RED:stage==='yellow'?'#ffd522':'#19ee67'};
 }
 function gearLayout(cv,gear,cfg) {
     let size=TYPE.gear,width,top,bottom,diameter;
@@ -59,14 +52,20 @@ function draw(state,target) {
     });
     part(cv,cfg,'hud','Mark',{x:303,y:l.frameY-9,w:54,h:17},c=>{if(!cfg.hudMarkHidden)drawMark(c,330,l.frameY-9,54,17);});
     const span=l.right-l.left-l.slant;
-    part(cv,cfg,'hud','RpmGauge',{x:50,y:l.barTop-5,w:580,h:l.tickBaseline-l.barTop+14},c=>{
+    const gaugeBounds={x:50,y:l.barTop-5,w:580,h:l.tickBaseline-l.barTop+14};
+    const gaugeBand=(c,a,b,tint)=>{if(b<=a)return;const x=l.left+span*a/cfg.maxRpm,z=l.left+span*b/cfg.maxRpm;c.quad([[x+l.slant,l.barTop],[z+l.slant,l.barTop],[z,l.barBottom],[x,l.barBottom]],tint);};
+    part(cv,cfg,'hud','RpmGauge',gaugeBounds,c=>{
+        gaugeBand(c,0,cfg.maxRpm,'#1b212b');gaugeBand(c,cfg.redlineRpm,cfg.maxRpm,'#4c1621');
+    },'track');
+    part(cv,cfg,'hud','RpmGauge',gaugeBounds,c=>{
         const band=(a,b,tint)=>{if(b<=a)return;const x=l.left+span*a/cfg.maxRpm,z=l.left+span*b/cfg.maxRpm;c.quad([[x+l.slant,l.barTop],[z+l.slant,l.barTop],[z,l.barBottom],[x,l.barBottom]],tint);};
-        band(0,cfg.maxRpm,'#1b212b');band(cfg.redlineRpm,cfg.maxRpm,'#4c1621');
         const top=clamp(state.rpm,0,cfg.maxRpm);
         for(let rpm=0;rpm<top;rpm+=50)band(rpm,Math.min(rpm+75,top),rpmColors.colorAt(rpm,cfg));
+    },'fill');
+    part(cv,cfg,'hud','RpmGauge',gaugeBounds,c=>{
         for(let rpm=500;rpm<cfg.maxRpm;rpm+=500){const x=l.left+span*rpm/cfg.maxRpm;c.line(x+l.slant,l.barTop,x,l.barBottom,0.8,'#000000');}
         for(let rpm=0;rpm<=cfg.maxRpm;rpm+=1000){const x=l.left+span*rpm/cfg.maxRpm,tint=rpm>=cfg.redlineRpm?RED:'#aeb9c6';c.line(x,l.barBottom+4,x,l.barBottom+10,1,tint);c.text(String(rpm/1000),x,l.tickBaseline,TYPE.ticks,tint,{align:'center',font:'num',literal:true});}
-    });
+    },'ticks');
     const gear=typeof state.gear==='string'&&/^(?:[DSM]?(?:[1-9]|10)|P|R|N|D|--)$/.test(state.gear)?state.gear:'--',gl=gearLayout(cv,gear,cfg);
     const alertBounds=cfg.hudAlertStyle==='circle'?{x:gl.cx-gl.diameter/2-3,y:gl.cy-gl.diameter/2-3,w:gl.diameter+6,h:gl.diameter+6}:{x:l.left-2,y:l.alertTop-2,w:span+l.slant+4,h:16};
     const paintAlert=c=>{

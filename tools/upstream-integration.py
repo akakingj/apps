@@ -328,11 +328,39 @@ def kit_source(text):
     return replace_once(text, checksum, extra + checksum)
 
 
+def settings_runtime_source(text):
+    marker = '// Jam custom settings isolation v1'
+    if marker not in text:
+        text = replace_once(text, 'function wireSettings(ctx) {', '''function wireSettings(ctx, customUI) {
+    // Jam custom settings isolation v1: custom pages own their controls;
+    // never refresh the unused generated SETTINGS page for every coordinate.
+    if (customUI === true) return;''')
+        text = replace_once(text, "wireSettings(ctx), 3000)", "wireSettings(ctx, !!(impl && impl.settingsUI === 'custom')), 3000)")
+    if '// Jam batched settings v1' not in text:
+        anchor = '    onChange(fn) { this.listeners.push(fn); }'
+        addition = '''    // Jam batched settings v1: publish all values before one persisted write.
+    // Existing set() semantics and other apps' generic settings stay unchanged.
+    setMany(changes) {
+        const keys = Object.keys(changes).filter((key) => this.values[key] !== changes[key]);
+        if (!keys.length) return false;
+        keys.forEach((key) => { this.values[key] = changes[key]; });
+        try { fs.writeFileSync(this.file, JSON.stringify(this.values, null, 1)); }
+        catch (e) { log.warn('settings save: ' + e); }
+        keys.forEach((key) => this.listeners.forEach((fn) => {
+            try { fn(key, this.values[key]); } catch (e) { log.error(e); }
+        }));
+        return true;
+    }
+'''
+        text = replace_once(text, anchor, addition + anchor)
+    return text
+
+
 def plan_upstream(target):
     target = Path(target)
     changes = {}
     for name, transform in [('kit/tools/build.py', build_source), ('deploy/mgu-app-install.sh', installer_source),
-                            ('kit/tools/make_kit.py', kit_source)]:
+                            ('kit/tools/make_kit.py', kit_source), ('kit/runtime/mgu.js', settings_runtime_source)]:
         path = target / name
         if not path.is_file():
             raise ValueError('Missing upstream integration file: ' + str(path))

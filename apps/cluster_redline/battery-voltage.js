@@ -25,7 +25,7 @@ class BatteryVoltage{
   Promise.resolve().then(()=>d.physical(candidate[0],sid,query,1200,accept,{maxRetries:0,callTimeoutMs:1000,hardTimeoutMs:1600,pendingTimeoutMs:1200})).then(reply=>{
    if(this.stopped||epoch!==this.epoch)return;
    const offset=prefix.length,valid=Array.isArray(reply)&&prefix.every((n,i)=>reply[i]===n)&&reply.length>=offset+2&&reply.slice(offset,offset+2).every(n=>Number.isInteger(n)&&n>=0&&n<=255),v=valid?((reply[offset]<<8)|reply[offset+1])/1000:null;
-   if(v!==null&&v>=5&&v<=18){this.value=v;this.at=this.clock();this.retry=2000;}
+   if(v!==null&&v>=5&&v<=18){this.value=v;this.at=this.clock();this.retry=5000;}
    else{this.value=null;this.choice=(this.choice+1)%candidates.length;this.retry=this.choice===0?30000:2000;}
   },()=>{if(!this.stopped&&epoch===this.epoch){this.value=null;this.retry=30000;}}).then(()=>{if(epoch===this.epoch)this.pending=false;});
  }

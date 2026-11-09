@@ -8,6 +8,7 @@ const { configure } = require('./settings-chrome');
 const worker = require('./worker');
 const { migrate } = require('./migrate');
 const { mapStatus } = require('./output-status');
+const { RenderQueue } = require('./render-queue');
 const REASONS = {
     disabled: 'Automatic display off', renderer_unavailable: 'Waiting for cluster renderer',
     profile_unknown: 'Check engine profile', hybrid_engine_stopped: 'Hybrid engine stopped · hidden',
@@ -33,15 +34,17 @@ const REASONS = {
     navigation_provider_mismatch: 'Waiting for phone guidance state · stock HUD preserved',
     renderer_recovering: 'Recovering renderer layer',
 };
-mgu.run({ async start(ctx) {
+mgu.run({ settingsUI: 'custom', async start(ctx) {
     configure(ctx);
     let old = {};
     try { old = JSON.parse(fs.readFileSync(path.join(ctx.dataDir, 'settings.json'), 'utf8')); } catch (e) {}
     migrate(ctx.settings, old);
     // A new app process applies auto-start once; manual operation is independent.
     ctx.settings.set('appEnabled', ctx.settings.get('autoStart') === true);
-    let background = null, drawing = false, again = false;
-    const page = new SettingsPage(ctx.settings, () => render().catch(report), ctx.spec.version);
+    let background = null;
+    const queue = new RenderQueue(render, report);
+    const page = new SettingsPage(ctx.settings, () => queue.request(), ctx.spec.version);
+    if (ctx.app && ctx.app.once) ctx.app.once('shutdown', () => queue.stop());
     function report(e) { ctx.log.error('settings', e.message || e); }
     function syncWorker() {
         if (ctx.settings.get('appEnabled') === true && !background) background = worker.start(ctx);
@@ -50,33 +53,25 @@ mgu.run({ async start(ctx) {
     ctx.settings.onChange((key) => {
         if (key === 'engineProfile') ctx.settings.set('shiftRpm', 0);
         if (key === 'appEnabled') syncWorker();
-        render().catch(report);
+        queue.request();
     });
     // MainApp starts a lightweight settings host; OFF stops live subscriptions and cluster output.
     syncWorker();
     async function render() {
-        if (drawing) { again = true; return; }
-        drawing = true;
-        try {
-            let state = null;
-            try { state = JSON.parse(fs.readFileSync(path.join(ctx.dataDir, 'cluster-redline-status.json'), 'utf8')); } catch (e) {}
-            if (state && (!isFinite(Date.parse(state.at)) || Date.now() - Date.parse(state.at) > 5000)) state = null;
-            const reason = !ctx.settings.get('appEnabled') ? 'disabled' : state && state.reason;
-            let status=t(REASONS[reason] || 'Waiting for background app');
-            if (reason !== 'disabled' && state && state.outputs) status=['cluster','hud'].map((name)=>{
-                const out=state.outputs[name];
-                let message=REASONS[out.reason] || 'Waiting for status';
-                if(out.requested) message=name==='cluster' ? mapStatus(out) : out.targetState==='shown' ? 'HUD area acquired' : 'Waiting for HUD area';
-                return t(name==='cluster'?'Cluster':'HUD')+': '+t(message);
-            });
-            const cv = page.draw(ctx.canvas(W, H), status, state);
-            page.targets = cv.targets;
-            await Promise.all([ctx.ui.text('BTN_VALUE_DOWN','Back'),ctx.ui.text('BTN_VALUE_UP','Select')]);
-            await ctx.ui.image('MAIN_GFX', cv);
-        } finally {
-            drawing = false;
-            if (again) { again = false; render().catch(report); }
-        }
+        let state = null;
+        try { state = JSON.parse(fs.readFileSync(path.join(ctx.dataDir, 'cluster-redline-status.json'), 'utf8')); } catch (e) {}
+        if (state && (!isFinite(Date.parse(state.at)) || Date.now() - Date.parse(state.at) > 5000)) state = null;
+        const reason = !ctx.settings.get('appEnabled') ? 'disabled' : state && state.reason;
+        let status=t(REASONS[reason] || 'Waiting for background app');
+        if (reason !== 'disabled' && state && state.outputs) status=['cluster','hud'].map((name)=>{
+            const out=state.outputs[name];
+            let message=REASONS[out.reason] || 'Waiting for status';
+            if(out.requested) message=name==='cluster' ? mapStatus(out) : out.targetState==='shown' ? 'HUD area acquired' : 'Waiting for HUD area';
+            return t(name==='cluster'?'Cluster':'HUD')+': '+t(message);
+        });
+        const cv = page.draw(ctx.canvas(W, H), status, state);
+        page.targets = cv.targets;
+        await ctx.ui.image('MAIN_GFX', cv);
     }
     ctx.ui.onClick('BTN_BASIC', () => page.selectTab(0));
     ctx.ui.onClick('BTN_HUD',()=>page.selectTab(1));
@@ -92,7 +87,9 @@ mgu.run({ async start(ctx) {
         if (target) target.act();
     });
     ctx.onTab((i) => page.selectTab(i));
-    ctx.onLayout(() => render().catch(report));
-    ctx.loop('MAIN', 2, render);
-    await render();
+    ctx.onLayout(() => queue.request());
+    ctx.loop('MAIN', 2, () => queue.request());
+    // Static native button labels are set once, not on every position update.
+    await Promise.all([ctx.ui.text('BTN_VALUE_DOWN','Back'),ctx.ui.text('BTN_VALUE_UP','Select')]);
+    await queue.flush();
 } });

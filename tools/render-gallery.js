@@ -10,7 +10,7 @@ function render(stage,language){
  const base={config:settings(),rpm:4000,gear:'M3',shift:false,flash:true,torqueNm:360,powerPS:240,torquePeak:400,powerPeak:260,aux:{boost:0.85,oil:95,outside:18,gforce:0.35,gLat:0.25,gLong:0.24,batteryCharge:78,batteryVoltage:14.25,economy:12.4},navigation:{visible:true,kind:'intersection',maneuver:'RIGHT',distanceText:'300 m',description:'교차로',provider:'ANDROID_AUTO'}};
  const save=(name,cv,title)=>{const file=name+'-'+language+'.png';fs.writeFileSync(path.join(output,file),cv.png());images.push({file,title,language,width:cv.w,height:cv.h});};
  const screen=(name,title)=>save(name,page.draw(new Canvas(1600,520)),title);
- const face=(display,changes)=>{const painter=display==='hud'?HUD:CLUSTER,s=Object.assign({},base,changes);s.powerPS=s.torqueNm*s.rpm/9549.2966*1.3596216;s.powerPeak=Math.max(s.powerPeak,s.powerPS);const im=painter.draw(s),cv=new Canvas(im.w,im.h);cv.clear('#05080c');cv.blit(im,0,0);return cv;};
+ const face=(display,changes)=>{const painter=display==='hud'?HUD:CLUSTER,s=Object.assign({},base,changes);if(painter.createCache)s.renderCache=painter.createCache();s.powerPS=s.torqueNm*s.rpm/9549.2966*1.3596216;s.powerPeak=Math.max(s.powerPeak,s.powerPS);const im=painter.draw(s),cv=new Canvas(im.w,im.h);cv.clear('#05080c');cv.blit(im,0,0);return cv;};
  for(const display of ['hud','cluster'])for(const style of ['circle','bar']){
   const config=settings({hudAlertStyle:style,clusterAlertStyle:style});save(display+'-'+style,face(display,{config}),display+' / '+style);
   for(const flash of [true,false])save(display+'-'+style+'-red-'+(flash?'on':'off'),face(display,{config,rpm:5650,shift:true,flash}),display+' / '+style+' / red '+(flash?'on':'off')+' at 5650rpm');

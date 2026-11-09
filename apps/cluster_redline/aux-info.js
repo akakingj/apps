@@ -18,12 +18,17 @@ const SOURCES=[
  {iface:CDS,field:'statusBattery2',members:{batteryCharge:['conditionBatteryChargingCondition',1,0,101]}},
  {iface:KOMBI,field:'statusBordcomputerAverage',members:{economy:[]},decode:economy}
 ];
+SOURCES.forEach(source=>{
+ const ids=Object.keys(source.members),slow=ids.some(k=>['oil','oilFallback','outside','batteryCharge','economy'].includes(k));
+ source.pollMs=ids.includes('outside')?10000:slow?5000:1000;
+ source.ttlMs=slow?source.pollMs*3:2500;
+});
 class AuxInfo {
  constructor(){this.samples={};}
- sample(source,value,now){Object.keys(source.members).forEach(k=>{const a=source.members[k],raw=value&&value[a[0]],v=source.decode?source.decode(value):typeof raw==='number'&&Number.isInteger(raw)&&raw>=0&&raw<a[3]?raw*a[1]+a[2]:null;this.samples[k]={v,at:now};});}
+ sample(source,value,now){Object.keys(source.members).forEach(k=>{const a=source.members[k],raw=value&&value[a[0]],v=source.decode?source.decode(value):typeof raw==='number'&&Number.isInteger(raw)&&raw>=0&&raw<a[3]?raw*a[1]+a[2]:null;this.samples[k]={v,at:now,ttl:source.ttlMs||2500};});}
  clearSource(source){Object.keys(source.members).forEach(k=>{delete this.samples[k];});}
  read(now){
-  const get=k=>{const s=this.samples[k];return s&&typeof now==='number'&&now>=s.at&&now-s.at<=2500?s.v:null;};
+  const get=k=>{const s=this.samples[k];return s&&typeof now==='number'&&now>=s.at&&now-s.at<=s.ttl?s.v:null;};
   const gl=get('gLong'),ga=get('gLat'),gforce=gl!==null&&ga!==null&&Math.abs(gl)<=3&&Math.abs(ga)<=3?Math.sqrt(gl*gl+ga*ga):null;
   return {boost:get('boost'),oil:get('oil')===null?get('oilFallback'):get('oil'),outside:get('outside'),batteryCharge:get('batteryCharge'),economy:get('economy'),gforce,gLong:gl,gLat:ga};
  }

@@ -25,6 +25,7 @@ class Controller {
         this.transitions = []; this.lastReason = null;
         client.on('budget', (cap) => this.upload.budget(cap));
         this.targetName = null; this.targetStates = {}; this.paintKey = null;
+        this.renderCache = null;
         this.now = 0; this.failure = null; this.healthySince = null; this.layerReason = '';
         client.on('disconnected', () => { this.hide(); this.targetStates = {}; this.policy.reset(); this.telemetry.clear(); this.gear = '--'; this.gearMode = null; });
         client.on('refused', (op, ref, reason) => {
@@ -53,6 +54,7 @@ class Controller {
         this.placementKey = null;
         this.targetName = null; this.layerReason = ''; this.healthySince = null;
         this.navContend = false;
+        if(this.renderCache)this.renderCache.reset();
         // Target events describe the renderer's global slot, not this ref.
         // Keep the latest ownership through a drop: a new layer need not
         // produce another target event if the native slot has not changed.
@@ -105,6 +107,7 @@ class Controller {
         const painter = hud ? this.hudPainter : this.painter;
         d.navigation = hud ? this.navigation : null;
         d.renderRpm=this.renderRpm!==false;d.aux=this.aux||{};
+        d.rendering=this.renderCache?this.renderCache.stats():null;
         const targetWidth = panel ? 1920 : hud ? 800 : 1088, targetHeight = panel ? 720 : 480;
         const geometry = cfg.displayTarget + ':' + targetWidth + 'x' + targetHeight;
         if (d.show && (!painter || cfg.displayTarget === 'unknown' || String(this.client.targets || '').split(',').indexOf(geometry) < 0)) {
@@ -164,11 +167,14 @@ class Controller {
         }
         // Do not repaint a whole canvas 60 times/s when no source value changed.
         // Keep freshness/mode checks above this cache so stale signals still hide.
-        const paintKey = [d.rpm,d.shift,d.flash,d.gear,d.torqueNm,d.powerPS,d.torquePeak,d.powerPeak,JSON.stringify([cfg,d.renderRpm,d.aux,hud?d.navigation:null])].join('|');
+        const paintKey = painter.key ? painter.key(d) : [d.rpm,d.shift,d.flash,d.gear,d.torqueNm,d.powerPS,d.torquePeak,d.powerPeak,JSON.stringify([cfg,d.renderRpm,d.aux,hud?d.navigation:null])].join('|');
         if (this.previous && this.paintKey === paintKey && (!navContend || this.navContend)) return Object.assign(d, { requested: true, layerState: this.layerState });
+        if (this.previous && this.client.canPaint && !this.client.canPaint(this.ref)) return Object.assign(d, { requested: true, layerState: this.layerState });
         if (this.previous && !this.upload.ready(now)) return Object.assign(d, { requested: true, layerState: this.layerState });
         if (!this.previous && !this.ownsUpload && !this.upload.ready(now)) return Object.assign(d, { requested: true, layerState: this.layerState });
-        const canvas = painter.draw(d), pixels = Buffer.from(canvas.d);
+        if(painter.createCache){if(!this.renderCache)this.renderCache=painter.createCache();Object.defineProperty(d,'renderCache',{value:this.renderCache,enumerable:false});}
+        const canvas = painter.draw(d), source=canvas.d;
+        const pixels=ArrayBuffer.isView(source)?Buffer.from(source.buffer,source.byteOffset,source.byteLength):Buffer.from(source);
         if (!this.previous) {
             this.upload.allow(pixels.length, now, true);
             if (!this.ownsUpload) this.upload.waitUntil = now + Math.max(250, Math.ceil(pixels.length / this.upload.rate * 1000));
@@ -183,7 +189,11 @@ class Controller {
             if (delta.rects.length && !this.upload.allow(delta.pixels.length, now, false)) return Object.assign(d, { requested: true, layerState: this.layerState });
             if (delta.rects.length) this.client.pixels(this.ref, delta.rects, delta.pixels);
         }
-        this.previous = pixels;
+        // Retained canvases are mutable. Keep one stable sent-frame snapshot,
+        // reusing its allocation instead of producing a full-frame GC stream.
+        if(!this.previous||this.previous.length!==pixels.length)this.previous=Buffer.alloc(pixels.length);
+        pixels.copy(this.previous);
+        d.rendering=this.renderCache?this.renderCache.stats():null;
         this.paintKey = paintKey;
         if (navContend && !this.navContend) {
             if (typeof this.client.contendWhenSent === 'function') this.client.contendWhenSent(this.ref);

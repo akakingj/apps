@@ -20,19 +20,23 @@ function frame(cv, cfg, y, lower) {
     part(cv,cfg,'cluster',key,{x:W/2-44,y:y-14,w:88,h:28},c=>{if(!cfg['cluster'+key+'Hidden'])drawMark(c,W/2,y-14);});
 }
 function draw(state,target) {
+    if(!target&&state.renderCache){state.renderCache.begin(W,H);state.renderCache.face(module.exports,state,{x:0,y:0,w:W,h:H},'cluster');return state.renderCache.finish();}
     const cv=target||new Canvas(W,H),cfg=state.config,rpm=state.rpm;
     if(!target)cv.clear([0,0,0,0]);
     frame(cv,cfg,L.upperFrame,false);frame(cv,cfg,450,true);
     const span=L.right-L.left-L.slant;
-    part(cv,cfg,'cluster','RpmGauge',{x:204,y:L.top-5,w:680,h:90},c=>{
+    const gaugeBounds={x:204,y:L.top-5,w:680,h:90},band=(c,a,b,color)=>{if(b<=a)return;const xa=L.left+span*a/cfg.maxRpm,xb=L.left+span*b/cfg.maxRpm;c.quad([[xa+L.slant,L.top],[xb+L.slant,L.top],[xb,L.bottom],[xa,L.bottom]],color);};
+    part(cv,cfg,'cluster','RpmGauge',gaugeBounds,c=>{band(c,0,cfg.maxRpm,C.track);band(c,cfg.redlineRpm,cfg.maxRpm,'#4c1621');},'track');
+    part(cv,cfg,'cluster','RpmGauge',gaugeBounds,c=>{
         const polygon=(a,b,color)=>{if(b<=a)return;const xa=L.left+span*a/cfg.maxRpm,xb=L.left+span*b/cfg.maxRpm;c.quad([[xa+L.slant,L.top],[xb+L.slant,L.top],[xb,L.bottom],[xa,L.bottom]],color);};
-        polygon(0,cfg.maxRpm,C.track);polygon(cfg.redlineRpm,cfg.maxRpm,'#4c1621');
         const top=clamp(rpm,0,cfg.maxRpm);
         for(let r=0;r<top;r+=50)polygon(r,Math.min(r+75,top),rpmColors.colorAt(r,cfg));
+    },'fill');
+    part(cv,cfg,'cluster','RpmGauge',gaugeBounds,c=>{
         for(let r=500;r<cfg.maxRpm;r+=500){const x=L.left+span*r/cfg.maxRpm;c.line(x+L.slant,L.top,x,L.bottom,0.7,'#05060a');}
-        if(top>0){const x=L.left+span*top/cfg.maxRpm;c.line(x+L.slant,L.top-2,x,L.bottom+2,3,C.text);}
         for(let r=0;r<=cfg.maxRpm;r+=500){const x=L.left+span*r/cfg.maxRpm,major=r%1000===0,color=r>=cfg.redlineRpm?C.red:'#b8c2d1';c.line(x,L.bottom+5,x,L.bottom+(major?13:9),1,color);if(major)c.text(String(r/1000),x,187,22,color,{align:'center',font:'num'});}
-    });
+    },'ticks');
+    part(cv,cfg,'cluster','RpmGauge',gaugeBounds,c=>{const top=clamp(rpm,0,cfg.maxRpm);if(top>0){const x=L.left+span*top/cfg.maxRpm;c.line(x+L.slant,L.top-2,x,L.bottom+2,3,C.text);}},'cursor');
     const gear=typeof state.gear==='string'&&/^(?:[DSM]?(?:[1-9]|10)|P|R|N|D|--)$/.test(state.gear)?state.gear:'--';
     const gearWidth=cv.textWidth(gear,74,{font:'bold',literal:true}),font=fonts.get('bold',74,gear),glyphs=font?Array.from(gear,c=>font.glyphs[c.codePointAt(0)]).filter(Boolean):[];
     const scale=font?74/font.size:1,top=glyphs.length?Math.min.apply(null,glyphs.map(g=>g[5]))*scale:-54,bottom=glyphs.length?Math.max.apply(null,glyphs.map(g=>g[5]+g[3]))*scale:0,diameter=(gear==='--'&&font&&font.glyphs[68]?font.glyphs[68][3]*scale:bottom-top)*0.7;
@@ -76,4 +80,4 @@ function difference(previous, next) {
     });
     return { rects: rects, pixels: Buffer.concat(parts) };
 }
-module.exports = { draw, difference, W, H, layout: L };
+module.exports = { draw, difference, W, H, layout: L, key:state=>require('./render-state').key(state,'cluster'),createCache:()=>new (require('./retained-scene').RetainedScene)() };

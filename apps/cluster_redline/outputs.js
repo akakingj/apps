@@ -21,6 +21,7 @@ class OutputClient extends EventEmitter {
     image(options) { const ref = this.client.image(options); if (ref) this.refs.add(ref); return ref; }
     pixels() { return this.client.pixels.apply(this.client, arguments); }
     set() { return this.client.set.apply(this.client, arguments); }
+    canPaint(ref) { return this.client.canPaint?this.client.canPaint(ref):true; }
     contendWhenSent(ref) {
         if (this.client.contendWhenSent) return this.client.contendWhenSent(ref);
         return this.client.set(ref, { contend: true });
