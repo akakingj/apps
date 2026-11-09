@@ -104,7 +104,3 @@ M 마크를 선택하면 **선 안 보임 / M 안 보임** 버튼이 나옵니�
 ![일반 안내 모양](../screenshots/cluster_redline/navigation-directions-ko.png)
 ![고속도로 안내 모양](../screenshots/cluster_redline/navigation-highway-ko.png)
 ![안내 위치](../screenshots/cluster_redline/settings-nav-text-ko.png)
-
-## 데이터와 검증 범위
-
-렌더링·설정·설치 인터페이스는 호스트에서 검사합니다. 사진은 예시값이며 이번 버전의 배터리·연비 수신, Assist 전환과 안내 동시 표시의 최종 위치는 실차에서 확인해야 합니다. 문제가 있으면 [설치·문제 해결](INSTALL.ko.md)과 [로그 수집](COLLECT-CLUSTER-REDLINE.ko.md)을 참고하세요.
