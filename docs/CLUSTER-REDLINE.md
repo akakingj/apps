@@ -1,4 +1,4 @@
-# Cluster Redline 1.2.0 user guide
+# Cluster Redline 1.2.1 user guide
 
 [한국어](CLUSTER-REDLINE.ko.md) · [Installation](INSTALL.md) · [All screenshots](../screenshots/README.md) · [Changelog](../CHANGELOG.md)
 
@@ -86,14 +86,15 @@ Select an M mark to reveal **Hide line / Hide M mark**. Each toggles independent
 
 ## NAV display setting
 
-- **Guidance display:** All modes / Except Sport. NAV may run separately while HUD RPM is Stock.
+- **Guidance display:** All modes / Except Sport / Stock. Stock stops app navigation output and its reads/subscriptions. NAV may run separately while HUD RPM is Stock.
 - **Design:** gray, white or blue arrows; descriptions and distances remain white.
-- **Position:** select Direction or Text. Each moves/scales independently; its width and height scale uniformly.
+- **Position:** select Direction, Text or Lanes. Each moves/scales/hides independently; width and height scale uniformly.
 
 | Region | Default X/Y offset | Size | Scale |
 |---|---|---|---|
 | Text | (180,10) | 156×31px | 65% |
 | Direction/distance | (210,30) | 168×78px | 70% |
+| Lanes | (210,115) | 168×50px | 70% |
 
 The received current-maneuver description appears above the arrow and updates with the next instruction. English UI can display received Hangul text. Previous instructions are cleared on route/source loss or expiry.
 
@@ -106,3 +107,13 @@ Supported diagrams include turns, straight/slight/fork directions, U-turns, roun
 ## Validation scope
 
 Rendering, settings and optional installation interfaces are host-tested. Battery/economy delivery, Assist recovery and final combined-HUD placement still need real-vehicle checks for this release. See [installation/troubleshooting](INSTALL.md) and the [log guide](COLLECT-CLUSTER-REDLINE.ko.md) for problems.
+
+## 1.2.1 visibility and collection
+
+Tap a component to select it and tap again to deselect. Multiple selections move and resize together. HUD/cluster single selections have separate width/height controls; groups resize both dimensions. Every component can be hidden/shown; M lines remain independent. HUD text metrics move down one 10px source step with full Hangul glyph bounds. Battery charge uses a Battery12V-style ten-segment icon.
+
+Hidden-only signal reads and notification subscriptions stop, then resume when visible. Shared inputs needed by another visible component continue. Stock vehicle functions are unaffected. CarPlay recommended lanes use the selected navigation colour, with other lanes dimmed; missing/stale lane data clears independently. Recorded Android Auto sessions did not contain lane data. U-turn arrows have rounded arches.
+
+## Flicker comparison
+
+Late navigation replies no longer remove the entire RPM image. Stale guidance clears and yields to stock; real-vehicle improvement is not yet verified. If flicker persists, hide both auxiliary groups on both HUD and CLUSTER and compare the same route. Any visible dependent retains shared collection. Then test hiding lanes, text or direction one kind at a time.

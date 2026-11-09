@@ -15,7 +15,9 @@ function translated(cv,x,y){
   fillRect:(a,b,w,h,c)=>cv.fillRect(a+x,b+y,w,h,c),roundRect:(a,b,w,h,r,c)=>cv.roundRect(a+x,b+y,w,h,r,c),blit:(im,a,b)=>cv.blit(im,a+x,b+y)};
 }
 function part(cv,cfg,display,name,bounds,paint){
- if(typeof cv.part==='function'){cv.part(cfg,display,name,bounds,paint);return;}
+ const visiblePaint=c=>{if(!cfg[display+name+'Hidden'])paint(c);};
+ if(typeof cv.part==='function'){cv.part(cfg,display,name,bounds,visiblePaint);return;}
+ if(cfg[display+name+'Hidden'])return;
  const prefix=display+name,x=cfg[prefix+'OffsetX']||0,y=cfg[prefix+'OffsetY']||0,sx=(cfg[prefix+'WidthScale']||100)/100,sy=(cfg[prefix+'HeightScale']||100)/100;
  if(!x&&!y&&sx===1&&sy===1){paint(cv);return;}
  const image=new Canvas(Math.ceil(bounds.w),Math.ceil(bounds.h));image.clear([0,0,0,0]);paint(translated(image,-bounds.x,-bounds.y));
@@ -27,6 +29,7 @@ function part(cv,cfg,display,name,bounds,paint){
 function drawWithParts(painter,state,dst,rect,display){
  const base=new Canvas(painter.W,painter.H),pending=[];base.clear([0,0,0,0]);
  base.part=(cfg,d,name,bounds,paint)=>{
+  if(cfg[d+name+'Hidden'])return;
   const key=d+name,ox=cfg[key+'OffsetX']||0,oy=cfg[key+'OffsetY']||0,sx=(cfg[key+'WidthScale']||100)/100,sy=(cfg[key+'HeightScale']||100)/100;
   if(!ox&&!oy&&sx===1&&sy===1){paint(base);return;}
   const image=new Canvas(Math.ceil(bounds.w),Math.ceil(bounds.h));image.clear([0,0,0,0]);paint(translated(image,-bounds.x,-bounds.y));

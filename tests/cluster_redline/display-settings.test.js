@@ -18,17 +18,17 @@ for(const tab of [1,2]){
  page.activate(2);page.choose(0);['oil','boost','power'].forEach(id=>page.toggleMetric(id));assert.deepStrictEqual(page.draft.items,['oil','boost']);page.commitAux();
  page.activate(2);page.choose(1);page.toggleMetric('torque');page.selectTab(0);assert.deepStrictEqual(D.auxConfig(s.get(disp+'AuxConfig')).items,['oil','boost'],'changing tab discards draft');
  page.selectTab(tab);page.activate(3);draw(page);page.choose(0);assert.strictEqual(s.get(disp+'AlertStyle'),'bar');page.activate(3);page.choose(1);assert.strictEqual(s.get(disp+'AlertStyle'),'circle');
- page.activate(4);draw(page);page.layoutPart=0;for(let n=0;n<50;n++)page.adjust(2,1);let cfg=page.config();assert(cfg[disp+'RpmGaugeWidthScale']/cfg[disp+'RpmGaugeHeightScale']<=1.3);
+ page.activate(4);draw(page);page.selectLayoutPart(0,true);for(let n=0;n<50;n++)page.adjust(2,1);let cfg=page.config();assert(cfg[disp+'RpmGaugeWidthScale']/cfg[disp+'RpmGaugeHeightScale']<=1.3);
  for(let n=0;n<50;n++)page.adjust(3,-1);cfg=page.config();assert(cfg[disp+'RpmGaugeWidthScale']/cfg[disp+'RpmGaugeHeightScale']<=1.3);
- const gear=s.get(disp+'GearOffsetX');page.layoutPart=D.partsFor(disp,page.config()).findIndex(p=>p.key==='RpmValue');page.adjust(0,1);assert.strictEqual(s.get(disp+'GearOffsetX'),gear,'editing RPM number must leave gear placement unchanged');
+ const gear=s.get(disp+'GearOffsetX');page.selectLayoutPart(D.partsFor(disp,page.config()).findIndex(p=>p.key==='RpmValue'),true);page.adjust(0,1);assert.strictEqual(s.get(disp+'GearOffsetX'),gear,'editing RPM number must leave gear placement unchanged');
 }
 assert.deepStrictEqual(D.metricSlots(['boost','torque','oil']).map(s=>[s.side,s.row]),[[0,0],[0,1],[1,0]]);
 assert.deepStrictEqual(D.metricSlots(['boost','torque']).map(s=>s.side),[0,1]);assert.deepStrictEqual(D.metricSlots(['oil']).map(s=>s.side),[0]);
 {
  const s=store(),page=new SettingsPage(s);page.selectTab(3);page.activate(0);page.choose(1);assert.strictEqual(s.get('navDisplayMode'),'excludeSport');assert(!D.navAllowed(page.config(),'SPORT_PLUS'));assert(D.navAllowed(page.config(),'COMFORT_PLUS'));
  page.activate(1);draw(page);page.choose(0);assert.strictEqual(s.get('navColor'),'gray');
- page.activate(2);draw(page);page.layoutPart=0;page.adjust(0,1);page.adjust(2,1);const arrowX=s.get('hudNavOffsetX'),scale=s.get('navUniformScale');
- page.layoutPart=1;page.adjust(0,-1);page.adjust(2,1);assert.strictEqual(s.get('hudNavOffsetX'),arrowX);assert.strictEqual(s.get('navUniformScale'),scale);assert.strictEqual(page.config().hudNavWidthScale,page.config().hudNavHeightScale);
+ page.activate(2);draw(page);page.selectLayoutPart(0,true);page.adjust(0,1);page.adjust(2,1);const arrowX=s.get('hudNavOffsetX'),scale=s.get('navUniformScale');
+ page.selectLayoutPart(1,true);page.adjust(0,-1);page.adjust(2,1);assert.strictEqual(s.get('hudNavOffsetX'),arrowX);assert.strictEqual(s.get('navUniformScale'),scale);assert.strictEqual(page.config().hudNavWidthScale,page.config().hudNavHeightScale);
 }
 {
  const old={_outputsV:1,displayMode:'sport',sportHudOutput:'redline',allHudOutput:'redline',allClusterOutput:'redline',hudAlertStyle:'bar',hudNavOffsetY:0,hudNavWidthScale:125};

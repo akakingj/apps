@@ -52,9 +52,17 @@ class Controller {
         if (this.ownsUpload) this.upload.reset();
         this.placementKey = null;
         this.targetName = null; this.layerReason = ''; this.healthySince = null;
+        this.navContend = false;
         // Target events describe the renderer's global slot, not this ref.
         // Keep the latest ownership through a drop: a new layer need not
         // produce another target event if the native slot has not changed.
+    }
+    yieldGuidance() {
+        // Retain the RPM image while letting the native HUD own the slot.
+        // Missing/stale maneuvers clear on the next paced frame; they must
+        // never make a fresh RPM image repeatedly drop and re-upload.
+        if (this.ref && this.navContend) this.client.set(this.ref, { contend: false });
+        this.navContend = false;
     }
     fail(op, reason) {
         const attempts = this.failure ? this.failure.attempts : 0;
@@ -78,12 +86,12 @@ class Controller {
         // backoff. Native acquisition/parking/lock recovery stays native; no
         // periodic layer churn, service restart or guard reset is performed.
         if (this.refused && this.failure && this.failure.retryable && !this.failure.exhausted &&
-            now >= this.failure.nextAt && !otherOwns && this.policy.evaluate(now, this.client.ready, cfg).show) {
+            now >= this.failure.nextAt && !otherOwns && this.policy.evaluate(now, this.client.ready, cfg,this.requiresRpm).show) {
             this.refused = false; this.failure.attempts++; this.failure.nextAt = null;
         }
         if (this.failure && !this.refused && this.healthySince !== null && now - this.healthySince >= 30000)
             this.failure = null;
-        const d = this.policy.evaluate(now, this.client.ready && !this.refused, cfg);
+        const d = this.policy.evaluate(now, this.client.ready && !this.refused, cfg,this.requiresRpm);
         if (this.refused && this.failure && d.reason === 'renderer_unavailable') d.reason = this.failure.retryable && !this.failure.exhausted ? 'renderer_recovering' : 'renderer_refused';
         d.recovery = this.failure ? Object.assign({ state: this.refused ? this.failure.retryable && !this.failure.exhausted ? 'waiting' : 'failed' : 'retrying' }, this.failure) : null;
         d.gear = gear.display(this.gear, this.gearMode, 'auto');
@@ -119,8 +127,7 @@ class Controller {
         const rect = painter.fullTarget ? {x:0,y:0,w:targetWidth,h:targetHeight} : placement(cfg, cfg.displayTarget, painter);
         const placementKey = [rect.x, rect.y, rect.w, rect.h].join('|');
         const navContend = hud && cfg.hudNavigationEnabled && !!(d.navigation && d.navigation.visible);
-        if (this.ref && hud && this.navContend !== navContend) this.hide();
-        this.navContend = navContend;
+        if (hud && !navContend) this.yieldGuidance();
         d.placement = rect;
         d.flash = d.shift && Math.floor(now / 250) % 2 === 0;
         if (this.ref && this.placementKey !== placementKey) {
@@ -145,10 +152,10 @@ class Controller {
                 // Follow the same guide hold as MapFeed on map only. The
                 // renderer limits this to its supported maneuver-panel slots,
                 // releases it with the map, and retains its guard/allowlist.
-                // HUD contends only with a fresh decoded maneuver already in
-                // the composed frame. Missing data releases our image; native
-                // popup yielding and configured takeover limits still apply.
-                visible: false, prewarm: false, exclusive: !hud, contend: navContend || (!panel && !hud), guide_hold: !panel && !hud, fps: d.config.frameRate });
+                // HUD contention is enabled after the composed pixels below.
+                // Missing data yields the slot without destroying the RPM
+                // image; native popup yielding and takeover limits still apply.
+                visible: false, prewarm: false, exclusive: !hud, contend: !panel && !hud, guide_hold: !panel && !hud, fps: d.config.frameRate });
             if (!this.ref) { this.fail('layer', 'client did not create a layer'); d.show = false; d.reason = 'renderer_refused'; return d; }
             this.layerState = 'waiting';
             this.layerRate = d.config.frameRate;
@@ -158,7 +165,7 @@ class Controller {
         // Do not repaint a whole canvas 60 times/s when no source value changed.
         // Keep freshness/mode checks above this cache so stale signals still hide.
         const paintKey = [d.rpm,d.shift,d.flash,d.gear,d.torqueNm,d.powerPS,d.torquePeak,d.powerPeak,JSON.stringify([cfg,d.renderRpm,d.aux,hud?d.navigation:null])].join('|');
-        if (this.previous && this.paintKey === paintKey) return Object.assign(d, { requested: true, layerState: this.layerState });
+        if (this.previous && this.paintKey === paintKey && (!navContend || this.navContend)) return Object.assign(d, { requested: true, layerState: this.layerState });
         if (this.previous && !this.upload.ready(now)) return Object.assign(d, { requested: true, layerState: this.layerState });
         if (!this.previous && !this.ownsUpload && !this.upload.ready(now)) return Object.assign(d, { requested: true, layerState: this.layerState });
         const canvas = painter.draw(d), pixels = Buffer.from(canvas.d);
@@ -178,6 +185,11 @@ class Controller {
         }
         this.previous = pixels;
         this.paintKey = paintKey;
+        if (navContend && !this.navContend) {
+            if (typeof this.client.contendWhenSent === 'function') this.client.contendWhenSent(this.ref);
+            else this.client.set(this.ref, { contend: true });
+            this.navContend = true;
+        }
         return Object.assign(d, { requested: true, layerState: this.layerState });
     }
     close() { this.hide(); this.policy.reset(); this.client.close(); }

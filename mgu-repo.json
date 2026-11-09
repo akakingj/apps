@@ -40,7 +40,7 @@
       "kind": "app",
       "path": "apps/cluster_redline",
       "title": "계기판 레드라인 (한국어)",
-      "description": "HUD·CLUSTER 좌우 부가정보·M 개별 조절 · 배터리·평균연비 · 한글 길안내",
+      "description": "HUD 깜빡임 완화 · 요소별 숨김·다중 조절 · CarPlay 차선·한글 길안내",
       "mguHmi": [
         "ID7"
       ],
@@ -112,7 +112,7 @@
       "kind": "app",
       "path": "store/apps/cluster_redline_en",
       "title": "Cluster Redline (English)",
-      "description": "Independent side metrics/M marks, battery and fuel economy, combined HUD guidance",
+      "description": "HUD continuity fixes, visibility-based collection, multi-select layout and CarPlay lanes",
       "mguHmi": [
         "ID7"
       ],

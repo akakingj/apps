@@ -1,4 +1,4 @@
-# Screenshots · Cluster Redline 1.2.0 / iDrive Circuit 1.0.0
+# Screenshots · Cluster Redline 1.2.1 / iDrive Circuit 1.0.0
 
 [한국어 설치](../docs/INSTALL.ko.md) · [한국어 사용법](../docs/CLUSTER-REDLINE.ko.md) · [English installation](../docs/INSTALL.md) · [English user guide](../docs/CLUSTER-REDLINE.md)
 
@@ -99,3 +99,28 @@ Default: boost/torque. Battery charge uses a battery icon; G-force uses a rectan
 | ![회로 퍼즐](circuit-board-ko.png) | ![Circuit puzzle](circuit-board-en.png) |
 
 Reproduce Redline captures from built stages: `node tools/render-gallery.js <Korean-stage> <English-stage> screenshots/cluster_redline`. The [gallery manifest](cluster_redline/gallery.json) records image sizes and sample names.
+
+## 1.2.1 · 다중 선택, 차선, 둥근 유턴 / Multi-selection, lanes and rounded U-turns
+
+![Example](cluster_redline/hud-battery-gauge-ko.png)
+
+![Example](cluster_redline/uturn-rounded-ko.png)
+
+![Example](cluster_redline/hud-text-bar-ko.png)
+
+![Example](cluster_redline/hud-carplay-lanes-ko.png)
+
+![Example](cluster_redline/hud-uturn-lanes-ko.png)
+
+![Example](cluster_redline/settings-nav-multiselect-ko.png)
+
+![Example](cluster_redline/settings-cluster-circle-multiselect-ko.png)
+
+![Example](cluster_redline/settings-nav-stock-ko.png)
+
+![Example](cluster_redline/settings-hud-circle-multiselect-ko.png)
+
+![Example](cluster_redline/hud-text-circle-ko.png)
+
+![Example](cluster_redline/settings-hud-bar-multiselect-ko.png)
+

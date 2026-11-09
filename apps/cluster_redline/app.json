@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Independent stock/Redline cluster and HUD outputs, adjustable placement and native-guidance priority",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
@@ -85,6 +85,11 @@
       "_broadcasts": [
         "sendTasuResponse"
       ]
+    },
+    "de.bmw.infotainment.navigation.projectedmodeguiding.ProjectedModeGuiding": {
+      "_optional": "CarPlay lane guidance unavailable",
+      "_instances": "Main_Instance",
+      "currentLaneGuiding": "rs"
     }
   },
   "screens": [
@@ -505,7 +510,7 @@
       "key": "displaySettingsRevision",
       "label": "displaySettingsRevision",
       "type": "number",
-      "default": 3,
+      "default": 4,
       "hidden": true
     },
     {
@@ -553,6 +558,10 @@
         [
           "excludeSport",
           "Except Sport"
+        ],
+        [
+          "stock",
+          "Stock display"
         ]
       ]
     },
@@ -1247,6 +1256,160 @@
       "label": "clusterMarkBottomLineHidden",
       "type": "bool",
       "default": false,
+      "hidden": true
+    },
+    {
+      "key": "hudLanesOffsetX",
+      "label": "hudLanesOffsetX",
+      "type": "number",
+      "default": 210,
+      "hidden": true
+    },
+    {
+      "key": "hudLanesOffsetY",
+      "label": "hudLanesOffsetY",
+      "type": "number",
+      "default": 115,
+      "hidden": true
+    },
+    {
+      "key": "hudLanesScale",
+      "label": "hudLanesScale",
+      "type": "number",
+      "default": 70,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxTextOffsetY",
+      "label": "hudAuxTextOffsetY",
+      "type": "number",
+      "default": 10,
+      "hidden": true
+    },
+    {
+      "key": "hudNavHidden",
+      "label": "hudNavHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "hudTextHidden",
+      "label": "hudTextHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "hudLanesHidden",
+      "label": "hudLanesHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "hudRpmGaugeHidden",
+      "label": "hudRpmGaugeHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "hudGearHidden",
+      "label": "hudGearHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "hudAlertHidden",
+      "label": "hudAlertHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxLeftHidden",
+      "label": "hudAuxLeftHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxRightHidden",
+      "label": "hudAuxRightHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "hudRpmValueHidden",
+      "label": "hudRpmValueHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxHidden",
+      "label": "hudAuxHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "clusterRpmGaugeHidden",
+      "label": "clusterRpmGaugeHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "clusterGearHidden",
+      "label": "clusterGearHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "clusterAlertHidden",
+      "label": "clusterAlertHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxLeftHidden",
+      "label": "clusterAuxLeftHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxRightHidden",
+      "label": "clusterAuxRightHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "clusterRpmValueHidden",
+      "label": "clusterRpmValueHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxHidden",
+      "label": "clusterAuxHidden",
+      "type": "bool",
+      "default": false,
+      "hidden": true
+    },
+    {
+      "key": "_visibilityV4",
+      "label": "Visibility migration",
+      "type": "number",
+      "default": 0,
       "hidden": true
     }
   ],

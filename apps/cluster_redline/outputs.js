@@ -3,7 +3,7 @@ const { EventEmitter } = require('events');
 const { Controller } = require('./controller');
 const { Policy, settings } = require('./policy');
 const { Telemetry } = require('./telemetry');
-const {navAllowed,rpmOutput}=require('./display-config');
+const D=require('./display-config'),{navAllowed,rpmOutput}=D;
 const { UploadPacer } = require('./upload');
 // One socket and one upload allowance, with independently released outputs.
 class OutputClient extends EventEmitter {
@@ -21,6 +21,10 @@ class OutputClient extends EventEmitter {
     image(options) { const ref = this.client.image(options); if (ref) this.refs.add(ref); return ref; }
     pixels() { return this.client.pixels.apply(this.client, arguments); }
     set() { return this.client.set.apply(this.client, arguments); }
+    contendWhenSent(ref) {
+        if (this.client.contendWhenSent) return this.client.contendWhenSent(ref);
+        return this.client.set(ref, { contend: true });
+    }
     showWhenSent(ref) {
         if (this.client.showWhenSent) return this.client.showWhenSent(ref);
         return this.client.set(ref, { visible: true });
@@ -50,10 +54,11 @@ class Outputs {
         this.profile = cfg.engineProfile;
         const states = {}, order = this.order++ % 2 ? ['hud','cluster'] : ['cluster','hud'];
         order.forEach((name) => {
-            const out=this[name],rpm=rpmOutput(cfg,name==='hud'?'Hud':'Cluster',this.policy.mode);
+            const out=this[name],rpm=rpmOutput(cfg,name==='hud'?'Hud':'Cluster',this.policy.mode)&&D.faceVisible(cfg,name);
             const nav=name==='hud'&&navAllowed(cfg,this.policy.mode)&&this.navigation&&this.navigation.visible;
             const selected=rpm||nav?'redline':'stock';
             out.renderRpm=rpm;out.aux=this.aux||{};
+            out.requiresRpm=rpm&&D.faceRpmNeeded(cfg,name);
             out.profile = cfg.engineProfile; out.gear = this.gear; out.gearMode = this.gearMode;
             out.navigation = name === 'hud' && navAllowed(cfg,this.policy.mode) ? this.navigation : null;
             const blocked=name==='hud' && this.hudBlocked;

@@ -100,7 +100,7 @@ class Policy {
         if (this.rpm === null) this.runningSeen = false;
         else if (this.rpm >= 100) this.runningSeen = true;
     }
-    evaluate(now, ready, config) {
+    evaluate(now, ready, config, requireRpm) {
         const cfg = settings(config);
         const fresh = (at, ttl) => at !== null && now >= at && now - at <= ttl;
         let reason = cfg.displayMode === 'all' ? 'all_modes' : 'sport';
@@ -109,13 +109,13 @@ class Policy {
         else if (!ready) reason = 'renderer_unavailable';
         else if (!fresh(this.modeAt, 3500)) reason = 'mode_unknown';
         else if (cfg.displayMode === 'sport' && AUTOMATIC_MODES.indexOf(this.mode) < 0) reason = 'not_sport';
-        else if (!fresh(this.rpmAt, 1800)) reason = 'rpm_unknown';
+        else if (requireRpm!==false&&!fresh(this.rpmAt, 1800)) reason = 'rpm_unknown';
         // Fresh zero RPM after a running sample is a live stopped engine, not
         // a reason to release the display at every automatic stop/start.
         // A cold boot still waits for the engine; stale/invalid data and
         // lifecycle/provider loss keep their normal release behavior.
-        else if (this.rpm < 100 && !this.runningSeen) reason = cfg.engineProfile === 'hybrid' ? 'hybrid_engine_stopped' : 'engine_stopped';
-        else if (this.rpm > cfg.maxRpm + 1000) reason = 'rpm_invalid';
+        else if (requireRpm!==false&&this.rpm < 100 && !this.runningSeen) reason = cfg.engineProfile === 'hybrid' ? 'hybrid_engine_stopped' : 'engine_stopped';
+        else if (requireRpm!==false&&this.rpm > cfg.maxRpm + 1000) reason = 'rpm_invalid';
         else if (cfg.displayMode === 'sport' && (this.activeSince === null || now - this.activeSince < 1000)) reason = 'stabilizing';
         const show = reason === 'sport' || reason === 'all_modes';
         return { show: show, reason: reason, mode: this.mode, rpm: this.rpm, engineStopped: this.rpm !== null && this.rpm < 100,

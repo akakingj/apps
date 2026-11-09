@@ -1,0 +1,24 @@
+'use strict';
+const assert=require('assert'),{LaneGuidance,decode,FIELD}=require('../../apps/cluster_redline/lane-guidance');
+const row={rows:[{lanes:[{directionToFollow:'NONE',directionsToFollow:[],otherDirections:['LEFT','STRAIGHT_ON'],isHighlighted:false,additionalLaneInfo:'NONE'},{directionToFollow:'RIGHT',directionsToFollow:['RIGHT'],otherDirections:[],isHighlighted:true,additionalLaneInfo:'NONE'}],recommendedCarPositionLaneIndex:1}],carPositionLaneIndex:255};
+const value=decode(row);assert.strictEqual(value.lanes.length,2);assert(!value.lanes[0].highlighted&&value.lanes[1].highlighted);assert.deepStrictEqual(value.lanes[0].other,['LEFT','STRAIGHT_ON']);
+const numeric=JSON.parse(JSON.stringify(row));numeric.rows[0].lanes[1].directionToFollow=5;numeric.rows[0].lanes[1].directionsToFollow=[5];assert.deepStrictEqual(decode(numeric),value);
+assert.strictEqual(decode({rows:[]}),null);assert.strictEqual(decode({rows:[{lanes:[]},row.rows[0]]}),null,'do not show a later lane group');
+assert.strictEqual(decode({rows:[{lanes:Array(9).fill(row.rows[0].lanes[1])}]}),null,'do not crop road lanes');
+assert.strictEqual(decode({rows:[{lanes:[{}]}]}),null);
+const blocked=JSON.parse(JSON.stringify(row));blocked.rows[0].lanes[1].additionalLaneInfo='BLOCKED';assert(!decode(blocked).lanes[1].highlighted,'blocked lane cannot be recommended');
+const flush=async()=>{for(let i=0;i<10;i++)await Promise.resolve();};
+(async()=>{
+ let now=0,requests=[];const s={available:true,proxy:{getValue(field,timeout){assert.strictEqual(field,FIELD);assert.strictEqual(timeout,1000);return new Promise((resolve,reject)=>requests.push({resolve,reject}));}}};
+ const l=new LaneGuidance(()=>now);l.attach(s);l.tick(now,null);await flush();assert.strictEqual(requests.length,0);
+ l.tick(now,'1:CAR_PLAY');await flush();assert.strictEqual(requests.length,1);l.sample(row);assert.strictEqual(l.read(now,'1:CAR_PLAY'),null,'new provider requires its own fresh getter');
+ requests[0].resolve(row);await flush();assert(l.read(now,'1:CAR_PLAY').visible);
+ now=1999;l.tick(now,'1:CAR_PLAY');await flush();assert.strictEqual(requests.length,1);
+ now=2000;l.tick(now,'1:CAR_PLAY');await flush();l.sample({rows:[]});requests[1].resolve(row);await flush();assert.strictEqual(l.read(now,'1:CAR_PLAY'),null,'old getter cannot restore lanes cleared by a newer notification');
+ l.sample(row);assert(l.read(now,'1:CAR_PLAY'));now=7001;assert.strictEqual(l.read(now,'1:CAR_PLAY'),null,'old lanes expire independently of RPM');
+ l.tick(now,'1:CAR_PLAY');await flush();assert.strictEqual(requests.length,3);l.tick(now+1,'1:CAR_PLAY');await flush();assert.strictEqual(requests.length,3,'one request at a time');
+ l.context(null);requests[2].resolve(row);await flush();assert.strictEqual(l.read(now,'1:CAR_PLAY'),null,'late response after route end stays hidden');
+ now+=2000;l.tick(now,'2:CAR_PLAY');await flush();requests[3].reject(new Error('timeout'));await flush();assert.strictEqual(l.status(now).state,'read_failed');
+ now+=2000;l.tick(now,'2:CAR_PLAY');await flush();l.stop();requests[4].resolve(row);await flush();assert.strictEqual(l.read(now,'2:CAR_PLAY'),null,'late response after stop stays hidden');
+ console.log('PASS: lane schema/numeric decoding, recommendation fidelity, first-group-only bounds, independent freshness, route/notification races, one bounded getter per 2s and stop');
+})().catch(e=>{console.error(e);process.exitCode=1;});

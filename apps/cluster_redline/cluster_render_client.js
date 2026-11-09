@@ -272,9 +272,12 @@ class ClusterRender extends EventEmitter {
     _showSentImages() {
         if (!this.sock || !this.connected || !this.ready) return;
         this.layers.forEach((l, ref) => {
-            if (l.kind !== 'image' || !l.showDue || !l.have || l.whole || l.dirty.length) return;
-            l.showDue = false;
-            this.set(ref, { visible: true });
+            if (l.kind !== 'image' || !l.have || l.whole || l.dirty.length) return;
+            if (l.contendDue) this.set(ref, { contend: true });
+            if (l.showDue) {
+                l.showDue = false;
+                this.set(ref, { visible: true });
+            }
         });
     }
 
@@ -282,6 +285,16 @@ class ClusterRender extends EventEmitter {
         const l = this.layers.get(ref);
         if (!l || l.kind !== 'image') return false;
         l.showDue = true;
+        this._showSentImages();
+        return true;
+    }
+
+    // Never acquire native guidance until its replacement pixels have been
+    // written to the ordered socket. set(contend:false) cancels this request.
+    contendWhenSent(ref) {
+        const l = this.layers.get(ref);
+        if (!l || l.kind !== 'image') return false;
+        l.contendDue = true;
         this._showSentImages();
         return true;
     }
@@ -370,6 +383,7 @@ class ClusterRender extends EventEmitter {
         const l = this.layers.get(ref);
         if (!l || l.kind === 'asset') return;
         if (opts.visible !== undefined) l.showDue = false;
+        if (opts.contend !== undefined) l.contendDue = false;
         const keys = l.kind === 'mesh' ? SET_KEYS.concat(MESH_KEYS) : SET_KEYS;
         keys.forEach((k) => { if (opts[k] !== undefined) l.opts[k] = opts[k]; });
         const m = { op: 'set', ref: ref };

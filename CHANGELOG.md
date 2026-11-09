@@ -4,6 +4,16 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.1
+
+- Add per-component visibility and toggleable multi-selection to HUD/cluster/NAV position controls. Move selected elements together; resize a HUD/cluster group in both dimensions within the existing aspect limits, and retain separate width/height for one element. Give NAV direction, text and lanes independent position/size/visibility and add Stock NAV mode.
+- Stop hidden-only field subscriptions and polling, re-open only the latest requested field mask and reject late hidden replies. Keep shared inputs only for visible dependents (e.g. RPM for power/voltage); NAV Stock/all-hidden stops app guidance reads, and lane-only guidance does not query turn/text/RPM inputs. Core polling is owned by the worker, without SDK intervals surviving shutdown.
+- Use a Battery12V-style segmented charge icon, move HUD text auxiliary defaults down one 10px step and preserve full Hangul glyph bounds during transforms. Round the U-turn arch in both maneuver and lane arrows.
+- Add optional CarPlay recommended-lane arrows below HUD turn guidance, highlighting only the supplied recommended lanes. Use independent lane position/scale/visibility and the selected navigation colour; clear absent/stale lanes independently, reject later/oversized lane groups, and stop lane polling outside active CarPlay NAV. Missing lane capability does not block installation or existing RPM/turn output.
+- Poll optional auxiliary sources only when a selected, enabled RPM display uses them. Deselection rejects late getter replies and stops optional polling; retain shared subscriptions and core RPM/torque/mode reads.
+- Keep the selected HUD RPM image alive when Android Auto/CarPlay maneuver data expires, is unavailable or is being refreshed. Clear unavailable arrows and downgrade native-slot contention instead of dropping and re-uploading the entire image. Navigation-only output still stops when no valid app maneuver remains.
+- Change HUD contention on the existing image; acquire priority only after replacement pixels have been sent, and cancel queued acquisition on stale guidance, shutdown or disconnect. Preserve native stock-popup yielding and renderer safety checks. Host regression checks cover delayed/empty phone replies and socket backpressure; real-vehicle validation remains pending.
+
 ### 1.2.0
 
 - Split HUD/cluster auxiliary placement into left and right groups, retaining ordered one-to-four text placement. HUD circle alerts transform together with gear; the top alert bar remains independent.

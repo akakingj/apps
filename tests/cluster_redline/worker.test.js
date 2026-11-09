@@ -38,12 +38,13 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
         if (name === './outputs') return { Outputs };
         if (name === './draw') return painter;
         if (name === './hud-compose') return Object.assign({}, painter, { W: 800, H: 353 });
-        if(['./native-navigation','./projection-config','./hud-guidance','./route-events','./aux-info','./display-config'].includes(name))return require('../../apps/cluster_redline/'+name.slice(2));
+        if(['./lane-guidance','./native-navigation','./projection-config','./hud-guidance','./route-events','./aux-info','./display-config'].includes(name))return require('../../apps/cluster_redline/'+name.slice(2));
         if (name === './policy') return require('../../apps/cluster_redline/policy');
         if (name === './renderer') return require('../../apps/cluster_redline/renderer');
         if (name === './guidance') return require('../../apps/cluster_redline/guidance');
         if (name === './gear') return require('../../apps/cluster_redline/gear');
         if(name==='./battery-voltage')return require('../../apps/cluster_redline/battery-voltage');
+        if(['./demand-signals','./data-demand'].includes(name))return require('../../apps/cluster_redline/'+name.slice(2));
         throw new Error('Unexpected dependency ' + name);
     }, process: { hrtime: () => [Math.floor(time / 1000), Math.floor((time % 1000) * 1000000)], once() {}, removeListener() {} },
     setTimeout: (fn, ms) => { timer = fn; delay = ms; return 1; }, clearTimeout: () => { timer = null; }, console };
@@ -53,7 +54,7 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
         settings: { get: (k) => config[k] }, log: { warn() {} },
         signals: { hasNative: () => live, loadConfig: (iface) => { if (iface==='de.bmw.infotainment.navigation.guiding.Guidance') return {fields:{guidanceState:{getter:{id:1}},guidingProvider:{getter:{id:2}}}}; if (!withProgram) throw new Error('optional MDrive absent'); return { fields: { dataDisplayGearbox: {} } }; }, watch: (iface, instance, handlers, log, options) => {
             const navigation = iface === 'de.bmw.infotainment.navigation.guiding.Guidance';
-            assert.strictEqual(instance, navigation ? 'Main_Instance' : '1'); assert.strictEqual(options.pollMs, navigation ? undefined : 1000);
+            assert.strictEqual(instance, navigation ? 'Main_Instance' : '1'); assert.strictEqual(options.pollMs, undefined);
             if(navigation){handlers.guidanceState('INACTIVE');handlers.guidingProvider('NONE');}
             feeds[iface] = handlers; watches++;
             const sub = { available: true, shutdown() { shutdowns++; } }; subscriptions[iface] = sub;
@@ -117,7 +118,7 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
             assert.strictEqual(calls.filter((c) => Array.isArray(c) && c[0] === 'image').length, 0);
         }
     }
-    app.emit('shutdown'); assert.strictEqual(timer, null); assert.strictEqual(shutdowns, watches);
+    app.emit('shutdown'); for(let i=0;i<20;i++)await Promise.resolve(); assert.strictEqual(timer, null); assert.strictEqual(shutdowns, watches);
     worker.stop(); // idempotent
 }
 (async () => {

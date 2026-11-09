@@ -14,10 +14,10 @@ function valueY(h,cfg,s,shift){return (s.rows===2?(h?(cfg.hudAlertStyle==='circl
 function drawAux(cv,state,display,geometry){
  const cfg=state.config,selected=auxConfig(cfg[display+'AuxConfig']),h=display==='hud';
  const columns=geometry||{left:h?64:200,right:h?452:658,width:h?160:230,top:h?100:310,bottom:h?188:422};
- const slots=metricSlots(selected.items),numberSize=h?26.4:32,labelSize=h?15.4:20,unitSize=h?12.1:14,shift=columns.textShift||0;
+ const slots=metricSlots(selected.items),numberSize=h?26.4:32,labelSize=h?15.4:20,unitSize=h?12.1:14,shift=(columns.textShift||0)+(h&&selected.mode==='values'?cfg.hudAuxTextOffsetY:0);
  [0,1].forEach(side=>{
   const x=side?columns.right:columns.left,w=columns.width,group=slots.filter(s=>s.side===side);
-  const top=Math.min(columns.top-20,...group.map(s=>valueY(h,cfg,s,shift)-(s.rows===2?25:h?46:55)-labelSize-8));
+  const top=Math.min(columns.top-20,...group.map(s=>valueY(h,cfg,s,shift)-(s.rows===2?25:h?46:55)-labelSize-8))-12;
   const bottom=Math.max(columns.bottom+12,...group.map(s=>valueY(h,cfg,s,shift)+12));
   part(cv,cfg,display,side?'AuxRight':'AuxLeft',{x:x-10,y:top,w:w+20,h:bottom-top},c=>{
    if(selected.mode==='off')return;
@@ -47,8 +47,9 @@ function drawAux(cv,state,display,geometry){
      c.line(gx+gw/2,y+3,gx+gw/2,y+bh-3,1,'#506176');
      if(valid(item.value)&&state.aux&&valid(state.aux.gLat)){const r=bh*0.28,cx=gx+gw/2+Math.max(-1,Math.min(1,state.aux.gLat/2))*(gw/2-r-3);c.arc(cx,y+bh/2,0,r,0,360,BLUE);}
     }else if(s.id==='batteryCharge'){
-     const body=gw-7;c.roundRect(gx,y,body,bh,3,DIM);c.fillRect(gx+2,y+2,body-4,bh-4,'#1b212b');c.fillRect(gx+body,y+bh*0.3,6,bh*0.4,DIM);
-     if(valid(item.value))c.fillRect(gx+4,y+4,(body-8)*fraction,bh-8,BLUE);
+     const terminal=bh*0.16,body=gw-terminal-2,pad=bh*0.13,iw=body-pad*2,seg=iw/10,gap=Math.max(1,seg*0.2),color=!valid(item.value)?DIM:item.value<40?'#ff2a2a':item.value<65?'#ffd522':'#19ee67';
+     c.roundRect(gx,y,body,bh,bh*0.12,DIM);c.roundRect(gx+1.5,y+1.5,body-3,bh-3,bh*0.08,'#1b212b');c.roundRect(gx+body+1,y+bh*0.3,terminal,bh*0.4,1,DIM);
+     for(let n=0;n<10;n++){const sx=gx+pad+n*seg,sw=seg-gap,sh=bh-pad*2;c.roundRect(sx,y+pad,sw,sh,1,'#35404f');const f=Math.max(0,Math.min(1,fraction*10-n));if(f>0)c.roundRect(sx,y+pad,sw*f,sh,1,color);}
     }else{
      const slant=7,span=gw-slant,band=(n,color)=>{if(n>0)c.quad([[gx+slant,y],[gx+slant+n,y],[gx+n,y+bh],[gx,y+bh]],color);};
      band(span,'#1b212b');band(span*fraction,BLUE);

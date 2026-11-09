@@ -1,6 +1,6 @@
 # iDrive 7 Jam Apps
 
-**Cluster Redline 1.2.0** adds separate side metrics/M controls, two cluster/HUD designs, battery/economy readings and combined navigation. **iDrive Circuit 1.0.0** is also available.
+**Cluster Redline 1.2.1** adds separate side metrics/M controls, two cluster/HUD designs, battery/economy readings and combined navigation. **iDrive Circuit 1.0.0** is also available.
 
 [한국어](README.ko.md)
 
@@ -10,7 +10,7 @@
 | Use Redline | [User guide](docs/CLUSTER-REDLINE.md) | [사용 설명서](docs/CLUSTER-REDLINE.ko.md) |
 | Use Circuit | [Circuit](apps/idrive_circuit/README.md) | [회로 퍼즐](apps/idrive_circuit/README.ko.md) |
 
-Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and choose Korean or English. Redline requires **`cluster-render` 0.4.0+**. Update existing installs in Installed and check **v1.2.0** in the app. Stop and disable auto-start in an unused language edition if both are installed.
+Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and choose Korean or English. Redline requires **`cluster-render` 0.4.0+**. Update existing installs in Installed and check **v1.2.1** in the app. Stop and disable auto-start in an unused language edition if both are installed.
 
 | HUD circle | HUD bar |
 |---|---|

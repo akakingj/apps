@@ -58,7 +58,9 @@ function draw(state,target) {
         cv.text(String(state.exitNumber),52,60,28,WHITE,{align:'center',font:'num'});
     } else if(dir==='STRAIGHT_ON') {line([[52,90],[52,20]]);line([[30,42],[52,20],[74,42]]);}
     else if(/UTURN/.test(dir)) {
-        let pts=[[80,90],[80,40],[70,24],[43,24],[27,40],[27,69]],head=[[10,53],[27,70],[44,53]];
+        let pts=[[79,90],[79,42]],head=[[9,55],[25,73],[41,55]];
+        for(let i=1;i<=24;i++){const a=-Math.PI*i/24;pts.push([52+27*Math.cos(a),42+27*Math.sin(a)]);}
+        pts.push([25,73]);
         if(dir==='UTURN_RIGHT'){pts=mirror(pts);head=mirror(head);}line(pts);line(head);
     } else if(/LEFT|RIGHT/.test(dir)) {
         const slight=/SLIGHT|KEEP/.test(dir);let pts=slight?[[76,90],[76,65],[28,20]]:[[78,90],[78,43],[23,43]];

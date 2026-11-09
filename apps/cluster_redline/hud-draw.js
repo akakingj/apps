@@ -70,6 +70,7 @@ function draw(state,target) {
     const gear=typeof state.gear==='string'&&/^(?:[DSM]?(?:[1-9]|10)|P|R|N|D|--)$/.test(state.gear)?state.gear:'--',gl=gearLayout(cv,gear,cfg);
     const alertBounds=cfg.hudAlertStyle==='circle'?{x:gl.cx-gl.diameter/2-3,y:gl.cy-gl.diameter/2-3,w:gl.diameter+6,h:gl.diameter+6}:{x:l.left-2,y:l.alertTop-2,w:span+l.slant+4,h:16};
     const paintAlert=c=>{
+        if(cfg.hudAlertHidden)return;
         if(cfg.hudAlertStyle!=='circle')for(let i=0;i<12;i++){
             const a=l.left+span*i/12,b=l.left+span*(i+1)/12-1,color=alert.stage==='red'&&!state.flash?'#711318':alert.color;
             c.quad([[a+l.slant,l.alertTop],[b+l.slant,l.alertTop],[b,l.alertTop+12],[a,l.alertTop+12]],i<alert.lit?color:'#000000');

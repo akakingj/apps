@@ -8,7 +8,7 @@ function packet(value) {
     const body = Buffer.from(JSON.stringify(value)), result = Buffer.alloc(body.length + 5);
     result.writeUInt32LE(body.length + 1, 0); result[4] = 0x4a; body.copy(result, 5); return result;
 }
-function fixture(blockLayer, blockFrame) {
+function fixture(blockLayer, blockFrame, target = 'map') {
     const sent = [];
     class Socket extends EventEmitter {
         write(bytes) {
@@ -25,11 +25,11 @@ function fixture(blockLayer, blockFrame) {
     vm.runInNewContext(fs.readFileSync(clientFile, 'utf8'), box, { filename: clientFile });
     const client = new box.module.exports.ClusterRender('handoff-test');
     const painter = { W: 4, H: 4, draw: () => ({ d: Buffer.alloc(64) }), difference: () => ({ rects: [], pixels: Buffer.alloc(0) }) };
-    const controller = new Controller(client, painter);
+    const controller = new Controller(client, painter, painter);
     client.connect(); sock.emit('connect');
-    sock.emit('data', packet({ ev: 'hello', backend: 'id7', targets: 'map:1088x480,panel:1920x720' }));
+    sock.emit('data', packet({ ev: 'hello', backend: 'id7', targets: 'map:1088x480,panel:1920x720,hud:800x480' }));
     function live(now) { controller.policy.modeSample(1, now - 1000); controller.policy.rpmSample(4200, now); }
-    function tick(now) { return controller.tick(now, { displayTarget: 'map' }); }
+    function tick(now) { return controller.tick(now, { displayTarget: target }); }
     live(1000);
     return { sent, client, controller, sock, live, tick, ops: () => sent.map((x) => x.op) };
 }
@@ -76,5 +76,31 @@ for (const reason of ['comfort', 'stale', 'disconnect']) {
         assert(!cancelled.ops().includes('frame') && !cancelled.ops().includes('set'), reason + ' must cancel the deferred first show');
         assert.strictEqual(cancelled.client.layers.size, 0);
     } finally { cancelled.controller.close(); }
+}
+const hud = fixture(true, false, 'hud');
+try {
+    hud.controller.navigation={visible:true,maneuver:'RIGHT',distanceText:'55 m'};
+    hud.tick(1000);const ref=hud.controller.ref;
+    assert.strictEqual(hud.sent[1].contend,0,'new HUD does not contend before its frame');
+    assert(!hud.sent.some(x=>x.op==='set'&&x.contend===1));
+    hud.sock.emit('drain');
+    const frame=hud.sent.findIndex(x=>x.op==='frame'),take=hud.sent.findIndex(x=>x.op==='set'&&x.contend===1);
+    assert(frame>=0&&take>frame,'guidance contention follows the composed frame on the wire');
+    hud.controller.yieldGuidance();hud.controller.navigation={visible:false};hud.live(1300);hud.tick(1300);
+    assert.strictEqual(hud.controller.ref,ref);assert(!hud.ops().includes('drop'),'guidance expiry keeps RPM layer');
+    assert.strictEqual(hud.client.layers.get(ref).opts.contend,false);
+    hud.controller.navigation={visible:true,maneuver:'RIGHT',distanceText:'55 m'};hud.live(1600);hud.tick(1600);
+    assert.strictEqual(hud.controller.ref,ref);assert.strictEqual(hud.client.layers.get(ref).opts.contend,true,'identical fresh arrow can regain contention');
+} finally {hud.controller.close();}
+for(const cancel of ['yield','stop','disconnect']) {
+    const blocked=fixture(true,false,'hud');
+    try {
+        blocked.controller.navigation={visible:true,maneuver:'RIGHT',distanceText:'55 m'};blocked.tick(1000);
+        if(cancel==='yield')blocked.controller.yieldGuidance();
+        else if(cancel==='stop')blocked.controller.hide();
+        else blocked.sock.destroy();
+        blocked.sock.emit('drain');
+        assert(!blocked.sent.some(x=>x.op==='set'&&x.contend===1),cancel+' cancels delayed HUD contention');
+    } finally {blocked.controller.close();}
 }
 console.log('PASS: frame-before-show under socket backpressure, stable 45s map acquisition, shown handoff, single release and cancelled late shows');

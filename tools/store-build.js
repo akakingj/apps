@@ -71,6 +71,7 @@ function filterOptionalProxies(manifest, catalog, optional) {
     }
     if(optional&&optional['de.bmw.infotainment.navigation.guiding.GuidanceRenderedContent'])require('../apps/cluster_redline/hud-guidance-config').filterRendered(manifest,catalog,optional);
     if(optional&&optional['de.bmw.infotainment.navigation.guiding.GuidanceEventList'])require('../apps/cluster_redline/route-events-config').filterRouteEvents(manifest,catalog,optional);
+    if(optional&&optional['de.bmw.infotainment.navigation.projectedmodeguiding.ProjectedModeGuiding'])require('../apps/cluster_redline/lane-config').filterLanes(manifest,catalog,optional);
     return manifest;
 }
 function build(options) {

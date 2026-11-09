@@ -18,6 +18,9 @@ const {BatteryVoltage}=require('./battery-voltage');
 const {PROJECTED} = require('./projection-config');
 const {HudGuidance,INTERFACE:HUD_GUIDANCE,INSTANCE:HUD_INSTANCE,METHODS:HUD_METHODS}=require('./hud-guidance');
 const {RouteEvents,INTERFACE:ROUTE_EVENTS,INSTANCE:ROUTE_INSTANCE,METHODS:ROUTE_METHODS}=require('./route-events');
+const {LaneGuidance,INTERFACE:LANE_INTERFACE,INSTANCE:LANE_INSTANCE,FIELD:LANE_FIELD}=require('./lane-guidance');
+const {DemandSignals}=require('./demand-signals');
+const {demand}=require('./data-demand');
 const CDS = 'de.bmw.infotainment.vehicle.CDS';
 const FES = 'de.bmw.infotainment.drivingexcitement.FES';
 const MODE_FIELD = 'statusFESVehicleDynamicSwitchHMI';
@@ -31,14 +34,20 @@ function atomic(file, value) {
 }
 function supportedRenderer() { return renderer.inspect(undefined, fs).compatible; }
 function start(ctx) {
-    const log = ctx.log, signals = ctx.signals;
+    const collectors=new DemandSignals(ctx.signals),log = ctx.log, signals = collectors.signals;
     const client = new ClusterRender('cluster-redline'), controller = new Outputs(client, painter, hudPainter);
     const gearbox = new gear.GearState(), navigation = new guidance.GuidanceState(), maneuvers = new NativeNavigation();
     const auxInfo=new AuxInfo(),auxSubs=[],batteryVoltage=new BatteryVoltage(signals,log,mono);
     const projectionSubs={},projectionFields={},projectionPending={},projectionLastPoll={},projectionEpoch={},projectionEvents={};
     const navigationFields = [], lastNavigationValues = {}, navigationEventRevisions = {}, navigationSeenAt = {}, navigationReadState = {};
+    function refreshProjection(provider){
+        const sub=projectionSubs[provider],available=!!(sub&&sub.available&&!sub.error),before=maneuvers.projectedStatus(mono())[provider].available;
+        if(before!==available){projectionEpoch[provider]=(projectionEpoch[provider]||0)+1;if(!Object.prototype.hasOwnProperty.call(PROJECTED,maneuvers.provider)||maneuvers.provider===provider)navigationRevision++;}
+        maneuvers.projectionAvailability(provider,available,mono());
+    }
     function navigationSample(field,value,readState) {
         if(stopped)return;
+        Object.keys(PROJECTED).forEach(refreshProjection);
         navigationSeenAt[field]=mono();navigationReadState[field]=readState||'received';
         if(field!=='conclusiveDart' && lastNavigationValues[field]!==value){navigationRevision++;lastNavigationValues[field]=value;}
         if(field===guidance.FIELD)navigation.sample(value,mono());
@@ -48,22 +57,26 @@ function start(ctx) {
     function protectGuidance() {
         const now=mono(),m=maneuvers.read(now,true);
         const key=m.active&&m.known?navigationRevision+':'+m.provider:null;
-        const routeKey=Object.prototype.hasOwnProperty.call(PROJECTED,m.provider)?key:null;
-        if((navigation.read(now,true).blocked||m.needsStock)&&!m.visible&&!routeEvents.read(now,routeKey)&&!hudGuidance.read(now,key))controller.hud.hide();
+        const routeKey=collection.turns&&Object.prototype.hasOwnProperty.call(PROJECTED,m.provider)?key:null;
+        const laneKey=collection.lanes&&m.active&&m.known&&m.provider==='CAR_PLAY'?key:null;
+        lanes.context(laneKey);
+        if((navigation.read(now,true).blocked||m.needsStock)&&!m.visible&&!routeEvents.read(now,routeKey)&&!hudGuidance.read(now,collection.turns?key:null)&&!lanes.read(now,laneKey))controller.hud.yieldGuidance();
     }
     function projectionSample(provider,field,value) {
         if(stopped)return;
+        refreshProjection(provider);
         if(field==='projectedGuidanceActive') {
             const last=projectionEvents[provider].value;
             if(last!==value){projectionEpoch[provider]++;projectionEvents[provider].value=value;if(!Object.prototype.hasOwnProperty.call(PROJECTED,maneuvers.provider)||maneuvers.provider===provider)navigationRevision++;}
         }
         maneuvers.projectionSample(provider,field,value,mono());protectGuidance();
     }
-    let config = settings(), lastStatus = -Infinity, stopped = false, timer;
+    let config = settings(),collection=demand(config,null), lastStatus = -Infinity, stopped = false, timer;
     let guidanceSub, lastGuidancePoll = -Infinity, guidancePending = false, navigationRevision = 0, nativeStatus = null;
     let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub, fesSub, programSub;
     const hudGuidance=new HudGuidance(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const routeEvents=new RouteEvents(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
+    const lanes=new LaneGuidance(mono);
     const subs = [], errors = [];
     function keep(s) { if (stopped) s.shutdown(); else subs.push(s); }
     const reportError = (name, e) => { const s = name + ': ' + e; if (errors.indexOf(s) < 0) { errors.push(s); log.warn(s); } };
@@ -85,8 +98,8 @@ function start(ctx) {
                 const cfg=signals.loadConfig(iface),handlers={},entries=[];
                 auxGroups[iface].forEach(source=>{
                     if(!cfg.fields||!cfg.fields[source.field]||!cfg.fields[source.field].getter)return;
-                    const entry={source,sub:null,pending:false,lastPoll:-Infinity,epoch:0,revision:0,available:false};entries.push(entry);
-                    handlers[source.field]=value=>{if(!stopped){entry.revision++;auxInfo.sample(source,value,mono());}};
+                    const entry={source,sub:null,pending:false,lastPoll:-Infinity,epoch:0,revision:0,available:false,wanted:false};entries.push(entry);
+                    handlers[source.field]=value=>{if(!stopped){entry.revision++;if(entry.wanted)auxInfo.sample(source,value,mono());}};
                 });
                 if(!entries.length)return;
                 signals.watch(iface,'1',handlers,log,{}).then(sub=>{entries.forEach(entry=>{entry.sub=sub;auxSubs.push(entry);});keep(sub);}).catch(()=>{});
@@ -173,9 +186,18 @@ function start(ctx) {
                 .catch(e=>reportError('optional route events',e));
         }
     }catch(e){ /* Optional query unavailable: retain the existing fallback. */ }
+    // Lane guidance is an optional read-only CarPlay feed. Subscriptions stay
+    // stable, with one bounded getter every 2s only while CarPlay NAV is on.
+    if(live)try{
+        const cfg=signals.loadConfig(LANE_INTERFACE);
+        if(cfg.fields&&cfg.fields[LANE_FIELD]&&cfg.fields[LANE_FIELD].getter){
+            const handlers={};handlers[LANE_FIELD]=value=>{if(!stopped)lanes.sample(value);};
+            signals.watch(LANE_INTERFACE,LANE_INSTANCE,handlers,log,{}).then(sub=>{keep(sub);lanes.attach(sub);}).catch(()=>{});
+        }
+    }catch(e){ /* No lane capability: existing arrows/RPM continue normally. */ }
     function stop() {
         if (stopped) return;
-        stopped = true; batteryVoltage.stop(); clearTimeout(timer); hudGuidance.stop(); routeEvents.stop(); controller.close();
+        stopped = true; collectors.stop(); lanes.stop(); batteryVoltage.stop(); clearTimeout(timer); hudGuidance.stop(); routeEvents.stop(); controller.close();
         process.removeListener('exit', stop);
         if (ctx.app && ctx.app.removeListener) ctx.app.removeListener('shutdown', stop);
         subs.forEach((s) => { try { s.shutdown(); } catch (e) {} });
@@ -202,17 +224,30 @@ function start(ctx) {
             const raw = {};
             Object.keys(DEFAULTS).forEach((k) => { if (k !== 'frameRate') raw[k] = ctx.settings.get(k); });
             config = settings(raw);
+            const before=collection;collection=demand(config,controller.policy.mode);
+            if(before.rpm&&!collection.rpm){const running=controller.policy.runningSeen;controller.policy.rpmSample(null,at);controller.policy.runningSeen=running;}
+            if(before.torque&&!collection.torque)controller.telemetry.clear();
+            if(before.gear&&!collection.gear)gearbox.clear();
+            if(before.mode&&!collection.mode)controller.policy.modeSample(null,at);
+            const laneContext=maneuvers.read(at,!!(guidanceSub&&guidanceSub.available&&!guidanceSub.error));
+            if(collection.lanes&&laneContext.active&&laneContext.known&&laneContext.provider==='CAR_PLAY')collection.fields.add(LANE_INTERFACE+'.'+LANE_FIELD);
+            collectors.reconcile(collection.fields,at);
+            // Auxiliary values are not used by the maneuver decoder. Do not
+            // compete with its reads for metrics that neither RPM face shows.
+            const neededAux=collection.aux;
             auxSubs.forEach(entry=>{
                 const {source,sub}=entry,available=!!(sub.available&&!sub.error);
+                const wanted=Object.keys(source.members).some(key=>neededAux.has(key==='oilFallback'?'oil':key==='gLat'||key==='gLong'?'gforce':key));
+                if(entry.wanted!==wanted){entry.epoch++;entry.wanted=wanted;entry.lastPoll=-Infinity;auxInfo.clearSource(source);}
                 if(entry.available!==available){entry.epoch++;entry.available=available;}
-                if(!available){auxInfo.clearSource(source);return;}
+                if(!available||!wanted){auxInfo.clearSource(source);return;}
                 if(!sub.proxy||typeof sub.proxy.getValue!=='function'||entry.pending||at-entry.lastPoll<1000)return;
                 entry.pending=true;entry.lastPoll=at;const epoch=entry.epoch,revision=entry.revision;
                 Promise.resolve().then(()=>sub.proxy.getValue(source.field,1000)).then(value=>{
                     if(!stopped&&entry.epoch===epoch&&entry.revision===revision)auxInfo.sample(source,value,mono());
                 },()=>{if(!stopped&&entry.epoch===epoch&&entry.revision===revision)auxInfo.clearSource(source);}).then(()=>{entry.pending=false;});
             });
-            const voltageWanted=live&&['hud','cluster'].some(d=>auxConfig(config[d+'AuxConfig']).mode!=='off'&&auxConfig(config[d+'AuxConfig']).items.includes('batteryVoltage')&&rpmOutput(config,d==='hud'?'Hud':'Cluster',controller.policy.mode));
+            const voltageWanted=live&&neededAux.has('batteryVoltage');
             batteryVoltage.tick(at,voltageWanted,controller.policy.rpm>0&&controller.policy.rpmAt!==null&&at-controller.policy.rpmAt<=2500);controller.aux=Object.assign(auxInfo.read(at),{batteryVoltage:batteryVoltage.read(at)});
             const navigationAvailable = !!(guidanceSub && guidanceSub.available === true && !guidanceSub.error);
             if (!navigationAvailable) { navigationRevision++; navigation.clear(); maneuvers.clearGuidance(); }
@@ -240,7 +275,7 @@ function start(ctx) {
                 lastGuidancePoll = at; guidancePending = true; const revision = navigationRevision;
                 const eventRevisions=Object.assign({},navigationEventRevisions);
                 try {
-                    const reads=navigationFields.map((field)=>Promise.resolve().then(()=>guidanceSub.proxy.getValue(field,1000))
+                    const reads=navigationFields.filter(field=>collection.fields.has(guidance.INTERFACE+'.'+field)).map((field)=>Promise.resolve().then(()=>guidanceSub.proxy.getValue(field,1000))
                         .then((value)=>({field,value}),()=>({field,value:null,failed:true})));
                     Promise.all(reads).then((values)=>{
                         guidancePending=false;
@@ -253,20 +288,25 @@ function start(ctx) {
                         // A getter started before a source/lifecycle change
                         // cannot introduce that source's first arrow. Repoll it.
                         if(identityBefore===navigationRevision)values.filter((item)=>item.field==='conclusiveDart').forEach((item)=>{if(current(item))navigationSample(item.field,item.value,item.failed?'read_failed':'read_ok');});
-                    },()=>{guidancePending=false;if(!stopped&&revision===navigationRevision){navigation.clear();maneuvers.clear();controller.hud.hide();}});
-                } catch(e) {guidancePending=false;navigation.clear();maneuvers.clear();controller.hud.hide();}
+                    },()=>{guidancePending=false;if(!stopped&&revision===navigationRevision){navigation.clear();maneuvers.clear();controller.hud.yieldGuidance();}});
+                } catch(e) {guidancePending=false;navigation.clear();maneuvers.clear();controller.hud.yieldGuidance();}
             }
             const navigationState=navigation.read(at,navigationAvailable);
             const commonManeuver=maneuvers.read(at,navigationAvailable);
             const hudKey=config.appEnabled&&navAllowed(config,controller.policy.mode)&&commonManeuver.active&&commonManeuver.known?navigationRevision+':'+commonManeuver.provider:null;
-            const routeKey=Object.prototype.hasOwnProperty.call(PROJECTED,commonManeuver.provider)?hudKey:null;
+            const laneKey=collection.lanes&&commonManeuver.provider==='CAR_PLAY'?hudKey:null;
+            lanes.tick(at,laneKey);
+            const turnKey=collection.turns?hudKey:null,routeKey=Object.prototype.hasOwnProperty.call(PROJECTED,commonManeuver.provider)?turnKey:null;
             routeEvents.tick(at,routeKey);
-            hudGuidance.tick(at,hudKey);
-            const hudEvent=routeEvents.read(at,routeKey)||hudGuidance.read(at,hudKey);
+            hudGuidance.tick(at,turnKey);
+            const hudEvent=routeEvents.read(at,routeKey)||hudGuidance.read(at,turnKey);
             const maneuverState=!commonManeuver.visible&&hudEvent?Object.assign({},hudEvent,{provider:commonManeuver.provider}):commonManeuver;
-            controller.navigation=maneuverState;
-            const composed=navAllowed(config,controller.policy.mode)&&maneuverState.visible;
-            controller.hudBlocked=rendererInfo.hudGuidanceSafe===false||((navigationState.blocked||maneuverState.needsStock)&&!composed);
+            const laneData=lanes.read(at,laneKey);
+            const visible=collection.parts.direction&&maneuverState.visible||collection.parts.text&&maneuverState.visible&&!!maneuverState.description||collection.parts.lanes&&!!laneData;
+            controller.navigation=Object.assign({},maneuverState,{visible:!!visible,maneuverVisible:!!maneuverState.visible,lanes:laneData});
+            // No decoded arrow means non-contending RPM, not disabled HUD.
+            // The native renderer still yields to real stock content/popups.
+            controller.hudBlocked=rendererInfo.hudGuidanceSafe===false;
             controller.hudBlockReason=rendererInfo.hudGuidanceSafe===false?'hud_safety':(navigationState.active||Object.prototype.hasOwnProperty.call(PROJECTED,maneuverState.provider))&&config.hudNavigationEnabled?maneuverState.reason:navigationState.reason;
             const state = controller.tick(at, config);
             if (at - lastStatus >= 500) {
@@ -278,8 +318,10 @@ function start(ctx) {
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
                     outputs: state.outputs, navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
-                    navigationInputs: {fields:navigationFields.slice(),available:navigationAvailable,pending:guidancePending,reads:Object.assign({},navigationReadState),
-                        agesMs:navigationFields.reduce((out,field)=>{out[field]=navigationSeenAt[field]===undefined?null:Math.max(0,at-navigationSeenAt[field]);return out;},{})}, nativeStatus: nativeStatus,
+                    laneGuidance:lanes.status(at),
+                    collection:{fields:Array.from(collection.fields),metrics:Array.from(collection.aux),subscriptions:collectors.status()},
+                    navigationInputs: {fields:navigationFields.filter(field=>collection.fields.has(guidance.INTERFACE+'.'+field)),available:navigationAvailable,pending:guidancePending,reads:navigationFields.reduce((out,field)=>{if(collection.fields.has(guidance.INTERFACE+'.'+field))out[field]=navigationReadState[field];return out;},{}),
+                        agesMs:navigationFields.reduce((out,field)=>{if(collection.fields.has(guidance.INTERFACE+'.'+field))out[field]=navigationSeenAt[field]===undefined?null:Math.max(0,at-navigationSeenAt[field]);return out;},{})}, nativeStatus: nativeStatus,
                     renderer: rendererInfo, rendererBackend: client.backend || null, rendererTargets: client.targets || '', requestedSettings: raw,
                     profile: config.engineProfile, config: config,
                     errors: errors.slice(-8), source: live ? 'live-someip' : 'offline-disabled',

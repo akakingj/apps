@@ -134,9 +134,30 @@ OPTIONAL_HUD_MARKER = '// Jam optional HUD rendered guidance v5'
 OPTIONAL_ROUTE_EVENTS_MARKER = '// Jam optional route events query v6'
 
 
+def optional_lane_source(text):
+    if '// Jam optional lane guidance v9' in text:
+        return text
+    addition = r"""        // Jam optional lane guidance v9: read the supplied CarPlay lane group only.
+        const laneName = "de.bmw.infotainment.navigation.projectedmodeguiding.ProjectedModeGuiding";
+        if (opt[laneName] && m.proxies[laneName]) {
+            const d=have[laneName], ids=all.instanceIDs&&all.instanceIDs[laneName];
+            const f=d&&d.fields&&d.fields.currentLaneGuiding;
+            if(!d||d.serviceId!==64309||!d.version||d.version.major!==1||!ids||ids.Main_Instance!==128||!f||!f.getter||f.getter.id!==7){
+                missing[laneName]=opt[laneName];delete m.proxies[laneName];
+            }else{
+                const p=m.proxies[laneName];p.instances="Main_Instance";
+                p.attributes={currentLaneGuiding:f.notifier&&f.notifier.id===32772?"rs":"r"};
+                delete p.methods;delete p.broadcasts;
+            }
+        }
+"""
+    anchor = '        // Jam optional guidance field persistence v3'
+    return replace_once(text, anchor, addition + anchor)
+
+
 def optional_aux_source(text):
     if '// Jam optional auxiliary fields v8' in text:
-        return text
+        return optional_lane_source(text)
     addition = r"""        // Jam optional auxiliary fields v8: never drop required RPM/torque for an absent extra field.
         const auxiliaryFields = [
             ["de.bmw.infotainment.vehicle.CDS", "statusEngineTemperature"],
@@ -167,8 +188,8 @@ def optional_aux_source(text):
     if marker in text:
         start = text.index(marker)
         end = text.index('        // Jam optional guidance field persistence v3', start)
-        return text[:start] + addition + text[end:]
-    return replace_once(text, '        // Jam optional guidance field persistence v3', addition + '        // Jam optional guidance field persistence v3')
+        return optional_lane_source(text[:start] + addition + text[end:])
+    return optional_lane_source(replace_once(text, '        // Jam optional guidance field persistence v3', addition + '        // Jam optional guidance field persistence v3'))
 
 
 def optional_route_events_source(text):
