@@ -1,268 +1,171 @@
 'use strict';
-const { t } = require('./kit/i18n');
-const G = require('./kit/gauges');
-const { header } = require('./settings-chrome');
-const { settings: effective, PROFILES } = require('./policy');
-const { placement } = require('./layout');
-const HUD = require('./hud-draw');
-const NAV = require('./nav-draw');
-const W = 1600, H = 520;
-const TABS = ['Basic settings', 'Advanced settings'];
-const GROUPS = [
-    ['autoStart', 'appEnabled', 'engineProfile', 'powerUnit', 'torqueUnit', 'shiftRpm'],
-    ['displayMode', 'sportHudOutput', 'sportClusterOutput', 'layout'],
-];
-const WARNING = 'Set Instrument cluster > Central display area to Off for correct operation.';
-const MAP_WARNING = 'Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
-const RENDERER_NOTICE = 'Install Cluster renderer (cluster-render) from MGU Store first.';
-const HUD_WARNING = 'HUD navigation shows received turn guidance; unavailable data preserves stock guidance.';
-const STOCK_NOTICE = 'Stock displays selected; Redline does not occupy either display.';
-const LAYOUT_ITEM = { key: 'layout', label: 'Position / size', type: 'layout' };
-function options(item, cfg) {
-    if (item.key === 'appEnabled') return [[false, 'Stopped'], [true, 'Running']];
-    if (item.type === 'bool') return [[false, 'Off'], [true, 'On']];
-    if (item.type === 'choice') return item.options;
-    const range = PROFILES[cfg.engineProfile] && PROFILES[cfg.engineProfile].ranges[item.key];
-    return (item.steps || []).filter((v) => !range || v === 0 || (v >= range[0] && v <= range[1]))
-        .map((v) => [v, v === 0 ? 'Preset default' : String(v) + ' ' + (item.unit || '')]);
+const {t}=require('./kit/i18n'),G=require('./kit/gauges'),{header}=require('./settings-chrome');
+const {settings:effective,PROFILES}=require('./policy');
+const D=require('./display-config'),HUD=require('./hud-draw'),CLUSTER=require('./draw'),NAV=require('./nav-draw');
+const {measurePart}=require('./component-canvas'),{placement}=require('./layout'),NAV_TEXT=require('./nav-text');
+const W=1600,H=520,TABS=['Basic settings','HUD display setting','CLUSTER display setting','NAV display setting'];
+const GROUPS=[['autoStart','appEnabled','engineProfile','powerUnit','torqueUnit','shiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout'],['sportClusterOutput','allClusterOutput','aux','design','layout'],['navDisplayMode','navColor','layout']];
+const RENDERER_NOTICE='Install Cluster renderer (cluster-render) from MGU Store first.';
+const MAP_WARNING='Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
+const HUD_WARNING='HUD navigation shows received turn guidance; unavailable data preserves stock guidance.';
+function options(item,cfg){
+ if(!item)return [];
+ if(item.type==='bool')return [[false,'Off'],[true,'On']];
+ if(item.type==='choice')return item.options||[];
+ const range=PROFILES[cfg.engineProfile]&&PROFILES[cfg.engineProfile].ranges[item.key];
+ return (item.steps||[]).filter(v=>!range||!v||v>=range[0]&&v<=range[1]).map(v=>[v,v===0?'Preset default':String(v)+' '+(item.unit||'')]);
 }
-class SettingsPage {
-    constructor(settings, changed, version) { this.settings = settings; this.changed = changed || (() => {}); this.version = version; this.tab = 0; this.focus = 0; this.open = null; this.choice = 0; this.layoutTarget = 'cluster'; this.layoutParam = 0; this.section=null;this.previewKey=null;this.preview=null; }
-    config() {
-        const raw = {}; this.settings.schema.forEach((s) => { raw[s.key] = this.settings.get(s.key); });
-        return effective(raw);
-    }
-    keys() {
-        if(this.section==='hud')return ['hudAlertStyle','hudAuxDisplay'];
-        if (!this.tab) return GROUPS[0];
-        const prefix = this.settings.get('displayMode') === 'all' ? 'all' : 'sport';
-        return ['displayMode', prefix+'HudOutput', prefix+'ClusterOutput', 'layout'];
-    }
-    item() { const key=this.keys()[this.focus]; return key==='layout'?LAYOUT_ITEM:this.settings.schema.find((s) => s.key === key); }
-    selectTab(index) { this.tab = index === 1 ? 1 : 0; this.focus = 0; this.open = null; this.section=null;this.changed(); }
-    back() {
-        if(this.open)this.open=null;
-        else if(this.section==='hud'){this.section=null;this.focus=1;}
-        this.changed();
-    }
-    enterHUD() {this.section='hud';this.focus=0;this.open=null;this.changed();}
-    move(delta) {
-        if (this.open === 'layout') this.layoutParam = (this.layoutParam + delta + 4) % 4;
-        else if (this.open) { const n = options(this.item(), this.config()).length; this.choice = (this.choice + delta + n) % n; }
-        else this.focus = (this.focus + delta + this.keys().length) % this.keys().length;
-        this.changed();
-    }
-    value(item, cfg) {
-        if (item.key === 'layout') return t('Adjust');
-        const value = this.settings.get(item.key), selected = options(item, cfg).find((o) => o[0] === value);
-        if (item.key === 'shiftRpm' && value === 0) return String(cfg.shiftRpm) + ' rpm (' + t('Preset default') + ')';
-        return selected ? t(selected[1]) : t('Check required');
-    }
-    change(delta) {
-        if (this.open === 'layout') { this.adjust(this.layoutParam, delta); return; }
-        const item = this.item(), list = options(item, this.config());
-        if (item.key === 'layout') { this.open='layout';this.changed();return; }
-        const at = list.findIndex((o) => o[0] === this.settings.get(item.key));
-        this.settings.set(item.key, list[(at + delta + list.length) % list.length][0]);
-        this.open = null; this.changed();
-    }
-    activate(index) {
-        if (index !== undefined) this.focus = index;
-        const item = this.item();
-        if (item.key === 'layout') { this.open='layout';this.changed();return; }
-        if (item.type === 'bool') { this.change(1); return; }
-        this.open = item.key;
-        this.choice = Math.max(0, options(item, this.config()).findIndex((o) => o[0] === this.settings.get(item.key)));
-        this.changed();
-    }
-    choose(index) {
-        const list = options(this.item(), this.config());
-        if (!list[index]) return;
-        this.settings.set(this.item().key, list[index][0]); this.open = null; this.changed();
-    }
-    draw(cv, status) {
-        const cfg = this.config(), targets = [];
-        const theme = { bg: '#090b0e', text: '#f3f5f7', dim: '#8d97a4', sel: '#f32b40', accent: '#f32b40' };
-        cv.clear(theme.bg);
-        // Use the same kit header as Live Data. Full-screen renderers place the
-        // title/tabs in the real HMI strip; software draws them together here.
-        const full = !!cv.chrome;
-        const fit = (value, size, width) => { while (size > 20 && cv.textWidth(t(value), size) > width) size--; return size; };
-        const badges = this.version ? [{ text: 'v' + this.version, color: '#8d97a4' }] : [];
-        if (cv.chrome) G.frame(cv, theme, TABS, this.tab, badges);
-        else {
-            header(cv, theme, 0, 0, W, 80, 'Cluster Redline', TABS, this.tab, badges, true, false);
-            (cv.tabRects || []).forEach((r) => targets.push(Object.assign({}, r, { act: () => this.selectTab(r.i) })));
-        }
-        const marker = full ? 45 : 88;
-        ['#39bffa', '#1757ad', '#f32d45'].forEach((color, i) => cv.fillRect(64 + i * 23, marker, 21, 4, color));
-        cv.line(134, marker + 2, 1536, marker + 2, 1, '#8b919a');
-        if (full) {
-            cv.text(TABS[this.tab], 84, 83, 34, '#f3f5f7', { font: 'bold' });
-            cv.line(84, 95, 1536, 95, 1, '#71303a');
-        }
-        if (this.open === 'layout') this.drawLayout(cv, cfg, targets);
-        else if(this.open==='hudAlertStyle'||this.open==='hudAuxDisplay')this.drawHUDChoices(cv,cfg,targets);
-        else if (this.open) this.drawChoices(cv, cfg, targets);
-        else if(this.section==='hud')this.drawHUDSettings(cv,cfg,targets);
-        else {
-            let y = 100;
-            this.keys().forEach((key, i) => {
-                const item = key==='layout'?LAYOUT_ITEM:this.settings.schema.find((s) => s.key === key);
-                const h = key === 'autoStart' ? 116 : this.tab === 1 ? 74 : 58;
-                const on = i === this.focus;
-                if (on) {
-                    cv.gradientRect(78, y, 1460, h - 1, [[0, '#291217'], [1, theme.bg]]);
-                    cv.fillRect(78, y + 7, 4, 48, '#ef3046');
-                }
-                const baseline = y + (key === 'autoStart' ? 40 : h / 2 + 12);
-                cv.text(item.label, 100, baseline, 34, '#f1f4fa');
-                if (key === 'appEnabled') {
-                    cv.text(this.value(item, cfg), 950, baseline, 30, '#c1cddd', { align: 'right' });
-                    [[true,'Start app'],[false,'Stop app']].forEach((choice, n) => {
-                        const x=990+n*278;
-                        cv.roundRect(x,y+4,260,50,6,this.settings.get(key)===choice[0]?'#57202d':'#252a31');
-                        cv.text(choice[1],x+130,y+38,28,'#f3f5f7',{align:'center'});
-                        targets.push({x,y:y+4,w:260,h:50,act:()=>{this.settings.set(key,choice[0]);this.changed();}});
-                    });
-                } else cv.text(this.value(item, cfg), 1482, baseline, 34, '#c1cddd', { align: 'right' });
-                if (item.type !== 'bool') cv.polyline([[1514, y + h / 2 - 12], [1527, y + h / 2], [1514, y + h / 2 + 12]], 3, '#909cac');
-                if (key === 'autoStart') {
-                    const prefix=cfg.displayMode==='all'?'all':'sport';
-                    const warning = cfg[prefix+'HudOutput']==='redline' ? HUD_WARNING : cfg[prefix+'ClusterOutput']==='redline' ? MAP_WARNING : STOCK_NOTICE;
-                    cv.text(RENDERER_NOTICE, 100, y + 73, fit(RENDERER_NOTICE, 24, 1400), '#ff9e36');
-                    cv.text(warning, 100, y + 102, fit(warning, 24, 1400), '#ff9e36');
-                }
-                cv.line(84, y + h - 1, 1536, y + h - 1, 0.6, '#292d34');
-                if(key !== 'appEnabled') targets.push({ x: 78, y, w: 1460, h: h - 1, act: () => this.activate(i) });
-                y += h;
-            });
-            if (this.tab === 0 && this.keys().length < 6) cv.text('Presets set gauge scales; eDrive shows engine output only, not combined output.', 84, 510, 22, '#8b98aa');
-            else if (this.tab === 1) {
-                cv.text('Status',84,430,26,'#7f8b9d');
-                if (Array.isArray(status)) status.forEach((line,i)=>cv.text(line,84,457+i*28,fit(line,24,1450),'#bdc9d8'));
-                else cv.text(status || 'Waiting for background app', 84, 470, fit(status || 'Waiting for background app',30,1450), '#bdc9d8');
-                cv.text('Fixed 20 fps request limit; actual output depends on the car.', 84, 510, 22, '#8b98aa');
-            }
-        }
-        cv.targets = targets.map((target, i) => Object.assign({ key: this.tab + ':' + (this.open || 'rows') + ':' + i, run: target.act }, target));
-        return cv;
-    }
-    adjust(param, delta) {
-        this.layoutParam=param;
-        const cfg=this.config(),name=this.layoutTarget,suffix=['OffsetX','OffsetY','WidthScale','HeightScale'][param];
-        const shape=name==='hudNav'?NAV:name==='hud'?HUD:{W:1088,H:480},r=placement(cfg,name==='cluster'?'map':name,shape);
-        const key=name+suffix,step=param<2?10:5;
-        const min=param===0?r.minX:param===1?r.minY:20,max=param===0?r.maxX:param===1?r.maxY:name==='hudNav'?200:param===3&&name==='hud'?150:100;
-        this.settings.set(key,Math.max(min,Math.min(max,cfg[key]+delta*step)));
-        this.changed();
-    }
-    previewHUD(cv,cfg,x,y,w) {
-        const s=w/HUD.W;
-        // The vehicle's native UI dialect does not support pixel-image ops.
-        // Record the real HUD painter as vector primitives instead.
-        const target={
-            text:(v,a,b,size,color,opt)=>cv.text(v,x+a*s,y+b*s,size*s,color,opt),
-            textWidth:(v,size,opt)=>cv.textWidth(v,size*s,opt)/s,
-            line:(a,b,c,d,width,color)=>cv.line(x+a*s,y+b*s,x+c*s,y+d*s,width*s,color),
-            quad:(points,color)=>cv.quad(points.map(p=>[x+p[0]*s,y+p[1]*s]),color),
-            arc:(a,b,r0,r1,start,end,color)=>cv.arc(x+a*s,y+b*s,r0*s,r1*s,start,end,color),
-            blit:(image,a,b)=>{
-                // The lower mark is only 54x17; tiny alpha rectangles retain
-                // its metallic shading without an unsupported image upload.
-                for(let row=0;row<image.h;row++)for(let col=0;col<image.w;col++){
-                    const p=(row*image.w+col)*4;if(!image.d[p+3])continue;
-                    cv.fillRect(x+(a+col)*s,y+(b+row)*s,s,s,Array.from(image.d.slice(p,p+4)));
-                }
-            }
-        };
-        const rpm=Math.round(cfg.shiftRpm*0.92/10)*10;
-        HUD.draw({config:cfg,rpm,gear:'M3',shift:false,flash:true,torqueNm:cfg.torqueScale*0.6,powerPS:cfg.powerScale*0.6,torquePeak:cfg.torqueScale*0.75,powerPeak:cfg.powerScale*0.75},target);
-    }
-    drawHUDSettings(cv,cfg,targets) {
-        this.keys().forEach((key,i)=>{
-            const item=this.settings.schema.find(s=>s.key===key),y=110+i*72,on=this.focus===i;
-            if(on)cv.gradientRect(78,y,1460,70,[[0,'#30131a'],[1,'#090b0e']]);
-            cv.text(item.label,100,y+46,34,'#f3f5f7');
-            cv.text(this.value(item,cfg),1482,y+46,32,'#c1cddd',{align:'right'});
-            cv.line(84,y+71,1536,y+71,0.6,'#292d34');
-            targets.push({x:78,y,w:1460,h:70,act:()=>this.activate(i)});
-        });
-        cv.text('HUD preview',100,282,26,'#b8c5d4');this.previewHUD(cv,cfg,100,292,700);
-        cv.roundRect(1210,448,326,64,8,'#252a31');cv.text('Back',1373,492,32,'#b2c2d4',{align:'center'});
-        targets.push({x:1210,y:448,w:326,h:64,act:()=>this.back()});
-    }
-    drawHUDChoices(cv,cfg,targets) {
-        const item=this.item(),list=options(item,cfg),gap=16,width=(1452-gap*(list.length-1))/list.length;
-        cv.text(item.label,100,126,32,'#ef4050');
-        list.forEach((o,i)=>{
-            const x=84+i*(width+gap),on=i===this.choice;
-            cv.roundRect(x,148,width,72,8,on?'#57202d':'#252a31');
-            cv.text(o[1],x+width/2,195,32,'#f4f6fa',{align:'center'});
-            if(o[0]===this.settings.get(item.key))cv.line(x+22,215,x+width-22,215,3,'#ff9e36');
-            targets.push({x,y:148,w:width,h:72,act:()=>this.choose(i)});
-        });
-        const preview=Object.assign({},cfg);preview[item.key]=list[this.choice][0];
-        cv.text('HUD preview',100,258,26,'#b8c5d4');this.previewHUD(cv,preview,100,270,800);
-        cv.roundRect(1210,448,326,64,8,'#252a31');cv.text('Back',1373,492,32,'#b2c2d4',{align:'center'});
-        targets.push({x:1210,y:448,w:326,h:64,act:()=>this.back()});
-    }
-    drawLayout(cv,cfg,targets) {
-        const button=(label,x,y,w,h,act,on)=>{
-            cv.roundRect(x,y,w,h,8,on?'#57202d':'#252a31');
-            if (['↑','←','→','↓'].indexOf(label)>=0) {
-                const cx=x+w/2,cy=y+h/2,points=label==='↑'?[[cx-16,cy+8],[cx,cy-10],[cx+16,cy+8]]:label==='↓'?[[cx-16,cy-8],[cx,cy+10],[cx+16,cy-8]]:label==='←'?[[cx+8,cy-16],[cx-10,cy],[cx+8,cy+16]]:[[cx-8,cy-16],[cx+10,cy],[cx-8,cy+16]];
-                cv.polyline(points,4,'#f3f5f7');
-            } else if (label==='−' || label==='+') {
-                cv.line(x+w/2-18,y+h/2,x+w/2+18,y+h/2,3,'#f3f5f7');
-                if(label==='+')cv.line(x+w/2,y+h/2-18,x+w/2,y+h/2+18,3,'#f3f5f7');
-            } else cv.text(label,x+w/2,y+h/2+11,30,'#f3f5f7',{align:'center'});
-            targets.push({x,y,w,h,act});
-        };
-        ['cluster','hud','hudNav'].forEach((name,i)=>button(name==='hudNav'?'HUD navigation':name==='hud'?'HUD':'Cluster',84+i*260,110,240,64,()=>{this.layoutTarget=name;this.changed();},this.layoutTarget===name));
-        if(this.layoutTarget==='hudNav')button(cfg.hudNavigationEnabled?'On':'Off',890,110,300,64,()=>{this.settings.set('hudNavigationEnabled',!cfg.hudNavigationEnabled);this.changed();},cfg.hudNavigationEnabled);
-        button('Back',1210,448,326,64,()=>{this.open=null;this.changed();});
-        cv.text('Position',100,208,28,'#b8c5d4');
-        button('↑',320,218,100,72,()=>this.adjust(1,-1),this.layoutParam===1);
-        button('←',200,302,100,72,()=>this.adjust(0,-1),this.layoutParam===0);
-        button('→',440,302,100,72,()=>this.adjust(0,1),this.layoutParam===0);
-        button('↓',320,386,100,72,()=>this.adjust(1,1),this.layoutParam===1);
-        (this.layoutTarget==='hudNav'?['Navigation width','Navigation height']:['Gauge width','Gauge height']).forEach((label,i)=>{
-            const y=226+i*140,key=this.layoutTarget+(i?'HeightScale':'WidthScale');
-            cv.text(label,800,y,30,'#b8c5d4');
-            button('−',1020,y+18,100,72,()=>this.adjust(i+2,-1),this.layoutParam===i+2);
-            button('+',1140,y+18,100,72,()=>this.adjust(i+2,1),this.layoutParam===i+2);
-            cv.text(String(cfg[key])+' %',1500,y+67,34,'#ffffff',{align:'right',font:'num'});
-        });
-        const shape=this.layoutTarget==='hudNav'?NAV:this.layoutTarget==='hud'?HUD:{W:1088,H:480};
-        const r=placement(cfg,this.layoutTarget==='cluster'?'map':this.layoutTarget,shape);
-        cv.text(t('Coordinates')+': X '+r.x+' · Y '+r.y+' · '+r.w+' × '+r.h,84,503,22,'#ffad45',{literal:true});
-    }
-    drawChoices(cv, cfg, targets) {
-        const item = this.item(), list = options(item, cfg), start = Math.max(0, Math.min(list.length - 4, this.choice - 1));
-        cv.text(item.label, 100, 126, 32, '#ef4050');
-        [-1, 1].forEach((delta, i) => {
-            const x = 1302 + i * 112;
-            cv.roundRect(x, 80, 96, 64, 8, '#252a31');
-            cv.line(x + 30, 112, x + 66, 112, 3, '#ff9e36');
-            if (delta > 0) cv.line(x + 48, 94, x + 48, 130, 3, '#ff9e36');
-            targets.push({ x, y: 80, w: 96, h: 64, act: () => this.move(delta) });
-        });
-        list.slice(start, start + 4).forEach((o, row) => {
-            const i = start + row, y = 148 + row * 72, selected = o[0] === this.settings.get(item.key);
-            if (i === this.choice) cv.gradientRect(78, y, 1460, 70, [[0, '#30131a'], [1, '#090b0e']]);
-            cv.line(84, y + 71, 1536, y + 71, 0.6, '#292d34');
-            cv.text(o[1], 100, y + 46, 34, '#f4f6fa');
-            if (selected) cv.text('Selected', 1500, y + 46, 26, '#ff9e36', { align: 'right' });
-            targets.push({ x: 78, y, w: 1460, h: 70, act: () => this.choose(i) });
-        });
-        if(/^(sport|all)HudOutput$/.test(item.key)) {
-            cv.roundRect(84,448,520,64,8,'#252a31');cv.text('HUD appearance',344,492,32,'#f3f5f7',{align:'center'});
-            targets.push({x:84,y:448,w:520,h:64,act:()=>this.enterHUD()});
-        }
-        cv.roundRect(1210, 448, 326, 64, 8, '#252a31');
-        cv.text('Back', 1373, 492, 32, '#b2c2d4', { align: 'center' });
-        targets.push({ x: 1210, y: 448, w: 326, h: 64, act: () => { this.open = null; this.changed(); } });
-    }
+function vector(cv,x,y,s){
+ return {text:(v,a,b,z,c,o)=>cv.text(v,x+a*s,y+b*s,z*s,c,o),textWidth:(v,z,o)=>cv.textWidth(v,z*s,o)/s,
+  line:(a,b,c,d,w,k)=>cv.line(x+a*s,y+b*s,x+c*s,y+d*s,w*s,k),polyline:(p,w,c)=>cv.polyline(p.map(v=>[x+v[0]*s,y+v[1]*s]),w*s,c),
+  quad:(p,c)=>cv.quad(p.map(v=>[x+v[0]*s,y+v[1]*s]),c),arc:(a,b,r0,r1,f,l,c)=>cv.arc(x+a*s,y+b*s,r0*s,r1*s,f,l,c),
+  fillRect:(a,b,w,h,c)=>cv.fillRect(x+a*s,y+b*s,w*s,h*s,c),roundRect:(a,b,w,h,r,c)=>cv.roundRect(x+a*s,y+b*s,w*s,h*s,r*s,c),
+  blit:(im,a,b)=>{for(let row=0;row<im.h;row++)for(let col=0;col<im.w;col++){const p=(row*im.w+col)*4;if(im.d[p+3])cv.fillRect(x+(a+col)*s,y+(b+row)*s,s,s,Array.from(im.d.slice(p,p+4)));}}};
 }
-module.exports = { SettingsPage, GROUPS, TABS, WARNING, MAP_WARNING, HUD_WARNING, RENDERER_NOTICE, options, W, H };
+class SettingsPage{
+ constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});return effective(raw);}
+ display(){return this.tab===2?'cluster':'hud';}
+ keys(){return GROUPS[this.tab];}
+ item(){const key=this.keys()[this.focus];if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
+ selectTab(i){this.tab=Math.max(0,Math.min(3,i|0));this.focus=0;this.open=null;this.draft=null;this.choice=0;this.changed();}
+ back(){if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}else{this.open=null;this.draft=null;}this.changed();}
+ move(delta){
+  if(!this.open)this.focus=(this.focus+delta+this.keys().length)%this.keys().length;
+  else{const n=this.open==='layout'?this.layoutActions.length:this.open==='auxMode'||this.open==='design'?2:this.open==='auxSelect'?7:options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
+  this.changed();
+ }
+ value(item,cfg){
+  if(item.key==='aux'){const a=D.auxConfig(cfg[this.display()+'AuxConfig']);return t(a.mode==='values'?'Text':'Gauges')+' · '+a.items.map(k=>t(D.LABELS[k])).join(' / ');}
+  if(item.key==='design')return t(cfg[this.display()+'AlertStyle']==='circle'?'Circle beside gear':'Top alert bar');
+  if(item.key==='layout')return t('Adjust');
+  if(item.key==='appEnabled')return t(cfg.appEnabled?'Running':'Stopped');
+  if(item.key==='shiftRpm'&&!this.settings.get(item.key))return cfg.shiftRpm+' rpm';
+  const selected=options(item,cfg).find(o=>o[0]===this.settings.get(item.key));return selected?t(selected[1]):t('Check required');
+ }
+ change(delta){if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
+ activate(index){
+  if(index!==undefined)this.focus=index;const item=this.item();if(!item)return;
+  this.choice=0;
+  if(item.key==='aux')this.open='auxMode';
+  else if(item.key==='design'){this.open='design';this.choice=this.config()[this.display()+'AlertStyle']==='circle'?1:0;}
+  else if(item.key==='layout'){this.open='layout';this.layoutPart=0;this.layoutParam=0;}
+  else if(item.type==='bool'){this.change(1);return;}
+  else{this.open=item.key;this.choice=Math.max(0,options(item,this.config()).findIndex(o=>o[0]===this.settings.get(item.key)));}
+  this.changed();
+ }
+ choose(index){
+  if(this.open==='layout'){const a=this.layoutActions[index];if(a)a.act();return;}
+  if(this.open==='auxMode'){this.draft={mode:index===1?'values':'gauges',items:[]};this.open='auxSelect';this.choice=0;this.changed();return;}
+  if(this.open==='auxSelect'){if(index===6)this.commitAux();else this.toggleMetric(D.METRICS[index]);return;}
+  if(this.open==='design'){this.settings.set(this.display()+'AlertStyle',index===1?'circle':'bar');this.open=null;this.changed();return;}
+  const list=options(this.item(),this.config());if(!list[index])return;
+  this.settings.set(this.item().key,list[index][0]);if(this.item().key==='navDisplayMode')this.settings.set('hudNavigationEnabled',true);this.open=null;this.changed();
+ }
+ toggleMetric(id){if(!this.draft||!D.METRICS.includes(id))return;const a=this.draft.items,i=a.indexOf(id);if(i>=0)a.splice(i,1);else if(a.length<(this.draft.mode==='gauges'?2:4))a.push(id);this.changed();}
+ commitAux(){if(!this.draft||!this.draft.items.length)return;this.settings.set(this.display()+'AuxConfig',JSON.stringify(this.draft));this.open=null;this.draft=null;this.changed();}
+ button(cv,targets,label,x,y,w,h,act,on,id){
+  const layoutFocus=this.open==='layout'&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===6);
+  cv.roundRect(x,y,w,h,6,on||focused?'#57202d':'#252a31');if(layoutFocus&&/^part/.test(id||'')&&!on)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],2,'#9bacc4');let size=30;while(size>18&&cv.textWidth(t(label),size)>w-24)size--;
+  if(label==='−'||label==='+'){cv.line(x+w/2-17,y+h/2,x+w/2+17,y+h/2,3,'#f3f5f7');if(label==='+')cv.line(x+w/2,y+h/2-17,x+w/2,y+h/2+17,3,'#f3f5f7');}
+  else cv.text(label,x+w/2,y+h/2+size*0.36,size,'#f3f5f7',{align:'center',font:'bold'});targets.push({x,y,w,h,act,label,id:id||label});
+ }
+ draw(cv,status,liveState){
+  this.liveState=liveState||null;
+  const cfg=this.config(),targets=[],theme={bg:'#090b0e',text:'#f3f5f7',dim:'#8d97a4',sel:'#f32b40',accent:'#f32b40'};cv.clear(theme.bg);
+  const badges=this.version?[{text:'v'+this.version,color:'#8d97a4'}]:[];
+  if(cv.chrome)G.frame(cv,theme,TABS,this.tab,badges);else{header(cv,theme,0,0,W,80,'Cluster Redline',TABS,this.tab,badges,true,false);(cv.tabRects||[]).forEach(r=>targets.push(Object.assign({},r,{act:()=>this.selectTab(r.i),label:TABS[r.i],id:'tab'+r.i})));}
+  if(this.open==='layout')this.drawLayout(cv,cfg,targets);
+  else if(this.open==='auxMode')this.drawAuxMode(cv,cfg,targets);
+  else if(this.open==='auxSelect')this.drawAuxSelect(cv,cfg,targets);
+  else if(this.open==='design')this.drawDesign(cv,cfg,targets);
+  else if(this.open==='navColor')this.drawColors(cv,cfg,targets);
+  else if(this.open)this.drawChoices(cv,cfg,targets);
+  else this.drawRows(cv,cfg,targets,status);
+  cv.targets=targets.map((r,i)=>Object.assign({key:this.tab+':'+(this.open||'rows')+':'+i,run:r.act},r));return cv;
+ }
+ drawRows(cv,cfg,targets,status){
+  let y=100;
+  this.keys().forEach((key,i)=>{
+   const item=['aux','design','layout'].includes(key)?{key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key]}:this.settings.schema.find(s=>s.key===key);
+   const h=this.tab===0?(key==='autoStart'?112:58):68;
+   if(i===this.focus){cv.gradientRect(78,y,1460,h-1,[[0,'#30131a'],[1,'#090b0e']]);cv.fillRect(78,y+8,4,42,'#f32b40');}
+   const label=/^sport/.test(key)?'Sport mode RPM display':/^all/.test(key)?'All modes RPM display':item.label;
+   cv.text(label,100,y+39,32,'#f3f5f7');
+   if(key==='appEnabled'){
+    [[true,'Start app'],[false,'Stop app']].forEach((v,n)=>this.button(cv,targets,v[1],990+n*278,y+3,260,50,()=>{this.settings.set(key,v[0]);this.changed();},cfg.appEnabled===v[0],'operation-'+v[0]));
+   }else{
+    let size=30,value=this.value(item,cfg);while(size>18&&cv.textWidth(value,size)>850)size--;
+    cv.text(value,1480,y+39,size,'#c1cddd',{align:'right'});targets.push({x:78,y,w:1460,h:h-1,act:()=>this.activate(i),label,id:key});
+   }
+   if(key==='autoStart'){cv.text(RENDERER_NOTICE,100,y+72,24,'#ff9e36');cv.text(cfg.sportHudOutput==='redline'||cfg.allHudOutput==='redline'?HUD_WARNING:MAP_WARNING,100,y+101,23,'#ff9e36');}
+   cv.line(84,y+h-1,1536,y+h-1,0.6,'#292d34');y+=h;
+  });
+  if(this.tab===1||this.tab===2)cv.text('All modes Redline also applies in Sport.',84,492,23,'#91a1b6');
+  if(this.tab===3)cv.text(HUD_WARNING,84,390,25,'#91a1b6');
+ }
+ backButton(cv,targets){this.button(cv,targets,'Back',1210,448,326,64,()=>this.back(),false,'back');}
+ drawChoices(cv,cfg,targets){
+  const item=this.item(),list=options(item,cfg),start=Math.max(0,Math.min(list.length-4,this.choice-1));cv.text(item.label,100,126,32,'#ef4050');
+  list.slice(start,start+4).forEach((o,row)=>{const i=start+row,y=148+row*72;this.button(cv,targets,o[1],84,y,1452,68,()=>this.choose(i),this.choice===i,'choice'+i);});this.backButton(cv,targets);
+ }
+ drawAuxMode(cv,cfg,targets){
+  cv.text('Auxiliary information',100,126,32,'#ef4050');
+  ['Gauges','Text'].forEach((name,i)=>this.button(cv,targets,name,84+i*740,180,712,110,()=>this.choose(i),this.choice===i,'aux-mode'+i));
+  cv.text('Select items on the next screen. Changes apply only after OK.',100,360,26,'#a8b6c8');this.backButton(cv,targets);
+ }
+ drawAuxSelect(cv,cfg,targets){
+  const draft=this.draft,limit=draft.mode==='gauges'?2:4;cv.text(t(draft.mode==='gauges'?'Select gauges':'Select text items')+' (1–'+limit+')',100,128,32,'#ef4050',{literal:true});
+  D.METRICS.forEach((id,i)=>{const index=draft.items.indexOf(id),x=84+(i%3)*490,y=170+Math.floor(i/3)*104;
+   this.button(cv,targets,(index>=0?(index+1)+'. ':'')+t(D.LABELS[id]),x,y,464,80,()=>this.toggleMetric(id),index>=0,'metric-'+id);
+  });
+  cv.text('Selection order sets the left and right positions.',100,410,24,'#a8b6c8');
+  this.button(cv,targets,'OK',84,448,326,64,()=>this.commitAux(),draft.items.length>0,'ok');this.backButton(cv,targets);
+ }
+ preview(cv,cfg,x,y,width,display){
+  const painter=display==='cluster'?CLUSTER:HUD,clean=Object.assign({},cfg);
+  D.PARTS.forEach(p=>['OffsetX','OffsetY','WidthScale','HeightScale'].forEach(k=>{clean[display+p+k]=k.indexOf('Offset')===0?0:100;}));
+  const s=width/painter.W,state={config:clean,rpm:Math.round(cfg.shiftRpm*0.92/10)*10,gear:'M3',shift:false,flash:true,torqueNm:300,powerPS:180,torquePeak:380,powerPeak:220,aux:{boost:0.85,oil:95,outside:18,gforce:0.35,gLat:0.25,gLong:0.24}};
+  painter.draw(state,vector(cv,x,y,s));
+ }
+ previewHUD(cv,cfg,x,y,width){this.preview(cv,cfg,x,y,width,'hud');}
+ drawDesign(cv,cfg,targets){
+  const display=this.display();['Top alert bar','Circle beside gear'].forEach((label,i)=>{
+   const x=84+i*740;this.button(cv,targets,label,x,106,712,64,()=>this.choose(i),this.choice===i,'design'+i);
+   const preview=Object.assign({},cfg);preview[display+'AlertStyle']=i?'circle':'bar';this.preview(cv,preview,x+10,182,display==='cluster'?590:690,display);
+  });this.backButton(cv,targets);
+ }
+ drawColors(cv,cfg,targets){
+  [['gray','Light gray'],['white','White'],['blue','Blue']].forEach((o,i)=>{
+   const x=84+i*490;this.button(cv,targets,o[1],x,112,464,70,()=>this.choose(i),this.choice===i,'color'+i);
+   NAV.draw({visible:true,maneuver:'RIGHT',color:o[0],distanceText:'300 m'},vector(cv,x+75,225,1.25));
+  });this.backButton(cv,targets);
+ }
+ adjust(param,delta){
+  this.layoutParam=param;const cfg=this.config(),nav=this.tab===3;
+  const prefix=nav?(this.layoutPart===1?'hudText':'hudNav'):this.display()+D.PARTS[this.layoutPart];
+  if(param<2){const key=prefix+(param?'OffsetY':'OffsetX');this.settings.set(key,Math.max(-1000,Math.min(1000,cfg[key]+delta*10)));}
+  else if(nav){const key=this.layoutPart===1?'hudTextScale':'navUniformScale';this.settings.set(key,Math.max(20,Math.min(200,cfg[key]+delta*5)));}
+  else{const suffix=param===2?'WidthScale':'HeightScale',other=prefix+(param===2?'HeightScale':'WidthScale'),key=prefix+suffix;this.settings.set(key,Math.max(20,Math.ceil(cfg[other]/1.3/5)*5,Math.min(200,Math.floor(cfg[other]*1.3/5)*5,cfg[key]+delta*5)));}
+  this.changed();
+ }
+ drawLayout(cv,cfg,targets){
+  const local=[],nav=this.tab===3,parts=nav?['Direction','Text']:D.PART_LABELS;
+  parts.forEach((name,i)=>this.button(cv,local,name,84+i*(nav?400:290),108,nav?380:274,64,()=>{this.layoutPart=i;this.choice=i;this.changed();},this.layoutPart===i,'part'+i));
+  const prefix=nav?(this.layoutPart===1?'hudText':'hudNav'):this.display()+D.PARTS[this.layoutPart];
+  cv.text('Position',100,220,30,'#b8c5d4');
+  const btn=(label,x,y,act,id)=>this.button(cv,local,label,x,y,110,66,act,false,id);
+  btn('Up',300,235,()=>this.adjust(1,-1),'up');btn('Left',170,315,()=>this.adjust(0,-1),'left');btn('Right',430,315,()=>this.adjust(0,1),'right');btn('Down',300,395,()=>this.adjust(1,1),'down');
+  const rows=nav?['Size']:['Width','Height'];rows.forEach((label,i)=>{
+   const y=235+i*110,key=nav?(this.layoutPart===1?'hudTextScale':'navUniformScale'):prefix+(i?'HeightScale':'WidthScale');
+   cv.text(label,790,y+20,28,'#b8c5d4');btn('−',1010,y+30,()=>this.adjust(i+2,-1),'size-minus'+i);btn('+',1140,y+30,()=>this.adjust(i+2,1),'size-plus'+i);cv.text(String(cfg[key])+' %',1500,y+75,32,'#f3f5f7',{align:'right',font:'num'});
+  });
+  let width,height;
+  if(nav){const painter=this.layoutPart===1?NAV_TEXT:NAV,scale=cfg[this.layoutPart===1?'hudTextScale':'navUniformScale']/100;width=Math.min(800,Math.round(painter.W*scale));height=Math.min(480,Math.round(painter.H*scale));}
+  else{const display=this.display(),painter=display==='hud'?HUD:CLUSTER,b=measurePart(painter,{config:cfg,rpm:0,gear:this.liveState&&this.liveState.gear||'--'},display,D.PARTS[this.layoutPart],cv),r=placement(cfg,display==='hud'?'hud':cfg.displayTarget==='panel'?'panel':'map',painter);width=Math.round(b.w*cfg[prefix+'WidthScale']/100*r.w/painter.W);height=Math.round(b.h*cfg[prefix+'HeightScale']/100*r.h/painter.H);}
+  cv.text('X '+cfg[prefix+'OffsetX']+' · Y '+cfg[prefix+'OffsetY']+' · '+width+' × '+height+' px',84,500,23,'#ffad45',{literal:true});
+  cv.text(nav?'Width and height scale together.':'Width / height difference limited to 30%.',630,500,22,'#a8b6c8');
+  this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
+ }
+}
+module.exports={SettingsPage,GROUPS,TABS,options,W,H,MAP_WARNING,HUD_WARNING,RENDERER_NOTICE,WARNING:MAP_WARNING};

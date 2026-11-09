@@ -6,6 +6,7 @@ const { EventEmitter } = require('events');
 const { Outputs } = require('../../apps/cluster_redline/outputs');
 const policy = require('../../apps/cluster_redline/policy');
 const guidance = require('../../apps/cluster_redline/guidance');
+const {SOURCES}=require('../../apps/cluster_redline/aux-info');
 const {PROJECTED}=require('../../apps/cluster_redline/projection-config');
 const {INTERFACE:HUD_GUIDANCE}=require('../../apps/cluster_redline/hud-guidance-config');
 const {INTERFACE:ROUTE_EVENTS}=require('../../apps/cluster_redline/route-events-config');
@@ -17,6 +18,7 @@ function harness(options) {
     const opt = options || {}, files = {}, feeds = {}, subscriptions = {}, watches = [], loads = [], polls = [], events = [];
     const app = new EventEmitter(), proc = new EventEmitter(), lateSubscriptions = [];
     const config = policy.settings({ displayMode: 'all', allClusterOutput: 'redline', allHudOutput: 'redline' });
+    const auxReads=[];
     let time = 0, timer = null, client, writeCount = 0, pollThrow = null;
     class FakeClient extends EventEmitter {
         constructor() {
@@ -43,6 +45,7 @@ function harness(options) {
         if (name === './cluster_render_client') return { ClusterRender: FakeClient };
         if (name === './draw') return painter;
         if (name === './hud-compose') return Object.assign({}, painter, { W: 800, H: 353 });
+        if(name==='./aux-info'||name==='./display-config')return require('../../apps/cluster_redline/'+name.slice(2));
         if (name === './policy') return policy;
         if (name === './guidance') return guidance;
         if(name === './native-navigation')return require('../../apps/cluster_redline/native-navigation');
@@ -64,7 +67,7 @@ function harness(options) {
             if(method==='queryContent') {
                 assert(opt.routeEvents);assert.strictEqual(timeout,1000);
                 assert.strictEqual(args.viewConfigs[0].viewport.startPoint.anchorPoint.standardReferencePoint,'CCP');
-                return Promise.resolve({GuidanceEventListError:'NO_ERROR',viewContent:[{eventsInView:[{intersection:{direction:'SLIGHT_LEFT',unreliable:false,formattedDistance:{distance:'799',unit:'METER'}}}]}]});
+                return Promise.resolve({GuidanceEventListError:'NO_ERROR',viewContent:[{eventsInView:[{intersection:{direction:'SLIGHT_LEFT',unreliable:false,formattedDistance:{distance:'799',unit:'METER'},description:{elements:[{text:'교차로'}]}}}]}]});
             }
             assert(opt.renderedHUD);assert.strictEqual(args.viewId,'test-hud');assert.strictEqual(timeout,1000);
             if(method==='getViewConfig')return Promise.resolve({GenericListError:0,configSequenceId:1,viewConfig:{targetUI:'HUD'}});
@@ -72,6 +75,7 @@ function harness(options) {
         },
         loadConfig(iface) {
             loads.push(iface);
+            if(opt.aux&&SOURCES.some(s=>s.iface===iface)){const fields={};SOURCES.filter(s=>s.iface===iface).forEach(s=>{fields[s.field]={getter:{id:1}};});return {fields};}
             if(opt.routeEvents&&iface===ROUTE_EVENTS)return {methods:{queryContent:{methodId:4}}};
             if(opt.renderedHUD&&iface===HUD_GUIDANCE)return {fields:{registeredViews:{getter:{id:1}}},methods:{getViewConfig:{methodId:5},getViewContent:{methodId:3}}};
             if (iface === guidance.INTERFACE) {
@@ -84,7 +88,7 @@ function harness(options) {
         },
         watch(iface, instance, handlers, log, flags) {
             watches.push({ iface, instance, handlers, flags }); feeds[iface] = handlers;
-            const sub = { available: true, shutdowns: 0, shutdown() { this.shutdowns++; } };
+            const sub = { available: true, shutdowns: 0, shutdown() { this.shutdowns++; } };watches[watches.length-1].sub=sub;
             if (iface === guidance.INTERFACE) {
                 assert.strictEqual(iface, 'de.bmw.infotainment.navigation.guiding.Guidance');
                 assert.strictEqual(instance, 'Main_Instance');
@@ -104,6 +108,8 @@ function harness(options) {
                 const provider=Object.keys(PROJECTED).find(p=>PROJECTED[p].iface===iface);assert.strictEqual(instance,PROJECTED[provider].instance);
                 sub.proxy={getValue:(field)=>Promise.resolve(sub.phoneValues&&sub.phoneValues[field]===true)};
                 for(const field of Object.keys(handlers)){const callback=handlers[field];handlers[field]=(value)=>{sub.phoneValues=sub.phoneValues||{};sub.phoneValues[field]=value;callback(value);};}
+            } else if(opt.aux&&Object.keys(handlers).every(f=>SOURCES.some(s=>s.iface===iface&&s.field===f))){
+                assert.strictEqual(Object.keys(flags).length,0);sub.proxy={getValue(field){const d=deferred();auxReads.push(Object.assign(d,{iface,field}));return d.promise;}};
             } else {
                 assert.strictEqual(instance, '1'); assert.strictEqual(flags.pollMs, 1000);
             }
@@ -132,7 +138,7 @@ function harness(options) {
         assert.strictEqual(proc.listenerCount('exit'), 0); assert.strictEqual(app.listenerCount('shutdown'), 0);
         for (const sub of Object.values(subscriptions)) assert.strictEqual(sub.shutdowns, 1);
     }
-    return { config, worker, client, app, proc, files, feeds, loads, subscriptions, watches, polls, events, lateSubscriptions,
+    return { config, worker, client, app, proc, files, feeds, loads, subscriptions, watches, polls, events, lateSubscriptions, auxReads,
         tick, navigate, both, onlyCluster, stopped, setPollThrow: value => { pollThrow = value; },
         get writes() { return writeCount; }, get pendingTimer() { return timer; } };
 }
@@ -326,6 +332,7 @@ async function queriedRouteEventFallback(){
    assert.strictEqual(h.worker.controller.navigation.source,'route_event_list');
    assert.strictEqual(h.worker.controller.navigation.maneuver,'SLIGHT_LEFT');
    assert.strictEqual(h.worker.controller.navigation.distanceText,'799 m');
+   assert.strictEqual(h.worker.controller.navigation.description,'교차로');
    const ref=h.worker.controller.hud.ref;
    h.feeds[guidance.INTERFACE].conclusiveDart(empty);h.tick(1100);h.both();
    assert.strictEqual(h.worker.controller.hud.ref,ref,'empty common guidance must not hide a valid queried turn');
@@ -336,7 +343,21 @@ async function queriedRouteEventFallback(){
   }finally{h.worker.stop();h.stopped();}
  }
 }
+async function optionalAuxiliaryWorker(){
+ const h=harness({aux:true});
+ try{
+  await flush();h.navigate('INACTIVE');h.tick(1000);await flush();
+  const watched=h.watches.filter(w=>Object.keys(w.handlers).every(f=>SOURCES.some(s=>s.iface===w.iface&&s.field===f)));
+  assert.strictEqual(watched.length,4,'auxiliary fields reuse one proxy per interface');assert.strictEqual(h.auxReads.length,6);
+  const boost=watched.find(w=>w.handlers.statusSwitchDriveDynamicSport2);boost.handlers.statusSwitchDriveDynamicSport2({displayBoostPressure:85});
+  for(const read of h.auxReads){const source=SOURCES.find(s=>s.iface===read.iface&&s.field===read.field),value={};for(const [name,spec] of Object.entries(source.members))value[spec[0]]=name==='boost'?40:name==='oil'||name==='oilFallback'?143:name==='outside'?116:32500;read.resolve(value);}
+  await flush();h.tick(1050);assert.strictEqual(h.worker.controller.aux.boost,0.85,'an older getter must not overwrite a newer notification');assert.strictEqual(h.worker.controller.aux.oil,95);assert.strictEqual(h.worker.controller.aux.outside,18);
+  boost.sub.available=false;h.tick(1100);assert.strictEqual(h.worker.controller.aux.boost,null,'provider loss clears its metric');
+  h.tick(4000);await flush();h.worker.stop();for(const w of h.watches)assert.strictEqual(w.sub.shutdowns,1);h.stopped();
+  for(const read of h.auxReads)read.resolve({displayBoostPressure:200});await flush();assert.strictEqual(h.pendingTimer,null);
+ }finally{h.worker.stop();}
+}
 (async () => {
-    await queriedRouteEventFallback();await actualHudViewFallback();await reportedProjectedGuidanceWithNativeInactive();await repeatedNotificationsWhilePolling();await composedNavigation();await eventYield(); await optionalReadSafety(); await pollingAndRaces(); await providerReconnectRace(); await lateReadsAndSubscriptions();
+    await optionalAuxiliaryWorker();await queriedRouteEventFallback();await actualHudViewFallback();await reportedProjectedGuidanceWithNativeInactive();await repeatedNotificationsWhilePolling();await composedNavigation();await eventYield(); await optionalReadSafety(); await pollingAndRaces(); await providerReconnectRace(); await lateReadsAndSubscriptions();
     console.log('PASS: actual worker native-guidance getter gating/instance, immediate HUD-only yield, fresh recovery, optional/stale/provider safety, bounded polling, event/read/provider-reconnect races and complete late-work shutdown');
 })().catch(error => { console.error(error); process.exitCode = 1; });

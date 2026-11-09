@@ -1,5 +1,6 @@
 'use strict';
 // This module never talks to the vehicle or renderer; its inputs must be live.
+const displayConfig=require('./display-config');
 const PROFILES = {
     petrol: { label: 'Petrol', shiftRpm: 5500, redlineRpm: 6000, maxRpm: 7000,
         torqueScale: 500, powerScale: 300,
@@ -17,11 +18,11 @@ const PROFILES = {
 // Zero RPM settings mean the selected profile's defaults, rather than engine-off.
 const FRAME_RATE = 20;
 const DEFAULTS = { appEnabled: true, autoStart: true, engineProfile: 'petrol', displayMode: 'sport', powerUnit: 'PS', torqueUnit: 'Nm', shiftRpm: 0, frameRate: FRAME_RATE, displayTarget: 'map', widgetScale: 80 };
-Object.assign(DEFAULTS, { sportClusterOutput: 'redline', sportHudOutput: 'stock', allClusterOutput: 'redline', allHudOutput: 'stock',
+Object.assign(DEFAULTS, { sportClusterOutput: 'redline', sportHudOutput: 'stock', allClusterOutput: 'stock', allHudOutput: 'stock',
     clusterOffsetX: 0, clusterOffsetY: 0, clusterWidthScale: 80, clusterHeightScale: 80,
     hudOffsetX: 0, hudOffsetY: -100, hudWidthScale: 75, hudHeightScale: 75,
-    hudNavigationEnabled: true, hudNavOffsetX: 0, hudNavOffsetY: 0, hudNavWidthScale: 100, hudNavHeightScale: 100,
-    hudAlertStyle: 'bar', hudAuxDisplay: 'gauges' });
+    hudNavigationEnabled: true, hudNavOffsetX: 280, hudNavOffsetY: 60, hudNavWidthScale: 100, hudNavHeightScale: 100,
+    hudAlertStyle: 'circle', hudAuxDisplay: 'gauges' });
 const MODES = { 1: 'SPORT', 2: 'SPORT_PLUS', 3: 'SPORT_INDIVIDUAL', 4: 'COMFORT', 5: 'COMFORT_PLUS',
     6: 'COMFORT_INDIVIDUAL', 7: 'ECO_PRO', 8: 'ECO_PRO_PLUS', 9: 'ECO_PRO_INDIVIDUAL', 10: 'ADAPTIVE',
     SPORT_DYNAMIC: 'SPORT', SPORT_EXPERT: 'SPORT_PLUS', SPORT_INDIVIDUAL: 'SPORT_INDIVIDUAL',
@@ -31,6 +32,7 @@ Object.assign(MODES, { SPORT:'SPORT', SPORT_PLUS:'SPORT_PLUS', ECO_PRO:'ECO_PRO'
 const SPORT = ['SPORT', 'SPORT_PLUS', 'SPORT_INDIVIDUAL', 'PHEV_SPORT_STANDARD', 'PHEV_SPORT_PLUS', 'PHEV_SPORT_INDIVIDUAL'];
 // Sport selection is restricted to Sport modes; all includes every valid catalog mode.
 const AUTOMATIC_MODES = SPORT;
+Object.assign(DEFAULTS,displayConfig.defaults);
 function settings(raw) {
     raw = raw || {};
     const out = Object.assign({}, DEFAULTS);
@@ -80,7 +82,7 @@ function settings(raw) {
     });
     // Red-zone start and shift alert are independent display settings.
     out.maxRpm = Math.max(out.maxRpm, out.redlineRpm);
-    return out;
+    return displayConfig.normalize(raw,out);
 }
 function modeOf(raw) { return (typeof raw === 'number' || typeof raw === 'string') && Object.prototype.hasOwnProperty.call(MODES, raw) ? MODES[raw] : null; }
 class Policy {

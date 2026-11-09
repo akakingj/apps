@@ -2,15 +2,18 @@
   "schema": 1,
   "id": "cluster_redline",
   "language": "en",
-  "source_version": "1.0.10",
-  "ui_sha256": "5492ea07b842bf347b95f7158928ec6a473a0ed74fb4ae135daf4396d63a0bb6",
-  "size": 877546,
-  "sha256": "5984e806f4c6be82d30dfd4ec6dc009172bdee4b3e0e5803306e7947268bb1e5",
+  "source_version": "1.1.0",
+  "ui_sha256": "f222d4d39a0a06361fe663b9bb4694c9e54f6e541b27239ac225b03754bb11d4",
+  "size": 1398839,
+  "sha256": "3c6bf9005fb796bec3bb4078a17ab99da065e1c832b5dc7bc11a43cf6d0c7e42",
   "parts": [
     "cluster_redline.en.tgz.part-00",
     "cluster_redline.en.tgz.part-01",
     "cluster_redline.en.tgz.part-02",
     "cluster_redline.en.tgz.part-03",
-    "cluster_redline.en.tgz.part-04"
+    "cluster_redline.en.tgz.part-04",
+    "cluster_redline.en.tgz.part-05",
+    "cluster_redline.en.tgz.part-06",
+    "cluster_redline.en.tgz.part-07"
   ]
 }

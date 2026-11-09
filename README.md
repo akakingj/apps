@@ -1,6 +1,6 @@
 # iDrive 7 Jam Apps
 
-Cluster Redline **1.0.10** adds compact HUD layouts, filled-circle or top-bar shift alerts, torque/power display modes with live settings previews, and a read-only route-event source. Vehicle HUD coexistence still needs confirmation. [Notes](docs/CLUSTER-REDLINE.ko.md).
+Cluster Redline **1.1.0** adds independent HUD / CLUSTER / NAV settings, six optional auxiliary metrics, per-element position/size controls and received navigation text. HUD guidance defaults just beyond the RPM bar on the right. [Guide](docs/CLUSTER-REDLINE.ko.md).
 
 English | [한국어](README.ko.md)
 

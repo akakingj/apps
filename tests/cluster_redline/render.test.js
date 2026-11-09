@@ -10,14 +10,14 @@ const text = Canvas.prototype.text, labels = [], seams = [];
 const line = Canvas.prototype.line;
 Canvas.prototype.text = function(value, x, y, size) { labels.push({ value: String(value), x, y, size }); return text.apply(this, arguments); };
 Canvas.prototype.line = function(x, y, x2, y2) { if (y === L.top && y2 === L.bottom) seams.push(x); return line.apply(this, arguments); };
-const normal = { rpm: 3400, gear: 'D4', shift: false, torqueNm: 380, powerPS: 227, torquePeak: 400, powerPeak: 250, config: settings() };
+const normal = { rpm: 3400, gear: 'D4', shift: false, torqueNm: 380, powerPS: 227, torquePeak: 400, powerPeak: 250, config: settings({clusterAlertStyle:'bar'}) };
 const face = draw(normal);
 Canvas.prototype.text = text; Canvas.prototype.line = line;
 assert.strictEqual(seams.length, 13, '7000 RPM uses exactly 14 cells (two per 1000)');
 assert(labels.some((l) => l.value === 'D4' && l.size === 74));
 assert(labels.some((l) => l.value === 'RPM' && l.y > L.bottom));
-assert(labels.some((l) => l.value === 'Torque' && l.x === 240));
-assert(labels.some((l) => l.value === 'Power*' && l.x === 618));
+assert(labels.some((l) => l.value === 'Boost' && l.x === 200));
+assert(labels.some((l) => l.value === 'Torque' && l.x === 658));
 assert.deepStrictEqual(labels.filter((l) => l.y === 187).map((l) => l.value), ['0', '1', '2', '3', '4', '5', '6', '7']);
 assert(!labels.some((l) => /REDLINE|SHIFT|SPORT|변속|레드라인/.test(l.value)));
 function px(cv, x, y) { return Array.from(cv.d.slice((y * W + x) * 4, (y * W + x) * 4 + 4)); }

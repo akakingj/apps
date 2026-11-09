@@ -1,22 +1,17 @@
 'use strict';
 const {Canvas}=require('./kit/canvas');
-const face=require('./hud-draw'),nav=require('./nav-draw');
+const face=require('./hud-draw'),nav=require('./nav-draw'),text=require('./nav-text');
 const {placement}=require('./layout');
 const W=800,H=480;
-function blitScaled(dst,src,r) {
-    for(let y=0;y<r.h;y++)for(let x=0;x<r.w;x++) {
-        const s=(Math.min(src.h-1,Math.floor((y+0.5)*src.h/r.h))*src.w+Math.min(src.w-1,Math.floor((x+0.5)*src.w/r.w)))*4;
-        const p=((y+r.y)*dst.w+x+r.x)*4,sa=src.d[s+3]/255;
-        if(!sa)continue;
-        const da=dst.d[p+3]/255,a=sa+da*(1-sa);
-        for(let k=0;k<3;k++)dst.d[p+k]=Math.round((src.d[s+k]*sa+dst.d[p+k]*da*(1-sa))/a);
-        dst.d[p+3]=Math.round(a*255);
-    }
-}
+const {blitScaled,drawWithParts}=require('./component-canvas');
 function draw(state) {
     const cv=new Canvas(W,H);cv.clear([0,0,0,0]);
-    blitScaled(cv,face.draw(state),placement(state.config,'hud',face));
-    if(state.config.hudNavigationEnabled&&state.navigation&&state.navigation.visible)blitScaled(cv,nav.draw(state.navigation),placement(state.config,'hudNav',nav));
+    if(state.renderRpm!==false)drawWithParts(face,state,cv,placement(state.config,'hud',face),'hud');
+    if(state.config.hudNavigationEnabled&&state.navigation&&state.navigation.visible){
+        blitScaled(cv,nav.draw(Object.assign({},state.navigation,{color:state.config.navColor})),placement(state.config,'hudNav',nav));
+        const scale=state.config.hudTextScale/100,w=Math.round(text.W*scale),h=Math.round(text.H*scale);
+        blitScaled(cv,text.draw(state.navigation),{x:Math.round((W-w)/2+state.config.hudTextOffsetX),y:Math.round(240+state.config.hudTextOffsetY),w,h});
+    }
     return cv;
 }
 function difference(previous,next) {

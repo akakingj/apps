@@ -3,7 +3,7 @@ const assert=require('assert'),fs=require('fs'),vm=require('vm'),path=require('p
 const dir=path.resolve(__dirname,'../../apps/cluster_redline'),spec=JSON.parse(fs.readFileSync(path.join(dir,'app.json')));
 function load(name,mocks){const m={exports:{}};vm.runInNewContext(fs.readFileSync(path.join(dir,name),'utf8'),{module:m,require:n=>Object.prototype.hasOwnProperty.call(mocks,n)?mocks[n]:require(path.join(dir,n)),console},{filename:name});return m.exports;}
 function store(old){const v={};spec.settings.forEach(s=>v[s.key]=s.default);Object.assign(v,old);const callbacks=[];return {schema:spec.settings,get:k=>v[k],set(k,x){if(v[k]===x)return;v[k]=x;callbacks.forEach(f=>f(k));},onChange:f=>callbacks.push(f)};}
-const ui=load('settings-ui.js',{'./kit/i18n':{t:x=>x},'./kit/gauges':{},'./settings-chrome':{header(cv){cv.tabRects=[];}},'./hud-draw':{W:800,H:240},'./nav-draw':{W:240,H:112}});
+const ui=load('settings-ui.js',{'./kit/i18n':{t:x=>x},'./kit/gauges':{},'./settings-chrome':{header(cv){cv.tabRects=[];}},'./draw':{W:1088,H:480},'./hud-draw':{W:800,H:240},'./nav-draw':{W:240,H:112},'./nav-text':{W:240,H:48},'./component-canvas':{measurePart:()=>({w:580,h:90})}});
 function canvas(){const c={labels:[],textWidth:(s,z)=>String(s).length*z/2,text(s){this.labels.push(s);}};for(const n of ['clear','line','polyline','fillRect','roundRect','gradientRect'])c[n]=()=>{};return c;}
 const saved=store({autoStart:false,appEnabled:false}),page=new ui.SettingsPage(saved,null,'draft');
 let cv=page.draw(canvas());
@@ -13,7 +13,7 @@ cv.targets.find(r=>r.x===990).act();assert.strictEqual(saved.get('appEnabled'),t
 cv.targets.find(r=>r.x===1268).act();assert.strictEqual(saved.get('appEnabled'),false);
 page.selectTab(1);page.activate(0);cv=page.draw(canvas());assert(cv.labels.includes('Back')&&!cv.labels.includes('Cancel'));
 const back=cv.targets.find(r=>r.x===1210&&r.y===448);assert(back);back.act();assert.strictEqual(page.open,null);
-page.activate(3);cv=page.draw(canvas());assert(cv.targets.find(r=>r.x===1210&&r.y===448));
+page.activate(4);cv=page.draw(canvas());assert(cv.targets.find(r=>r.x===1210&&r.y===448));
 assert.strictEqual(spec.settings.find(s=>s.key==='displayMode').options.length,2);
 async function lifecycle(autoStart){
  const s=store({autoStart,appEnabled:!autoStart}),calls=[];let entry;

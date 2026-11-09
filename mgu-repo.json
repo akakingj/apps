@@ -40,7 +40,7 @@
       "kind": "app",
       "path": "apps/cluster_redline",
       "title": "계기판 레드라인 (한국어)",
-      "description": "HUD 원형/상단 변속 알림 · 토크·마력 표시 선택 · 길안내 합성 · 클러스터 렌더러 필요",
+      "description": "HUD·CLUSTER·NAV 개별 설정 · 부가정보 선택 · 한글 길안내 · 위치·크기 조절",
       "mguHmi": [
         "ID7"
       ],
@@ -112,7 +112,7 @@
       "kind": "app",
       "path": "store/apps/cluster_redline_en",
       "title": "Cluster Redline (English)",
-      "description": "HUD bar/filled-circle shift alerts, gauge/value modes and turn composition; Cluster renderer required",
+      "description": "Independent HUD/CLUSTER/NAV settings, auxiliary metrics, guidance text and component positioning",
       "mguHmi": [
         "ID7"
       ],

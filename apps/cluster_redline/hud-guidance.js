@@ -44,7 +44,7 @@ class HudGuidance {
             }
             if(!current())return;
             // Multiple distinct HUD arrows must not be selected arbitrarily.
-            const distinct=matches.filter((v,i,a)=>a.findIndex(x=>x.maneuver===v.maneuver&&x.distanceText===v.distanceText&&x.exitNumber===v.exitNumber)===i);
+            const distinct=matches.filter((v,i,a)=>a.findIndex(x=>x.maneuver===v.maneuver&&x.distanceText===v.distanceText&&x.exitNumber===v.exitNumber&&x.kind===v.kind&&x.branchType===v.branchType&&x.description===v.description)===i);
             this.value=distinct.length===1?distinct[0]:null;this.at=this.value?this.clock():null;
             this.state=distinct.length>1?'hud_views_ambiguous':this.value?'maneuver_ready':'no_readable_hud_maneuver';this.lastError=null;
         };

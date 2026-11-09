@@ -24,6 +24,7 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
         drop() { calls.push('drop'); }
         close() { calls.push('close'); this.ready = false; }
     }
+    config.allHudOutput='stock';config.allClusterOutput='stock';
     const painter = { W: 1088, H: 480, draw: () => ({ d: Buffer.alloc(4) }), difference: () => ({ rects: [], pixels: Buffer.alloc(0) }) };
     const fakeFs = {
         readFileSync: () => JSON.stringify({ id: 'cluster-render', version: version }),
@@ -36,7 +37,8 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
         if (name === './cluster_render_client') return { ClusterRender: FakeClient };
         if (name === './outputs') return { Outputs };
         if (name === './draw') return painter;
-        if (name === './hud-draw') return Object.assign({}, painter, { W: 800, H: 353 });
+        if (name === './hud-compose') return Object.assign({}, painter, { W: 800, H: 353 });
+        if(['./native-navigation','./projection-config','./hud-guidance','./route-events','./aux-info','./display-config'].includes(name))return require('../../apps/cluster_redline/'+name.slice(2));
         if (name === './policy') return require('../../apps/cluster_redline/policy');
         if (name === './renderer') return require('../../apps/cluster_redline/renderer');
         if (name === './guidance') return require('../../apps/cluster_redline/guidance');
@@ -48,10 +50,10 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
     const worker = box.module.exports.start({
         dataDir: '/data', app: app,
         settings: { get: (k) => config[k] }, log: { warn() {} },
-        signals: { hasNative: () => live, loadConfig: (iface) => { if (iface==='de.bmw.infotainment.navigation.guiding.Guidance') return {fields:{guidanceState:{getter:{id:1}}}}; if (!withProgram) throw new Error('optional MDrive absent'); return { fields: { dataDisplayGearbox: {} } }; }, watch: (iface, instance, handlers, log, options) => {
+        signals: { hasNative: () => live, loadConfig: (iface) => { if (iface==='de.bmw.infotainment.navigation.guiding.Guidance') return {fields:{guidanceState:{getter:{id:1}},guidingProvider:{getter:{id:2}}}}; if (!withProgram) throw new Error('optional MDrive absent'); return { fields: { dataDisplayGearbox: {} } }; }, watch: (iface, instance, handlers, log, options) => {
             const navigation = iface === 'de.bmw.infotainment.navigation.guiding.Guidance';
             assert.strictEqual(instance, navigation ? 'Main_Instance' : '1'); assert.strictEqual(options.pollMs, navigation ? undefined : 1000);
-            if(navigation)handlers.guidanceState('INACTIVE');
+            if(navigation){handlers.guidanceState('INACTIVE');handlers.guidingProvider('NONE');}
             feeds[iface] = handlers; watches++;
             const sub = { available: true, shutdown() { shutdowns++; } }; subscriptions[iface] = sub;
             return Promise.resolve(sub);
@@ -75,13 +77,14 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
     } else {
         assert.strictEqual(watches, withProgram ? 5 : 4);
         feeds['de.bmw.infotainment.navigation.guiding.Guidance'].guidanceState('INACTIVE');
+        feeds['de.bmw.infotainment.navigation.guiding.Guidance'].guidingProvider('NONE');
         const rpm = feeds['de.bmw.infotainment.vehicle.CDS'].statusEngineSpeed2;
         const mode = feeds['de.bmw.infotainment.drivingexcitement.FES'].statusFESVehicleDynamicSwitchHMI;
         assert.strictEqual(typeof rpm, 'function'); assert.strictEqual(typeof mode, 'function');
         rpm({ actualValueRPMEngineCrankshaft: 26000 }); mode({ actualValueModeDrivingExperience: 'SPORT_DYNAMIC' });
         tick(1000);
         if (['0.4.0', '0.4.1'].includes(version) && backend === 'id7') {
-            assert.strictEqual(status().requested, true); assert.strictEqual(status().rpm, 6500);
+            assert.strictEqual(status().requested,true,JSON.stringify(status().outputs));assert.strictEqual(status().rpm,6500);
             assert.strictEqual(status().shift, true);
             const gear = feeds['de.bmw.infrastructure.VehicleInformation'];
             gear.statusGearboxDrive({ statusActualGearDrive: 'G4', statusActualStageDrive: 'D' });

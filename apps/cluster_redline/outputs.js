@@ -3,6 +3,7 @@ const { EventEmitter } = require('events');
 const { Controller } = require('./controller');
 const { Policy, settings } = require('./policy');
 const { Telemetry } = require('./telemetry');
+const {navAllowed,rpmOutput}=require('./display-config');
 const { UploadPacer } = require('./upload');
 // One socket and one upload allowance, with independently released outputs.
 class OutputClient extends EventEmitter {
@@ -49,11 +50,14 @@ class Outputs {
         this.profile = cfg.engineProfile;
         const states = {}, order = this.order++ % 2 ? ['hud','cluster'] : ['cluster','hud'];
         order.forEach((name) => {
-            const out = this[name], selected = cfg[prefix + (name === 'hud' ? 'HudOutput' : 'ClusterOutput')];
+            const out=this[name],rpm=rpmOutput(cfg,name==='hud'?'Hud':'Cluster',this.policy.mode);
+            const nav=name==='hud'&&navAllowed(cfg,this.policy.mode)&&this.navigation&&this.navigation.visible;
+            const selected=rpm||nav?'redline':'stock';
+            out.renderRpm=rpm;out.aux=this.aux||{};
             out.profile = cfg.engineProfile; out.gear = this.gear; out.gearMode = this.gearMode;
-            out.navigation = name === 'hud' ? this.navigation : null;
+            out.navigation = name === 'hud' && navAllowed(cfg,this.policy.mode) ? this.navigation : null;
             const blocked=name==='hud' && this.hudBlocked;
-            states[name] = out.tick(now, Object.assign({}, cfg, { displayTarget: name === 'hud' ? 'hud' : 'map', appEnabled: cfg.appEnabled && selected === 'redline' && !blocked }));
+            states[name] = out.tick(now, Object.assign({}, cfg, { displayMode: cfg['all'+(name==='hud'?'Hud':'Cluster')+'Output']==='redline'||nav?'all':'sport', displayTarget: name === 'hud' ? 'hud' : 'map', appEnabled: cfg.appEnabled && selected === 'redline' && !blocked }));
             if (selected === 'stock' && cfg.appEnabled) states[name].reason = 'stock';
             else if(blocked && cfg.appEnabled)states[name].reason=this.hudBlockReason || 'hud_safety';
         });

@@ -1,8 +1,11 @@
 'use strict';
-const { Canvas, ramp } = require('./kit/canvas');
-const { gauges } = require('./units');
+const { Canvas } = require('./kit/canvas');
 const { drawMark } = require('./m-mark');
 const rpmColors = require('./rpm-colors');
+const {part}=require('./component-canvas');
+const {drawAux}=require('./aux-draw');
+const {alertState}=require('./hud-draw');
+const fonts=require('./kit/fonts');
 const W = 1088, H = 480;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const C = { track: '#1b212b', text: '#f4f7fb', red: '#ff2a2a' };
@@ -14,81 +17,38 @@ function frame(cv, y, lower) {
     cv.polyline([[589, y], [964, y], [990, y + side]], 1.5, '#8993a0');
     drawMark(cv, W / 2, y - 14);
 }
-function mini(cv, x, label, value, unit, maximum, peak, decimals) {
-    const w = 230, y = 366, h = L.miniHeight, slant = 8;
-    const valid = typeof value === 'number' && isFinite(value) && value >= 0;
-    cv.text(label, x, 340, 20, '#b8c2d1', { font: 'bold' });
-    const number = valid ? value.toFixed(decimals || 0) : '--';
-    const uw = cv.textWidth(unit, 12, { font: 'label' });
-    cv.text(number, x + w - uw - 5, 342, 32, C.text, { align: 'right', font: 'num' });
-    cv.text(unit, x + w, 345, 12, '#b8c2d1', { align: 'right' });
-    const q = (right, color) => {
-        if (right <= 0) return;
-        cv.quad([[x + slant, y], [x + slant + right, y], [x + right, y + h], [x, y + h]], color);
-    };
-    const span = w - slant;
-    q(span, C.track);
-    if (valid) {
-        const fill = span * clamp(value / maximum, 0, 1);
-        q(fill, '#1caeff');
-        cv.line(x + slant, y - 2, x + slant + span * clamp((peak || value) / maximum, 0, 1), y - 2, 2, C.red);
-        cv.line(x + slant + fill, y - 1, x + fill, y + h + 1, 2, C.text);
-    }
-    [0, 0.5, 1].forEach((f) => {
-        const px = x + span * f;
-        cv.line(px, y + h + 3, px, y + h + 6, 1, '#a0a9b7');
-        cv.text((maximum * f).toFixed(decimals || 0), px, 414, 12, '#c5cdd8', { align: 'center', font: 'num' });
+function draw(state,target) {
+    const cv=target||new Canvas(W,H),cfg=state.config,rpm=state.rpm;
+    if(!target)cv.clear([0,0,0,0]);
+    frame(cv,L.upperFrame,false);frame(cv,450,true);
+    const span=L.right-L.left-L.slant;
+    part(cv,cfg,'cluster','RpmGauge',{x:204,y:L.top-5,w:680,h:90},c=>{
+        const polygon=(a,b,color)=>{if(b<=a)return;const xa=L.left+span*a/cfg.maxRpm,xb=L.left+span*b/cfg.maxRpm;c.quad([[xa+L.slant,L.top],[xb+L.slant,L.top],[xb,L.bottom],[xa,L.bottom]],color);};
+        polygon(0,cfg.maxRpm,C.track);polygon(cfg.redlineRpm,cfg.maxRpm,'#4c1621');
+        const top=clamp(rpm,0,cfg.maxRpm);
+        for(let r=0;r<top;r+=50)polygon(r,Math.min(r+75,top),rpmColors.colorAt(r,cfg));
+        for(let r=500;r<cfg.maxRpm;r+=500){const x=L.left+span*r/cfg.maxRpm;c.line(x+L.slant,L.top,x,L.bottom,0.7,'#05060a');}
+        if(top>0){const x=L.left+span*top/cfg.maxRpm;c.line(x+L.slant,L.top-2,x,L.bottom+2,3,C.text);}
+        for(let r=0;r<=cfg.maxRpm;r+=500){const x=L.left+span*r/cfg.maxRpm,major=r%1000===0,color=r>=cfg.redlineRpm?C.red:'#b8c2d1';c.line(x,L.bottom+5,x,L.bottom+(major?13:9),1,color);if(major)c.text(String(r/1000),x,187,22,color,{align:'center',font:'num'});}
     });
-}
-function draw(state) {
-    const cv = new Canvas(W, H), cfg = state.config, rpm = state.rpm;
-    cv.clear([0, 0, 0, 0]); // Preserve the factory cluster through every empty pixel.
-    frame(cv, L.upperFrame, false); frame(cv, 450, true);
-    const colors = ['#19ee67', '#19ee67', '#19ee67', '#19ee67', '#19ee67', '#19ee67',
-        '#ffd522', '#ffd522', '#ffd522', '#f32d4c', '#f32d4c', '#f32d4c'];
-    const start = Math.max(0, cfg.shiftRpm - Math.min(2000, cfg.shiftRpm * 0.7));
-    const lit = state.shift ? 12 : Math.floor(clamp((rpm - start) / (cfg.shiftRpm - start), 0, 1) * 12);
-    const span = L.right - L.left - L.slant;
-    colors.forEach((color, i) => {
-        const a = L.left + span * i / 12, b = L.left + span * (i + 1) / 12 - 0.5;
-        cv.quad([[a + L.slant, L.alertTop], [b + L.slant, L.alertTop], [b, L.alertBottom], [a, L.alertBottom]], i < lit ? (state.shift ? (state.flash ? C.red : '#711318') : color) : '#000000');
+    const gear=typeof state.gear==='string'&&/^(?:[DSM]?(?:[1-9]|10)|P|R|N|D|--)$/.test(state.gear)?state.gear:'--';
+    const gearWidth=cv.textWidth(gear,74,{font:'bold',literal:true}),font=fonts.get('bold',74,gear),glyphs=font?Array.from(gear,c=>font.glyphs[c.codePointAt(0)]).filter(Boolean):[];
+    const scale=font?74/font.size:1,top=glyphs.length?Math.min.apply(null,glyphs.map(g=>g[5]))*scale:-54,bottom=glyphs.length?Math.max.apply(null,glyphs.map(g=>g[5]+g[3]))*scale:0,diameter=(gear==='--'&&font&&font.glyphs[68]?font.glyphs[68][3]*scale:bottom-top)*0.7;
+    const circleX=W/2-gearWidth/2-12-diameter/2,circleY=400+(top+bottom)/2,alert=alertState(state);
+    part(cv,cfg,'cluster','Alert',cfg.clusterAlertStyle==='circle'?{x:circleX-diameter/2-3,y:circleY-diameter/2-3,w:diameter+6,h:diameter+6}:{x:L.left-2,y:L.alertTop-2,w:span+L.slant+4,h:24},c=>{
+        if(cfg.clusterAlertStyle==='circle'){
+            if(alert.visible&&(alert.stage!=='red'||state.flash))c.arc(circleX,circleY,0,diameter/2,0,360,alert.color);
+        }else for(let i=0;i<12;i++){
+            const a=L.left+span*i/12,b=L.left+span*(i+1)/12-0.5,color=alert.stage==='red'&&!state.flash?'#711318':alert.color;
+            c.quad([[a+L.slant,L.alertTop],[b+L.slant,L.alertTop],[b,L.alertBottom],[a,L.alertBottom]],i<alert.lit?color:'#000000');
+        }
     });
-    const polygon = (a, b, color) => {
-        if (b <= a) return;
-        const xa = L.left + span * a / cfg.maxRpm, xb = L.left + span * b / cfg.maxRpm;
-        cv.quad([[xa + L.slant, L.top], [xb + L.slant, L.top], [xb, L.bottom], [xa, L.bottom]], color);
-    };
-    polygon(0, cfg.maxRpm, C.track);
-    polygon(cfg.redlineRpm, cfg.maxRpm, '#4c1621');
-    const top = clamp(rpm, 0, cfg.maxRpm);
-    for (let r = 0; r < top; r += 50) {
-        const end = Math.min(r + 50, top);
-        polygon(r, Math.min(end + 25, top), rpmColors.colorAt(r, cfg));
-    }
-    for (let r = 500; r < cfg.maxRpm; r += 500) {
-        const x = L.left + span * r / cfg.maxRpm;
-        cv.line(x + L.slant, L.top, x, L.bottom, 0.7, '#05060a');
-    }
-    if (top > 0) {
-        const x = L.left + span * top / cfg.maxRpm;
-        cv.line(x + L.slant, L.top - 2, x, L.bottom + 2, 3, C.text);
-    }
-    for (let r = 0; r <= cfg.maxRpm; r += 500) {
-        const x = L.left + span * r / cfg.maxRpm, major = r % 1000 === 0;
-        const color = r >= cfg.redlineRpm ? C.red : '#b8c2d1';
-        cv.line(x, L.bottom + 5, x, L.bottom + (major ? 13 : 9), 1, color);
-        if (major) cv.text(String(r / 1000), x, 187, 22, color, { align: 'center', font: 'num' });
-    }
-    const num = String(Math.round(rpm / 10) * 10), size = 78, suffix = 'RPM';
-    const nw = cv.textWidth(num, size, { font: 'num' }), sw = cv.textWidth(suffix, 22, { font: 'bold', literal: true });
-    const nx = (W - nw - 10 - sw) / 2, tint = state.shift ? C.red : C.text;
-    cv.text(num, nx, 270, size, tint, { font: 'num' });
-    cv.text(suffix, nx + nw + 10, 270, 22, tint, { font: 'bold', literal: true });
-    const gear = typeof state.gear === 'string' && /^(?:[DSM]?(?:[1-9]|10)|P|R|N|D|--)$/.test(state.gear) ? state.gear : '--';
-    cv.text(gear, W / 2, 400, 74, C.text, { align: 'center', font: 'bold' });
-    const g = gauges(state);
-    mini(cv, 240, 'Torque', g.torque.value, g.torque.unit, g.torque.maximum, g.torque.peak, g.torque.decimals);
-    mini(cv, 618, 'Power*', g.power.value, g.power.unit, g.power.maximum, g.power.peak, g.power.decimals);
+    part(cv,cfg,'cluster','RpmValue',{x:380,y:190,w:330,h:94},c=>{
+        const num=String(Math.round(rpm/10)*10),size=78,nw=c.textWidth(num,size,{font:'num'}),sw=c.textWidth('RPM',22,{font:'bold',literal:true}),nx=(W-nw-10-sw)/2,tint=state.shift?C.red:C.text;
+        c.text(num,nx,270,size,tint,{font:'num'});c.text('RPM',nx+nw+10,270,22,tint,{font:'bold',literal:true});
+    });
+    part(cv,cfg,'cluster','Gear',{x:W/2-gearWidth/2-4,y:320,w:gearWidth+8,h:96},c=>c.text(gear,W/2,400,74,C.text,{align:'center',font:'bold'}));
+    part(cv,cfg,'cluster','Aux',{x:180,y:280,w:720,h:150},c=>drawAux(c,state,'cluster'));
     return cv;
 }
 // Four independent horizontal regions keep updates below the link budget.

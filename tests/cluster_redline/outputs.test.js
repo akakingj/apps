@@ -49,7 +49,7 @@ for(const mode of [5,'COMFORT_PLUS','ECO_PRO_INDIVIDUAL']){
  assert(state.requested&&o.cluster.ref===cr&&o.hud.ref===hr);
  o.policy.modeSample(mode,1400);o.tick(1400,Object.assign({},cfg,{allHudOutput:'stock'}));
  assert(c.active.has(cr)&&!c.active.has(hr));
- state=o.tick(1450,Object.assign({},cfg,{displayMode:'sport'}));
+ state=o.tick(1450,Object.assign({},cfg,{allClusterOutput:'stock',allHudOutput:'stock'}));
  assert(!state.requested&&c.active.size===0);
  o.close();
 }
@@ -58,9 +58,27 @@ for(const mode of [5,'COMFORT_PLUS','ECO_PRO_INDIVIDUAL']){
  const painter={W:800,H:240,draw:s=>{drawn.push([s.config.hudAlertStyle,s.config.hudAuxDisplay]);return {d:Buffer.from([drawn.length,0,0,255])};},difference:(a,b)=>({rects:[{x:0,y:0,w:1,h:1}],pixels:b})};
  const o=new Outputs(c,cluster,painter),cfg={sportClusterOutput:'stock',sportHudOutput:'redline'};
  o.policy.modeSample(1,0);o.policy.rpmSample(4000,1000);o.tick(1000,cfg);
- const ref=o.hud.ref;o.tick(1300,Object.assign({},cfg,{hudAlertStyle:'circle'}));
- o.tick(1600,Object.assign({},cfg,{hudAlertStyle:'circle',hudAuxDisplay:'values'}));
- assert.deepStrictEqual(drawn,[['bar','gauges'],['circle','gauges'],['circle','values']],'style changes repaint even when RPM and telemetry are unchanged');
+ const ref=o.hud.ref;o.tick(1300,Object.assign({},cfg,{hudAlertStyle:'bar'}));
+ o.tick(1600,Object.assign({},cfg,{hudAlertStyle:'bar',hudAuxDisplay:'values'}));
+ assert.deepStrictEqual(drawn,[['circle','gauges'],['bar','gauges'],['bar','values']],'style changes repaint even when RPM and telemetry are unchanged');
  assert.strictEqual(o.hud.ref,ref,'appearance changes reuse the existing HUD layer');o.close();
 }
-console.log('PASS: independent outputs, all-mode support, shared budget, live appearance/placement changes and release');
+{
+ const c=new Client(),drawn=[];
+ const painter={W:800,H:480,fullTarget:true,draw:s=>{drawn.push(s.navigation.branchType);return {d:Buffer.from([drawn.length,0,0,255])};},difference:(a,b)=>({rects:[{x:0,y:0,w:1,h:1}],pixels:b})};
+ const o=new Outputs(c,cluster,painter),cfg={sportClusterOutput:'stock',sportHudOutput:'redline'};
+ o.navigation={visible:true,kind:'branch',branchType:'HIGHWAY_IN_RIGHT',maneuver:'SLIGHT_RIGHT',distanceText:'300 m',provider:'ANDROID_AUTO'};
+ o.policy.modeSample(1,0);o.policy.rpmSample(4000,1000);o.tick(1000,cfg);const ref=o.hud.ref;
+ o.navigation=Object.assign({},o.navigation,{branchType:'HIGHWAY_OUT_RIGHT'});o.tick(1300,cfg);
+ assert.deepStrictEqual(drawn,['HIGHWAY_IN_RIGHT','HIGHWAY_OUT_RIGHT'],'entry to exit must repaint at unchanged RPM, distance and direction');
+ assert.strictEqual(o.hud.ref,ref,'highway changes use the existing composed HUD layer');o.close();
+}
+{
+ const c=new Client(),drawn=[],p={W:800,H:480,fullTarget:true,draw:s=>{drawn.push(s.renderRpm);return {d:Buffer.from([1,0,0,255])};},difference:()=>({rects:[],pixels:Buffer.alloc(0)})};
+ const o=new Outputs(c,cluster,p),cfg={sportClusterOutput:'stock',allClusterOutput:'stock',sportHudOutput:'stock',allHudOutput:'stock'};
+ o.navigation={visible:true,kind:'intersection',maneuver:'RIGHT',distanceText:'300 m',description:'교차로'};
+ o.policy.modeSample(4,0);o.policy.rpmSample(2000,1000);let state=o.tick(1000,cfg);assert(state.outputs.hud.requested&&!state.outputs.cluster.requested);assert.deepStrictEqual(drawn,[false],'navigation can render without Redline RPM');
+ o.policy.modeSample(1,1100);o.tick(1100,Object.assign({},cfg,{navDisplayMode:'excludeSport'}));assert.strictEqual(c.active.size,0,'exclude Sport removes the app navigation layer');
+ o.policy.modeSample(5,1200);state=o.tick(1200,Object.assign({},cfg,{navDisplayMode:'excludeSport'}));assert(state.outputs.hud.requested);o.navigation={visible:false};o.tick(1300,cfg);assert.strictEqual(c.active.size,0,'route end clears navigation-only output');o.close();
+}
+console.log('PASS: independent outputs, all-mode support, shared budget, live appearance/highway/placement changes and release');

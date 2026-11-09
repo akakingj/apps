@@ -69,12 +69,9 @@ mgu.run({ async start(ctx) {
                 if(out.requested) message=name==='cluster' ? mapStatus(out) : out.targetState==='shown' ? 'HUD area acquired' : 'Waiting for HUD area';
                 return t(name==='cluster'?'Cluster':'HUD')+': '+t(message);
             });
-            const cv = page.draw(ctx.canvas(W, H), status);
+            const cv = page.draw(ctx.canvas(W, H), status, state);
             page.targets = cv.targets;
-            await Promise.all([
-                ctx.ui.text('BTN_VALUE_DOWN', page.open && page.open !== 'layout' || page.section==='hud' ? 'Back' : 'Value -'),
-                ctx.ui.text('BTN_VALUE_UP', page.open && page.open !== 'layout' || page.section==='hud' ? 'Select' : 'Value +'),
-            ]);
+            await Promise.all([ctx.ui.text('BTN_VALUE_DOWN','Back'),ctx.ui.text('BTN_VALUE_UP','Select')]);
             await ctx.ui.image('MAIN_GFX', cv);
         } finally {
             drawing = false;
@@ -82,11 +79,13 @@ mgu.run({ async start(ctx) {
         }
     }
     ctx.ui.onClick('BTN_BASIC', () => page.selectTab(0));
-    ctx.ui.onClick('BTN_ADVANCED', () => page.selectTab(1));
+    ctx.ui.onClick('BTN_HUD',()=>page.selectTab(1));
+    ctx.ui.onClick('BTN_CLUSTER',()=>page.selectTab(2));
+    ctx.ui.onClick('BTN_NAV',()=>page.selectTab(3));
     ctx.ui.onClick('BTN_PREVIOUS', () => page.move(-1));
     ctx.ui.onClick('BTN_NEXT', () => page.move(1));
-    ctx.ui.onClick('BTN_VALUE_DOWN', () => { if (page.open === 'layout') page.change(-1); else if (page.open||page.section==='hud')page.back(); else page.change(-1); });
-    ctx.ui.onClick('BTN_VALUE_UP', () => page.open && page.open !== 'layout' ? page.choose(page.choice) : page.section==='hud'?page.activate():page.change(1));
+    ctx.ui.onClick('BTN_VALUE_DOWN',()=>page.back());
+    ctx.ui.onClick('BTN_VALUE_UP',()=>page.open?page.choose(page.choice):page.activate());
     // Native RHMI bar buttons remain usable without a GPU/touch renderer.
     ctx.onTap((x, y) => {
         const target = (page.targets || []).find((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);

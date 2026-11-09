@@ -96,6 +96,7 @@ class Controller {
         const panel = cfg.displayTarget === 'panel', hud = cfg.displayTarget === 'hud';
         const painter = hud ? this.hudPainter : this.painter;
         d.navigation = hud ? this.navigation : null;
+        d.renderRpm=this.renderRpm!==false;d.aux=this.aux||{};
         const targetWidth = panel ? 1920 : hud ? 800 : 1088, targetHeight = panel ? 720 : 480;
         const geometry = cfg.displayTarget + ':' + targetWidth + 'x' + targetHeight;
         if (d.show && (!painter || cfg.displayTarget === 'unknown' || String(this.client.targets || '').split(',').indexOf(geometry) < 0)) {
@@ -156,8 +157,7 @@ class Controller {
         }
         // Do not repaint a whole canvas 60 times/s when no source value changed.
         // Keep freshness/mode checks above this cache so stale signals still hide.
-        const paintKey = [d.rpm, d.shift, d.flash, d.gear, d.torqueNm, d.powerPS, d.torquePeak, d.powerPeak, cfg.shiftRpm, cfg.redlineRpm, cfg.maxRpm, cfg.torqueScale, cfg.powerScale, cfg.torqueUnit, cfg.powerUnit,
-            hud ? JSON.stringify([d.navigation&&[d.navigation.visible,d.navigation.maneuver,d.navigation.distanceText,d.navigation.exitNumber,d.navigation.provider],cfg.hudNavigationEnabled,cfg.hudOffsetX,cfg.hudOffsetY,cfg.hudWidthScale,cfg.hudHeightScale,cfg.hudNavOffsetX,cfg.hudNavOffsetY,cfg.hudNavWidthScale,cfg.hudNavHeightScale,cfg.hudAlertStyle,cfg.hudAuxDisplay]) : ''].join('|');
+        const paintKey = [d.rpm,d.shift,d.flash,d.gear,d.torqueNm,d.powerPS,d.torquePeak,d.powerPeak,JSON.stringify([cfg,d.renderRpm,d.aux,hud?d.navigation:null])].join('|');
         if (this.previous && this.paintKey === paintKey) return Object.assign(d, { requested: true, layerState: this.layerState });
         if (this.previous && !this.upload.ready(now)) return Object.assign(d, { requested: true, layerState: this.layerState });
         if (!this.previous && !this.ownsUpload && !this.upload.ready(now)) return Object.assign(d, { requested: true, layerState: this.layerState });

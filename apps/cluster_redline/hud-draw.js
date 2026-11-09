@@ -1,14 +1,15 @@
 'use strict';
 const { Canvas } = require('./kit/canvas');
 const fonts = require('./kit/fonts');
-const { gauges } = require('./units');
 const { drawMark } = require('./m-mark');
 const rpmColors = require('./rpm-colors');
+const {part}=require('./component-canvas');
+const {drawAux}=require('./aux-draw');
 const W = 800, H = 240;
 const TYPE = { rpm:59.4, rpmUnit:19.8, label:15.4, value:26.4, unit:12.1, scale:13.2, ticks:16.5, gear:70.4 };
 const L = { left:64, right:612, slant:12, alertTop:14, barTop:52, barBottom:84.4, tickBaseline:116, baseline:180,
-    miniWidth:160, torqueLeft:64, powerLeft:452, miniBaseline:154, miniTop:168, miniHeight:16, miniLabels:202,
-    gaugeScale:0.9, frameY:216, rpmLeft:236, rpmRight:440 };
+    miniWidth:160, torqueLeft:64, powerLeft:452, miniBaseline:154, miniTop:162, miniHeight:32, miniLabels:211,
+    gaugeScale:0.9, frameY:230, rpmLeft:236, rpmRight:440 };
 const RED='#ff2a2a',WHITE='#f4f7fb';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 function layoutFor(cfg) {
@@ -30,38 +31,13 @@ function gearLayout(cv,gear,cfg) {
         const glyphs=f?Array.from(gear,c=>f.glyphs[c.codePointAt(0)]).filter(Boolean):[];
         top=glyphs.length?Math.min.apply(null,glyphs.map(g=>g[5]))*scale:-size*0.72;
         bottom=glyphs.length?Math.max.apply(null,glyphs.map(g=>g[5]+g[3]))*scale:0;
-        diameter=(bottom-top)*0.7;width=cv.textWidth(gear,size,{font:'bold',literal:true});
+        const reference=f&&f.glyphs[68];
+        diameter=(gear==='--'&&reference?reference[3]*scale:bottom-top)*0.7;width=cv.textWidth(gear,size,{font:'bold',literal:true});
         if(width+12+diameter<=160||size<=44)break;
         size-=1;
     }while(true);
     const l=layoutFor(cfg||{}),baseline=(l.barTop+l.barBottom)/2-(top+bottom)/2,right=780;
     return {size,right,baseline,left:right-width,diameter,cx:right-width-12-diameter/2,cy:baseline+(top+bottom)/2};
-}
-function mini(cv,x,label,gauge,l) {
-    const columnWidth=l.miniWidth,w=columnWidth*l.gaugeScale,y=l.miniTop,h=l.miniHeight*l.gaugeScale,slant=7*l.gaugeScale;
-    const gx=x+(columnWidth-w)/2;
-    const valid=typeof gauge.value==='number'&&isFinite(gauge.value)&&gauge.value>=0;
-    const number=valid?gauge.value.toFixed(gauge.decimals):'--';
-    const uw=cv.textWidth(gauge.unit,TYPE.unit,{font:'label',literal:true});
-    cv.text(label,x,l.miniBaseline,TYPE.label,'#b8c2d1',{font:'bold'});
-    cv.text(number,x+columnWidth-uw-4,l.miniBaseline,TYPE.value,WHITE,{align:'right',font:'num',literal:true});
-    cv.text(gauge.unit,x+columnWidth,l.miniBaseline,TYPE.unit,'#b8c2d1',{align:'right',literal:true});
-    const span=w-slant;
-    const q=(right,tint)=>{if(right>0)cv.quad([[gx+slant,y],[gx+slant+right,y],[gx+right,y+h],[gx,y+h]],tint);};
-    q(span,'#1b212b');
-    if(valid) {
-        const fill=span*clamp(gauge.value/gauge.maximum,0,1);
-        const peak=typeof gauge.peak==='number'&&isFinite(gauge.peak)?gauge.peak:gauge.value;
-        q(fill,'#1caeff');
-        cv.line(gx+slant,y-2,gx+slant+span*clamp(peak/gauge.maximum,0,1),y-2,2,RED);
-        cv.line(gx+slant+fill,y-1,gx+fill,y+h+1,1.5,WHITE);
-    }
-    [0,0.5,1].forEach(f=>{
-        const px=gx+span*f;
-        cv.line(px,y+h+3,px,y+h+6,1,'#a0a9b7');
-        cv.text((gauge.maximum*f).toFixed(gauge.decimals),f===1?gx+w:px,l.miniLabels,TYPE.scale,'#c5cdd8',
-            {align:f===0?'left':f===1?'right':'center',font:'num',literal:true});
-    });
 }
 function metricUnitSize(cv,value,unit,width,size) {
     const nw=cv.textWidth(value,size,{font:'num',literal:true});
@@ -77,52 +53,32 @@ function metric(cv,value,unit,left,right,baseline,size,tint) {
 function draw(state,target) {
     const cv=target||new Canvas(W,H),cfg=state.config,l=layoutFor(cfg),alert=alertState(state);
     if(!target)cv.clear([0,0,0,0]);
-    // Only the lower M remains. The upper mark and decorative line are removed.
     cv.line(l.left,l.frameY,294,l.frameY,1,'#8993a0');cv.line(365,l.frameY,l.right,l.frameY,1,'#8993a0');drawMark(cv,330,l.frameY-9,54,17);
     const span=l.right-l.left-l.slant;
-    if(cfg.hudAlertStyle!=='circle')for(let i=0;i<12;i++) {
-        const a=l.left+span*i/12,b=l.left+span*(i+1)/12-1;
-        const color=alert.stage==='red'&&!state.flash?'#711318':alert.color;
-        cv.quad([[a+l.slant,l.alertTop],[b+l.slant,l.alertTop],[b,l.alertTop+12],[a,l.alertTop+12]],i<alert.lit?color:'#000000');
-    }
-    const band=(a,b,tint)=>{
-        if(b<=a)return;
-        const x=l.left+span*a/cfg.maxRpm,z=l.left+span*b/cfg.maxRpm;
-        cv.quad([[x+l.slant,l.barTop],[z+l.slant,l.barTop],[z,l.barBottom],[x,l.barBottom]],tint);
-    };
-    band(0,cfg.maxRpm,'#1b212b');band(cfg.redlineRpm,cfg.maxRpm,'#4c1621');
-    const top=clamp(state.rpm,0,cfg.maxRpm);
-    for(let rpm=0;rpm<top;rpm+=50)band(rpm,Math.min(rpm+75,top),rpmColors.colorAt(rpm,cfg));
-    for(let rpm=500;rpm<cfg.maxRpm;rpm+=500) {
-        const x=l.left+span*rpm/cfg.maxRpm;cv.line(x+l.slant,l.barTop,x,l.barBottom,0.8,'#000000');
-    }
-    for(let rpm=0;rpm<=cfg.maxRpm;rpm+=1000) {
-        const x=l.left+span*rpm/cfg.maxRpm,tint=rpm>=cfg.redlineRpm?RED:'#aeb9c6';
-        cv.line(x,l.barBottom+4,x,l.barBottom+10,1,tint);
-        cv.text(String(rpm/1000),x,l.tickBaseline,TYPE.ticks,tint,{align:'center',font:'num',literal:true});
-    }
-    const num=String(Math.round(state.rpm/10)*10),tint=state.shift?RED:WHITE,g=gauges(state);
-    const aux=cfg.hudAuxDisplay||'gauges';
-    let size=TYPE.rpm;
-    const metrics=[[num,'RPM',l.rpmLeft,l.rpmRight]];
-    if(aux==='values') {
-        metrics.unshift([typeof g.torque.value==='number'?g.torque.value.toFixed(g.torque.decimals):'--',g.torque.unit,l.torqueLeft,l.torqueLeft+l.miniWidth]);
-        metrics.push([typeof g.power.value==='number'?g.power.value.toFixed(g.power.decimals):'--',g.power.unit,l.powerLeft,l.powerLeft+l.miniWidth]);
-    }
-    while(size>24&&metrics.some(m=>cv.textWidth(m[0],size,{font:'num',literal:true})+8+cv.textWidth(m[1],TYPE.unit,{font:'bold',literal:true})>m[3]-m[2]))size--;
-    metrics.forEach((m,i)=>metric(cv,m[0],m[1],m[2],m[3],l.baseline,size,aux==='values'&&i!==1?WHITE:tint));
-    if(aux==='values') {
-        cv.text('Torque',l.torqueLeft,l.baseline-60,TYPE.label,'#b8c2d1',{font:'bold'});
-        cv.text('Power*',l.powerLeft,l.baseline-60,TYPE.label,'#b8c2d1',{font:'bold'});
-    }else if(aux!=='off') {
-        mini(cv,l.torqueLeft,'Torque',g.torque,l);mini(cv,l.powerLeft,'Power*',g.power,l);
-    }
-    const gear=typeof state.gear==='string'&&/^(?:[DSM]?(?:[1-9]|10)|P|R|N|D|--)$/.test(state.gear)?state.gear:'--';
-    const gl=gearLayout(cv,gear,cfg);
-    cv.text(gear,gl.right,gl.baseline,gl.size,WHITE,{font:'bold',align:'right',literal:true});
-    if(cfg.hudAlertStyle==='circle'&&alert.visible&&(alert.stage!=='red'||state.flash)) {
-        cv.arc(gl.cx,gl.cy,0,gl.diameter/2,0,360,alert.color);
-    }
+    part(cv,cfg,'hud','RpmGauge',{x:50,y:l.barTop-5,w:580,h:l.tickBaseline-l.barTop+14},c=>{
+        const band=(a,b,tint)=>{if(b<=a)return;const x=l.left+span*a/cfg.maxRpm,z=l.left+span*b/cfg.maxRpm;c.quad([[x+l.slant,l.barTop],[z+l.slant,l.barTop],[z,l.barBottom],[x,l.barBottom]],tint);};
+        band(0,cfg.maxRpm,'#1b212b');band(cfg.redlineRpm,cfg.maxRpm,'#4c1621');
+        const top=clamp(state.rpm,0,cfg.maxRpm);
+        for(let rpm=0;rpm<top;rpm+=50)band(rpm,Math.min(rpm+75,top),rpmColors.colorAt(rpm,cfg));
+        for(let rpm=500;rpm<cfg.maxRpm;rpm+=500){const x=l.left+span*rpm/cfg.maxRpm;c.line(x+l.slant,l.barTop,x,l.barBottom,0.8,'#000000');}
+        for(let rpm=0;rpm<=cfg.maxRpm;rpm+=1000){const x=l.left+span*rpm/cfg.maxRpm,tint=rpm>=cfg.redlineRpm?RED:'#aeb9c6';c.line(x,l.barBottom+4,x,l.barBottom+10,1,tint);c.text(String(rpm/1000),x,l.tickBaseline,TYPE.ticks,tint,{align:'center',font:'num',literal:true});}
+    });
+    const gear=typeof state.gear==='string'&&/^(?:[DSM]?(?:[1-9]|10)|P|R|N|D|--)$/.test(state.gear)?state.gear:'--',gl=gearLayout(cv,gear,cfg);
+    const alertBounds=cfg.hudAlertStyle==='circle'?{x:gl.cx-gl.diameter/2-3,y:gl.cy-gl.diameter/2-3,w:gl.diameter+6,h:gl.diameter+6}:{x:l.left-2,y:l.alertTop-2,w:span+l.slant+4,h:16};
+    part(cv,cfg,'hud','Alert',alertBounds,c=>{
+        if(cfg.hudAlertStyle!=='circle')for(let i=0;i<12;i++){
+            const a=l.left+span*i/12,b=l.left+span*(i+1)/12-1,color=alert.stage==='red'&&!state.flash?'#711318':alert.color;
+            c.quad([[a+l.slant,l.alertTop],[b+l.slant,l.alertTop],[b,l.alertTop+12],[a,l.alertTop+12]],i<alert.lit?color:'#000000');
+        }
+        else if(alert.visible&&(alert.stage!=='red'||state.flash))c.arc(gl.cx,gl.cy,0,gl.diameter/2,0,360,alert.color);
+    });
+    part(cv,cfg,'hud','RpmValue',{x:l.rpmLeft-3,y:l.baseline-70,w:l.rpmRight-l.rpmLeft+6,h:76},c=>{
+        const num=String(Math.round(state.rpm/10)*10);let size=TYPE.rpm;
+        while(size>24&&c.textWidth(num,size,{font:'num',literal:true})+8+c.textWidth('RPM',TYPE.unit,{font:'bold',literal:true})>l.rpmRight-l.rpmLeft)size--;
+        metric(c,num,'RPM',l.rpmLeft,l.rpmRight,l.baseline,size,state.shift?RED:WHITE);
+    });
+    part(cv,cfg,'hud','Aux',{x:50,y:90,w:580,h:122},c=>drawAux(c,state,'hud',{left:l.torqueLeft,right:l.powerLeft,width:l.miniWidth,top:cfg.hudAlertStyle==='circle'?105:133,bottom:cfg.hudAlertStyle==='circle'?184:211}));
+    part(cv,cfg,'hud','Gear',{x:620,y:gl.baseline-TYPE.gear,w:170,h:TYPE.gear+14},c=>c.text(gear,gl.right,gl.baseline,gl.size,WHITE,{font:'bold',align:'right',literal:true}));
     return cv;
 }
 function difference(previous, next) {

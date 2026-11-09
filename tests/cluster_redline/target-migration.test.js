@@ -21,8 +21,8 @@ async function start(dir) {
             const hu=await start(dir);
             assert.strictEqual(hu.settings.get('_outputsV'),1);
             for(const mode of ['sport','all']) {
-                assert.strictEqual(hu.settings.get(mode+'HudOutput'),target==='hud'?'redline':'stock');
-                assert.strictEqual(hu.settings.get(mode+'ClusterOutput'),['map','panel'].includes(target)?'redline':'stock');
+                assert.strictEqual(hu.settings.get(mode+'HudOutput'),mode==='sport'&&target==='hud'?'redline':'stock');
+                assert.strictEqual(hu.settings.get(mode+'ClusterOutput'),mode==='sport'&&['map','panel'].includes(target)?'redline':'stock');
             }
             for(const k of ['appEnabled','engineProfile','shiftRpm'])assert.strictEqual(hu.settings.get(k),saved[k]);
             assert.strictEqual(hu.settings.get('clusterWidthScale'),75);assert.strictEqual(hu.settings.get('clusterHeightScale'),75);

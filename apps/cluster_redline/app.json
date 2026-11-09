@@ -2,18 +2,20 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Independent stock/Redline cluster and HUD outputs, adjustable placement and native-guidance priority",
-  "version": "1.0.10",
+  "version": "1.1.0",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
   "mguAppStartType": "autostart",
   "signals": {
     "de.bmw.infotainment.vehicle.CDS": {
-      "statusEngineSpeed2": "rs"
+      "statusEngineSpeed2": "rs",
+      "statusEngineTemperature": "rs"
     },
     "de.bmw.infotainment.drivingexcitement.FES": {
       "statusFESVehicleDynamicSwitchHMI": "rs",
-      "statusActualValueTorque2": "rs"
+      "statusActualValueTorque2": "rs",
+      "statusSwitchDriveDynamicSport2": "rs"
     },
     "de.bmw.infrastructure.VehicleInformation": {
       "_optional": "current gear display; RPM and shift alerts still work without it",
@@ -58,6 +60,16 @@
       "_methods": [
         "queryContent"
       ]
+    },
+    "de.bmw.infotainment.vehicle.CDS2": {
+      "_optional": "Optional auxiliary acceleration and oil temperature; unavailable values display --",
+      "statusInjectionVolume": "rs",
+      "statusLateralAccelerationMassCenter": "rs",
+      "statusLongitudinalAccelerationMassCenter": "rs"
+    },
+    "de.bmw.infrastructure.EnvironmentalInformation": {
+      "_optional": "Optional outside temperature; unavailable values display --",
+      "ExteriorTemperature": "rs"
     }
   },
   "screens": [
@@ -71,8 +83,16 @@
           "Basic settings"
         ],
         [
-          "BTN_ADVANCED",
-          "Advanced settings"
+          "BTN_HUD",
+          "HUD display setting"
+        ],
+        [
+          "BTN_CLUSTER",
+          "CLUSTER display setting"
+        ],
+        [
+          "BTN_NAV",
+          "NAV display setting"
         ],
         [
           "BTN_PREVIOUS",
@@ -84,11 +104,11 @@
         ],
         [
           "BTN_VALUE_DOWN",
-          "Value -"
+          "Back"
         ],
         [
           "BTN_VALUE_UP",
-          "Value +"
+          "Select"
         ]
       ]
     }
@@ -144,7 +164,8 @@
           "all",
           "All drive modes"
         ]
-      ]
+      ],
+      "hidden": true
     },
     {
       "key": "powerUnit",
@@ -262,13 +283,13 @@
     },
     {
       "key": "sportClusterOutput",
-      "label": "Cluster display",
+      "label": "Sport mode RPM display",
       "type": "choice",
       "default": "redline",
       "options": [
         [
           "redline",
-          "Redline"
+          "Redline app"
         ],
         [
           "stock",
@@ -278,13 +299,13 @@
     },
     {
       "key": "sportHudOutput",
-      "label": "HUD display",
+      "label": "Sport mode RPM display",
       "type": "choice",
       "default": "stock",
       "options": [
         [
           "redline",
-          "Redline"
+          "Redline app"
         ],
         [
           "stock",
@@ -294,13 +315,13 @@
     },
     {
       "key": "allClusterOutput",
-      "label": "Cluster display",
+      "label": "All modes RPM display",
       "type": "choice",
-      "default": "redline",
+      "default": "stock",
       "options": [
         [
           "redline",
-          "Redline"
+          "Redline app"
         ],
         [
           "stock",
@@ -310,13 +331,13 @@
     },
     {
       "key": "allHudOutput",
-      "label": "HUD display",
+      "label": "All modes RPM display",
       "type": "choice",
       "default": "stock",
       "options": [
         [
           "redline",
-          "Redline"
+          "Redline app"
         ],
         [
           "stock",
@@ -392,13 +413,14 @@
       "key": "hudNavigationEnabled",
       "label": "HUD navigation",
       "type": "bool",
-      "default": true
+      "default": true,
+      "hidden": true
     },
     {
       "key": "hudNavOffsetX",
       "label": "Navigation OffsetX",
       "type": "number",
-      "default": 0,
+      "default": 280,
       "unit": "px",
       "hidden": true
     },
@@ -406,7 +428,7 @@
       "key": "hudNavOffsetY",
       "label": "Navigation OffsetY",
       "type": "number",
-      "default": 0,
+      "default": 60,
       "unit": "px",
       "hidden": true
     },
@@ -430,7 +452,7 @@
       "key": "hudAlertStyle",
       "label": "HUD shift alert",
       "type": "choice",
-      "default": "bar",
+      "default": "circle",
       "options": [
         [
           "bar",
@@ -462,6 +484,390 @@
           "Off"
         ]
       ],
+      "hidden": true
+    },
+    {
+      "key": "displaySettingsRevision",
+      "label": "displaySettingsRevision",
+      "type": "number",
+      "default": 2,
+      "hidden": true
+    },
+    {
+      "key": "clusterAlertStyle",
+      "label": "clusterAlertStyle",
+      "type": "choice",
+      "default": "circle",
+      "hidden": true,
+      "options": [
+        [
+          "circle",
+          "Circle beside gear"
+        ],
+        [
+          "bar",
+          "Top alert bar"
+        ]
+      ]
+    },
+    {
+      "key": "hudAuxConfig",
+      "label": "hudAuxConfig",
+      "type": "string",
+      "default": "{\"mode\":\"gauges\",\"items\":[\"boost\",\"torque\"]}",
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxConfig",
+      "label": "clusterAuxConfig",
+      "type": "string",
+      "default": "{\"mode\":\"gauges\",\"items\":[\"boost\",\"torque\"]}",
+      "hidden": true
+    },
+    {
+      "key": "navDisplayMode",
+      "label": "Navigation display",
+      "type": "choice",
+      "default": "all",
+      "hidden": true,
+      "options": [
+        [
+          "all",
+          "All drive modes"
+        ],
+        [
+          "excludeSport",
+          "Except Sport"
+        ]
+      ]
+    },
+    {
+      "key": "navColor",
+      "label": "Navigation colour",
+      "type": "choice",
+      "default": "blue",
+      "hidden": true,
+      "options": [
+        [
+          "gray",
+          "Light gray"
+        ],
+        [
+          "white",
+          "White"
+        ],
+        [
+          "blue",
+          "Blue"
+        ]
+      ]
+    },
+    {
+      "key": "navUniformScale",
+      "label": "navUniformScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudTextOffsetX",
+      "label": "hudTextOffsetX",
+      "type": "number",
+      "default": 280,
+      "hidden": true
+    },
+    {
+      "key": "hudTextOffsetY",
+      "label": "hudTextOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudTextScale",
+      "label": "hudTextScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudRpmGaugeOffsetX",
+      "label": "hudRpmGaugeOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudRpmGaugeOffsetY",
+      "label": "hudRpmGaugeOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudRpmGaugeWidthScale",
+      "label": "hudRpmGaugeWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudRpmGaugeHeightScale",
+      "label": "hudRpmGaugeHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudGearOffsetX",
+      "label": "hudGearOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudGearOffsetY",
+      "label": "hudGearOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudGearWidthScale",
+      "label": "hudGearWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudGearHeightScale",
+      "label": "hudGearHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudAlertOffsetX",
+      "label": "hudAlertOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudAlertOffsetY",
+      "label": "hudAlertOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudAlertWidthScale",
+      "label": "hudAlertWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudAlertHeightScale",
+      "label": "hudAlertHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxOffsetX",
+      "label": "hudAuxOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxOffsetY",
+      "label": "hudAuxOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxWidthScale",
+      "label": "hudAuxWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudAuxHeightScale",
+      "label": "hudAuxHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudRpmValueOffsetX",
+      "label": "hudRpmValueOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudRpmValueOffsetY",
+      "label": "hudRpmValueOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "hudRpmValueWidthScale",
+      "label": "hudRpmValueWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "hudRpmValueHeightScale",
+      "label": "hudRpmValueHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterRpmGaugeOffsetX",
+      "label": "clusterRpmGaugeOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterRpmGaugeOffsetY",
+      "label": "clusterRpmGaugeOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterRpmGaugeWidthScale",
+      "label": "clusterRpmGaugeWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterRpmGaugeHeightScale",
+      "label": "clusterRpmGaugeHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterGearOffsetX",
+      "label": "clusterGearOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterGearOffsetY",
+      "label": "clusterGearOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterGearWidthScale",
+      "label": "clusterGearWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterGearHeightScale",
+      "label": "clusterGearHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterAlertOffsetX",
+      "label": "clusterAlertOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterAlertOffsetY",
+      "label": "clusterAlertOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterAlertWidthScale",
+      "label": "clusterAlertWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterAlertHeightScale",
+      "label": "clusterAlertHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxOffsetX",
+      "label": "clusterAuxOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxOffsetY",
+      "label": "clusterAuxOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxWidthScale",
+      "label": "clusterAuxWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterAuxHeightScale",
+      "label": "clusterAuxHeightScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterRpmValueOffsetX",
+      "label": "clusterRpmValueOffsetX",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterRpmValueOffsetY",
+      "label": "clusterRpmValueOffsetY",
+      "type": "number",
+      "default": 0,
+      "hidden": true
+    },
+    {
+      "key": "clusterRpmValueWidthScale",
+      "label": "clusterRpmValueWidthScale",
+      "type": "number",
+      "default": 100,
+      "hidden": true
+    },
+    {
+      "key": "clusterRpmValueHeightScale",
+      "label": "clusterRpmValueHeightScale",
+      "type": "number",
+      "default": 100,
       "hidden": true
     }
   ],

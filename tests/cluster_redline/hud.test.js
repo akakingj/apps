@@ -25,16 +25,17 @@ function reconstruct(a,b,painter) {
 }
 for(const next of frames)reconstruct(before,next,hud);
 const px=(cv,x,y)=>Array.from(cv.d.slice((y*cv.w+x)*4,(y*cv.w+x)*4+4));
-for(const [x,y] of [[0,0],[799,239],[400,42]])assert.strictEqual(px(before,x,y)[3],0);
+for(const [x,y] of [[0,0],[799,239],[400,14]])assert.strictEqual(px(before,x,y)[3],0);
 for(const rpm of [500,1500,2500,3500,4500,5500]) {
  const state=Object.assign({},base,{rpm:5900}),a=cluster.draw(state),b=hud.draw(state);
  const sample=(p)=>Math.round(p.left+(p.right-p.left-p.slant)*(rpm+200)/base.config.maxRpm+p.slant/2);
- const ac=px(a,sample(cluster.layout),132),bc=px(b,sample(hud.layout),Math.round((hud.layout.barTop+hud.layout.barBottom)/2));
+ const ac=px(a,sample(cluster.layout),132),bc=px(b,sample(hud.layout),Math.round((hud.layoutFor(base.config).barTop+hud.layoutFor(base.config).barBottom)/2));
  // Different bar widths sample slightly different positions in the continuous ramp.
  assert(ac.slice(0,3).every((v,i)=>Math.abs(v-bc[i])<=6),'HUD/cluster share RPM-locked palette within raster sampling tolerance');
 }
-const zero=hud.draw(Object.assign({},base,{rpm:0}));assert.deepStrictEqual(px(zero,100,hud.layout.alertTop+6),[0,0,0,255]);
-const bright=hud.draw(Object.assign({},base,{rpm:5500,shift:true,flash:true})),dim=hud.draw(Object.assign({},base,{rpm:5500,shift:true,flash:false}));
+const barBase=Object.assign({},base,{config:settings({hudAlertStyle:'bar'})});
+const zero=hud.draw(Object.assign({},barBase,{rpm:0}));assert.deepStrictEqual(px(zero,100,hud.layout.alertTop+6),[0,0,0,255]);
+const bright=hud.draw(Object.assign({},barBase,{rpm:5500,shift:true,flash:true})),dim=hud.draw(Object.assign({},barBase,{rpm:5500,shift:true,flash:false}));
 assert(px(bright,100,hud.layout.alertTop+6)[0]>220&&px(dim,100,hud.layout.alertTop+6)[0]<150);
 const blink=reconstruct(bright,dim,hud);assert(blink.rects.every(r=>r.y+r.h<=65));
 assert(Buffer.from(bright.d).slice(155*hud.W*4).equals(Buffer.from(dim.d).slice(155*hud.W*4)),'RPM stays steadily red during LED flash');

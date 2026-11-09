@@ -188,3 +188,46 @@ HUD torque / power	HUD 토크 · 마력 표시
 Gauges	게이지
 Values only	숫자만
 HUD preview	HUD 미리보기
+Highway entry	고속도로 진입
+Highway exit	고속도로 진출
+HUD display setting	HUD 표시 설정
+CLUSTER display setting	CLUSTER 표시 설정
+NAV display setting	NAV 표시 설정
+Auxiliary information	부가정보
+Design	디자인 변경
+Sport mode RPM display	스포츠 모드 RPM 표시
+All modes RPM display	모든 모드 RPM 표시
+All modes Redline also applies in Sport.	모든 모드의 앱 표시는 스포츠에도 적용됩니다.
+Text	텍스트
+Except Sport	스포츠 제외
+Light gray	연한 회색
+White	흰색
+Blue	파란색
+Select items on the next screen. Changes apply only after OK.	다음 화면에서 항목을 고르세요. OK를 눌러야 저장됩니다.
+Select gauges	게이지 선택
+Select text items	텍스트 항목 선택
+Selection order sets the left and right positions.	선택 순서대로 왼쪽과 오른쪽에 배치합니다.
+OK	확인
+RPM gauge	RPM 게이지
+Gear	기어 단수
+RPM alert	RPM 알림
+RPM number	RPM 수치
+Direction	방향
+Size	크기
+Width	가로
+Height	세로
+Up	위
+Down	아래
+Left	왼쪽
+Right	오른쪽
+Width and height scale together.	가로·세로를 같은 비율로 조절합니다.
+Width / height difference limited to 30%.	가로·세로 배율 차이는 최대 30%입니다.
+G-force	G포스
+Outside temperature	외부 온도
+Oil temperature	오일 온도
+Boost	부스트
+Navigation display	길안내 표시
+Navigation colour	길안내 색상
+Redline app	레드라인 앱
+Outside temp	외부 온도
+Oil temp	오일 온도

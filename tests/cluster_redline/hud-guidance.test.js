@@ -12,7 +12,8 @@ function fixture(options){
   if(opt.hold)return opt.hold.promise;
   if(opt.fail)throw Error('test read failure');
   if(name==='getViewConfig')return {GenericListError:0,configSequenceId:1,viewConfig:{targetUI:args.viewId==='cid'?'CID':'HUD'}};
-  return {GenericListError:opt.error||0,viewContent:{configSequenceId:1,ramsesSceneId:123,type:{contentType:opt.type||'HIGH_GUIDING'},associatedEvent:event(args.viewId==='h2'?'LEFT':'RIGHT')}};
+  const associated=opt.highways?{branch:{branchType:args.viewId==='h2'?'HIGHWAY_OUT_RIGHT':'HIGHWAY_IN_RIGHT',formattedDistance:{distance:'300',unit:'METER'}}}:event(args.viewId==='h2'?'LEFT':'RIGHT');
+  return {GenericListError:opt.error||0,viewContent:{configSequenceId:1,ramsesSceneId:123,type:{contentType:opt.type||'HIGH_GUIDING'},associatedEvent:associated}};
  });reader.attach(sub);return {reader,sub,calls,time:n=>now=n};
 }
 (async()=>{
@@ -22,7 +23,7 @@ function fixture(options){
  assert(!f.calls.some(x=>x[0]==='getViewContent'&&x[1]==='cid'),'CID data cannot supply HUD directions');
  assert.strictEqual(f.reader.read(2001,'route-A'),null);assert.strictEqual(f.reader.read(10,'route-B'),null);
  f.sub.available=false;assert.strictEqual(f.reader.read(10,'route-A'),null);f.reader.tick(10,'route-A');assert.strictEqual(f.reader.value,null);
- for(const options of [{type:'NOTIFY'},{error:1},{ids:[]},{fail:true},{ids:['hud','h2']}]){
+ for(const options of [{type:'NOTIFY'},{error:1},{ids:[]},{fail:true},{ids:['hud','h2']},{ids:['hud','h2'],highways:true}]){
   const f=fixture(options);f.reader.tick(0,'route');await flush();assert.strictEqual(f.reader.read(0,'route'),null,JSON.stringify(options));
  }
  let resolve;const hold={promise:new Promise(r=>resolve=r)};const late=fixture({hold});late.reader.tick(0,'A');await flush();late.reader.tick(10,'B');resolve({GenericListError:0,configSequenceId:1,viewConfig:{targetUI:'HUD'}});await flush();assert.strictEqual(late.reader.read(10,'B'),null);

@@ -12,9 +12,22 @@ def replace_once(text, old, new):
     return text.replace(old, new, 1)
 
 
+def navigation_fonts_source(text):
+    if '# Jam navigation Hangul fonts v2' in text:
+        return text
+    anchor = '    if preview_only:\n'
+    addition = """    # Jam navigation Hangul fonts v2: phone labels can be Korean in the English app too.
+    if app_id == 'cluster_redline' and language != 'ko':
+        for filename in ('korean.json', 'OFL-NotoSansKR.txt'):
+            shutil.copy(os.path.join(KIT, 'localization', 'fonts', filename),
+                        os.path.join(src, 'javascript', 'kit', 'fonts', filename))
+"""
+    return replace_once(text, anchor, addition + anchor)
+
+
 def build_source(text):
     if BUILD_MARKER in text:
-        return text
+        return navigation_fonts_source(text)
     anchor = "    json.dump(pkg, open(os.path.join(src, 'package.json'), 'w', encoding='utf-8', newline='\\n'), indent=2)"
     addition = '''    # Jam package metadata v1: normal apps keep their existing manual startup.
     if 'mguAppStartType' in spec:
@@ -30,7 +43,7 @@ def build_source(text):
             raise ValueError('Invalid mguClusterRenderMinVersion')
         pkg['mguClusterRenderMinVersion'] = spec['mguClusterRenderMinVersion']
 '''
-    return replace_once(text, anchor, addition + anchor)
+    return navigation_fonts_source(replace_once(text, anchor, addition + anchor))
 
 
 APP_START_HELPER = '''# Jam package start type v1: validate before registry or app files are changed.
@@ -121,9 +134,38 @@ OPTIONAL_HUD_MARKER = '// Jam optional HUD rendered guidance v5'
 OPTIONAL_ROUTE_EVENTS_MARKER = '// Jam optional route events query v6'
 
 
+def optional_aux_source(text):
+    marker = '// Jam optional auxiliary fields v7'
+    if marker in text:
+        old = '            if(!field || !field.getter || !field.getter.id)delete proxy.attributes[name];\n            else proxy.attributes[name]=field.notifier && field.notifier.id ? "rs" : "r";'
+        new = '            const validId=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;\n            if(!field || !field.getter || !validId(field.getter.id,1,32767))delete proxy.attributes[name];\n            else proxy.attributes[name]=field.notifier && validId(field.notifier.id,32768,65535) ? "rs" : "r";'
+        return replace_once(text, old, new) if old in text else text
+    addition = r"""        // Jam optional auxiliary fields v7: never drop required RPM/torque for an absent extra field.
+        const auxiliaryFields = [
+            ["de.bmw.infotainment.vehicle.CDS", "statusEngineTemperature"],
+            ["de.bmw.infotainment.drivingexcitement.FES", "statusSwitchDriveDynamicSport2"],
+            ["de.bmw.infotainment.vehicle.CDS2", "statusInjectionVolume"],
+            ["de.bmw.infotainment.vehicle.CDS2", "statusLateralAccelerationMassCenter"],
+            ["de.bmw.infotainment.vehicle.CDS2", "statusLongitudinalAccelerationMassCenter"],
+            ["de.bmw.infrastructure.EnvironmentalInformation", "ExteriorTemperature"]
+        ];
+        auxiliaryFields.forEach(entry => {
+            const proxy=m.proxies[entry[0]], name=entry[1];
+            if(!proxy || !proxy.attributes || proxy.attributes[name]===undefined)return;
+            const field=have[entry[0]] && have[entry[0]].fields && have[entry[0]].fields[name];
+            const validId=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;
+            if(!field || !field.getter || !validId(field.getter.id,1,32767))delete proxy.attributes[name];
+            else proxy.attributes[name]=field.notifier && validId(field.notifier.id,32768,65535) ? "rs" : "r";
+        });
+        const auxCds2=m.proxies["de.bmw.infotainment.vehicle.CDS2"];
+        if(auxCds2 && !Object.keys(auxCds2.attributes||{}).length)delete m.proxies["de.bmw.infotainment.vehicle.CDS2"];
+"""
+    return replace_once(text, '        // Jam optional guidance field persistence v3', addition + '        // Jam optional guidance field persistence v3')
+
+
 def optional_route_events_source(text):
     if OPTIONAL_ROUTE_EVENTS_MARKER in text:
-        return text
+        return optional_aux_source(text)
     addition = r"""        // Jam optional route events query v6
         const eventList = "de.bmw.infotainment.navigation.guiding.GuidanceEventList";
         if (opt[eventList] && m.proxies[eventList]) {
@@ -140,7 +182,7 @@ def optional_route_events_source(text):
             }
         }
 """
-    return replace_once(text, '        // Jam optional guidance field persistence v3', addition + '        // Jam optional guidance field persistence v3')
+    return optional_aux_source(replace_once(text, '        // Jam optional guidance field persistence v3', addition + '        // Jam optional guidance field persistence v3'))
 
 
 def optional_hud_source(text):

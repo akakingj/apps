@@ -92,7 +92,7 @@ for (const profile of Object.keys(PROFILES)) {
 // Retaining zero never bypasses normal selection, OFF, freshness or renderer
 // availability rules. All-mode owners get the same stop/start behavior.
 for (const displayMode of ['sport', 'all']) {
-    const cfg = { displayMode, sportHudOutput: 'redline', allHudOutput: 'redline' };
+    const cfg={displayMode,sportHudOutput:'redline',allHudOutput:displayMode==='all'?'redline':'stock'};
     const client = new Client(), outputs = new Outputs(client, painter(), painter());
     sample(outputs.policy, 0, 1000); sample(outputs.policy, 1000, 1000); outputs.tick(1000, cfg);
     sample(outputs.policy, 2000, 0); zeroState(outputs.tick(2000, cfg));

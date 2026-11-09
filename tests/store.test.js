@@ -78,12 +78,12 @@ async function checkSettingsEntry(file, id, version) {
         await start;
         assert(frames > 0, 'installed entry must show the new settings immediately');
         assert.strictEqual(spec.version, version);
-        for (const text of ['Basic settings', 'Advanced settings', 'App auto start', 'Vehicle preset']) assert(labels.some((label) => label.toLowerCase() === t(text).toLowerCase()), text);
+        for (const text of ['Basic settings', 'HUD display setting', 'CLUSTER display setting', 'NAV display setting', 'App auto start', 'Vehicle preset']) assert(labels.some((label) => label.toLowerCase() === t(text).toLowerCase()), text);
         assert(labels.includes('v' + version), 'visible version must match the installed package');
         assert(!handlers.BTN_SETTINGS, 'entry must not show the old status page and Settings button');
-        labels.length = 0; handlers.BTN_ADVANCED();
+        labels.length = 0; handlers.BTN_HUD();
         await new Promise((resolve) => setImmediate(resolve));
-        assert(labels.includes(t('Shift alert RPM')), 'installed Advanced tab must be wired');
+        assert(labels.includes(t('Sport mode RPM display')), 'installed HUD tab must be wired');
         assert(!spec.settings.some((s) => s.key === 'frameRate'), 'saved 60fps must not recreate the old menu');
     } finally { Canvas.prototype.text = original; }
 }
@@ -97,7 +97,7 @@ async function checkSettingsEntry(file, id, version) {
         assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'idrive_circuit', 'idrive_circuit_en']);
         assert(catalog.components.every((c) => c.script.node === 'tools/store-build.js' && !c.script.network));
         for (const id of ['cluster_redline', 'cluster_redline_en']) {
-            assert.strictEqual(catalog.components.find((c) => c.id === id).requires['cluster-render'], '0.3.10');
+            assert.strictEqual(catalog.components.find((c) => c.id === id).requires['cluster-render'], '0.4.0');
         }
     }
     const identities = new Set();

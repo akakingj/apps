@@ -19,6 +19,17 @@ function distanceText(value) {
     const suffix=UNITS[UNIT_NAMES.indexOf(unit)];
     return text.toLowerCase().endsWith(suffix)?text:text+' '+suffix;
 }
+function descriptionText(value) {
+    if(!object(value)||!Array.isArray(value.elements))return '';
+    const text=value.elements.slice(0,24).map(e=>{
+        if(!object(e))return '';
+        if(typeof e.text==='string')return e.text;
+        if(e.spacer==='SLASH'||e.spacer===4)return ' / ';
+        if(e.spacer!==undefined&&e.spacer!==null)return ' ';
+        return '';
+    }).join('').replace(/[\x00-\x1f\x7f]/g,' ').replace(/\s+/g,' ').trim();
+    return Array.from(text).slice(0,64).join('');
+}
 function decodeDart(value) {
     if(!object(value)||!object(value.maneuver))return null;
     const stamp=value.timeStamp;
@@ -27,10 +38,10 @@ function decodeDart(value) {
     if(keys.length!==1)return null;
     const kind=keys[0],item=union[kind];
     if(!object(item)||item.unreliable===true)return null;
-    let maneuver=null,exitNumber=null;
+    let maneuver=null,exitNumber=null,branchType=null;
     if(kind==='intersection')maneuver=enumeration(item.direction,DIRECTIONS);
     else if(kind==='branch') {
-        const branch=enumeration(item.branchType,BRANCHES);
+        const branch=branchType=enumeration(item.branchType,BRANCHES);
         if(branch&&/LEFT$/.test(branch))maneuver='SLIGHT_LEFT';
         else if(branch&&/RIGHT$/.test(branch))maneuver='SLIGHT_RIGHT';
         else if(branch&&/STRAIGHT$/.test(branch))maneuver='STRAIGHT_ON';
@@ -48,7 +59,13 @@ function decodeDart(value) {
         if(position&&position!=='NONE')maneuver='ARRIVAL_'+position;
     }
     const text=distanceText(item.formattedDistance);
-    return maneuver&&maneuver!=='NONE'&&text?{maneuver,distanceText:text,exitNumber,kind}:null;
+    if(!maneuver||maneuver==='NONE'||!text)return null;
+    const decoded={maneuver,distanceText:text,exitNumber,kind};
+    // Keep the supplied entry/exit identity: both previously became the same
+    // slight-turn arrow, losing the information needed for a highway diagram.
+    if(branchType)decoded.branchType=branchType;
+    const description=descriptionText(item.description);if(description)decoded.description=description;
+    return decoded;
 }
 function dartFailure(value) {
     if(!object(value))return 'payload_missing';
@@ -169,4 +186,4 @@ class NativeNavigation {
         return {visible:false,reason:'navigation_maneuver_unknown',provider:this.provider,maneuver:null,distanceText:null,exitNumber:null,detail:this.dartDetail,kind:this.dartKind,active:true,known:true,needsStock:true,input};
     }
 }
-module.exports={NativeNavigation,decodeDart,distanceText,TTL_MS,DIRECTIONS,PROVIDERS};
+module.exports={descriptionText,NativeNavigation,decodeDart,distanceText,TTL_MS,DIRECTIONS,PROVIDERS};

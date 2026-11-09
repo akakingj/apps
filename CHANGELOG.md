@@ -4,6 +4,17 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.1.0
+
+- Show selected component width × height in pixels alongside placement coordinates. Move default HUD navigation text/direction just beyond the RPM gauge right edge, migrate once and retain subsequent user positioning; bound long text to the right-hand column.
+
+- Replace Advanced settings with independent HUD / CLUSTER / NAV tabs. Add ordered auxiliary metric drafts committed only by OK, six optional live metrics, two per-display alert designs, component placement and bounded aspect scaling, separate uniform direction/text navigation transforms and three arrow colours.
+- Render the currently received maneuver description above HUD guidance; keep text bound to the same route/provider lifecycle and include Hangul glyphs in both language packages. Allow navigation-only HUD output with stock RPM selected and an All / Except Sport navigation choice.
+- Default to a filled circle beside the gear, migrate once without resetting later choices, preserve shift thresholds/blinking and keep warnings legible when gear data is unavailable. Missing/stale auxiliary values display --; optional field filtering cannot remove core RPM/torque inputs.
+- Preserve highway entry/exit branch types and show a localized entry/exit notification, supplied distance and direction diagram alongside HUD RPM. Reuse HUD navigation placement/size controls.
+- Use the same blue for HUD turn, fork and highway arrows while keeping guidance labels and distances white.
+- Refresh entry/exit changes at unchanged RPM/distance/direction, reject conflicting HUD branch identities, and retain existing route/provider freshness and stop behavior. Cover all six catalog entry/exit variants and bilingual composition with host tests; vehicle verification is pending.
+
 ### 1.0.10
 
 - Add HUD appearance settings with native-vector RPM previews, top-bar or filled-circle shift alerts, and torque/power Gauges / Values only / Off modes.

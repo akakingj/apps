@@ -12,6 +12,8 @@ const renderer = require('./renderer');
 const gear = require('./gear');
 const guidance = require('./guidance');
 const {NativeNavigation} = require('./native-navigation');
+const {AuxInfo,SOURCES}=require('./aux-info');
+const {navAllowed}=require('./display-config');
 const {PROJECTED} = require('./projection-config');
 const {HudGuidance,INTERFACE:HUD_GUIDANCE,INSTANCE:HUD_INSTANCE,METHODS:HUD_METHODS}=require('./hud-guidance');
 const {RouteEvents,INTERFACE:ROUTE_EVENTS,INSTANCE:ROUTE_INSTANCE,METHODS:ROUTE_METHODS}=require('./route-events');
@@ -31,6 +33,7 @@ function start(ctx) {
     const log = ctx.log, signals = ctx.signals;
     const client = new ClusterRender('cluster-redline'), controller = new Outputs(client, painter, hudPainter);
     const gearbox = new gear.GearState(), navigation = new guidance.GuidanceState(), maneuvers = new NativeNavigation();
+    const auxInfo=new AuxInfo(),auxSubs=[];
     const projectionSubs={},projectionFields={},projectionPending={},projectionLastPoll={},projectionEpoch={},projectionEvents={};
     const navigationFields = [], lastNavigationValues = {}, navigationEventRevisions = {}, navigationSeenAt = {}, navigationReadState = {};
     function navigationSample(field,value,readState) {
@@ -74,6 +77,20 @@ function start(ctx) {
         }
     });
     if (live) {
+        // Share one optional proxy per interface; polling belongs to this worker.
+        const auxGroups={};SOURCES.forEach(source=>{(auxGroups[source.iface]||(auxGroups[source.iface]=[])).push(source);});
+        Object.keys(auxGroups).forEach(iface=>{
+            try{
+                const cfg=signals.loadConfig(iface),handlers={},entries=[];
+                auxGroups[iface].forEach(source=>{
+                    if(!cfg.fields||!cfg.fields[source.field]||!cfg.fields[source.field].getter)return;
+                    const entry={source,sub:null,pending:false,lastPoll:-Infinity,epoch:0,revision:0,available:false};entries.push(entry);
+                    handlers[source.field]=value=>{if(!stopped){entry.revision++;auxInfo.sample(source,value,mono());}};
+                });
+                if(!entries.length)return;
+                signals.watch(iface,'1',handlers,log,{}).then(sub=>{entries.forEach(entry=>{entry.sub=sub;auxSubs.push(entry);});keep(sub);}).catch(()=>{});
+            }catch(e){}
+        });
         // Re-read live getters; only the optional HUD view reader uses read-only query methods.
         signals.watch(CDS, '1', {
             statusEngineSpeed2: (v) => {
@@ -184,6 +201,16 @@ function start(ctx) {
             const raw = {};
             Object.keys(DEFAULTS).forEach((k) => { if (k !== 'frameRate') raw[k] = ctx.settings.get(k); });
             config = settings(raw);
+            auxSubs.forEach(entry=>{
+                const {source,sub}=entry,available=!!(sub.available&&!sub.error);
+                if(entry.available!==available){entry.epoch++;entry.available=available;}
+                if(!available){auxInfo.clearSource(source);return;}
+                if(!sub.proxy||typeof sub.proxy.getValue!=='function'||entry.pending||at-entry.lastPoll<1000)return;
+                entry.pending=true;entry.lastPoll=at;const epoch=entry.epoch,revision=entry.revision;
+                Promise.resolve().then(()=>sub.proxy.getValue(source.field,1000)).then(value=>{
+                    if(!stopped&&entry.epoch===epoch&&entry.revision===revision)auxInfo.sample(source,value,mono());
+                },()=>{if(!stopped&&entry.epoch===epoch&&entry.revision===revision)auxInfo.clearSource(source);}).then(()=>{entry.pending=false;});
+            });controller.aux=auxInfo.read(at);
             const navigationAvailable = !!(guidanceSub && guidanceSub.available === true && !guidanceSub.error);
             if (!navigationAvailable) { navigationRevision++; navigation.clear(); maneuvers.clearGuidance(); }
             Object.keys(PROJECTED).forEach((provider)=>{
@@ -228,14 +255,14 @@ function start(ctx) {
             }
             const navigationState=navigation.read(at,navigationAvailable);
             const commonManeuver=maneuvers.read(at,navigationAvailable);
-            const hudKey=config.appEnabled&&config[(config.displayMode==='all'?'all':'sport')+'HudOutput']==='redline'&&config.hudNavigationEnabled&&commonManeuver.active&&commonManeuver.known?navigationRevision+':'+commonManeuver.provider:null;
+            const hudKey=config.appEnabled&&navAllowed(config,controller.policy.mode)&&commonManeuver.active&&commonManeuver.known?navigationRevision+':'+commonManeuver.provider:null;
             const routeKey=Object.prototype.hasOwnProperty.call(PROJECTED,commonManeuver.provider)?hudKey:null;
             routeEvents.tick(at,routeKey);
             hudGuidance.tick(at,hudKey);
             const hudEvent=routeEvents.read(at,routeKey)||hudGuidance.read(at,hudKey);
             const maneuverState=!commonManeuver.visible&&hudEvent?Object.assign({},hudEvent,{provider:commonManeuver.provider}):commonManeuver;
             controller.navigation=maneuverState;
-            const composed=config.hudNavigationEnabled&&maneuverState.visible;
+            const composed=navAllowed(config,controller.policy.mode)&&maneuverState.visible;
             controller.hudBlocked=rendererInfo.hudGuidanceSafe===false||((navigationState.blocked||maneuverState.needsStock)&&!composed);
             controller.hudBlockReason=rendererInfo.hudGuidanceSafe===false?'hud_safety':(navigationState.active||Object.prototype.hasOwnProperty.call(PROJECTED,maneuverState.provider))&&config.hudNavigationEnabled?maneuverState.reason:navigationState.reason;
             const state = controller.tick(at, config);

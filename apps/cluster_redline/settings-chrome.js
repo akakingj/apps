@@ -38,7 +38,7 @@ function configure(ctx) {
     if (!display || display.redlineLargeControls) return;
     display.redlineLargeControls = true;
     // Tabs already switch pages. Leave four roomy bottom controls for values.
-    if (ctx.hideButton) { ctx.hideButton('BTN_BASIC'); ctx.hideButton('BTN_ADVANCED'); }
+    if(ctx.hideButton)['BTN_BASIC','BTN_HUD','BTN_CLUSTER','BTN_NAV'].forEach(k=>ctx.hideButton(k));
     const oldTheme = display.theme, oldHeight = display.barH, oldButtons = display.buttons;
     display.barH = function () { return this.ownable() ? 80 : oldHeight.call(this); };
     display.buttons = function () {
