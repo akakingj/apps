@@ -94,6 +94,11 @@ class Controller {
         if (this.failure && !this.refused && this.healthySince !== null && now - this.healthySince >= 30000)
             this.failure = null;
         const d = this.policy.evaluate(now, this.client.ready && !this.refused, cfg,this.requiresRpm);
+        // Layout preview: show the face without waiting for an engine and light the alert being moved.
+        if (this.preview && d.show) {
+            if (typeof d.rpm !== 'number') d.rpm = 0;
+            if (this.preview.part === 'Alert' || this.preview.display === 'hud' && this.preview.part === 'Gear') d.shift = true;
+        }
         if (this.refused && this.failure && d.reason === 'renderer_unavailable') d.reason = this.failure.retryable && !this.failure.exhausted ? 'renderer_recovering' : 'renderer_refused';
         d.recovery = this.failure ? Object.assign({ state: this.refused ? this.failure.retryable && !this.failure.exhausted ? 'waiting' : 'failed' : 'retrying' }, this.failure) : null;
         d.gear = gear.display(this.gear, this.gearMode, 'auto');

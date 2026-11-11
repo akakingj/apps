@@ -1,6 +1,7 @@
 'use strict';
 // This module never talks to the vehicle or renderer; its inputs must be live.
 const displayConfig=require('./display-config');
+const {shiftSpec}=require('./shift-alert');
 const PROFILES = {
     petrol: { label: 'Petrol', shiftRpm: 5500, redlineRpm: 6000, maxRpm: 7000,
         torqueScale: 500, powerScale: 300,
@@ -119,7 +120,7 @@ class Policy {
         else if (cfg.displayMode === 'sport' && (this.activeSince === null || now - this.activeSince < 1000)) reason = 'stabilizing';
         const show = reason === 'sport' || reason === 'all_modes';
         return { show: show, reason: reason, mode: this.mode, rpm: this.rpm, engineStopped: this.rpm !== null && this.rpm < 100,
-            shift: show && this.rpm >= cfg.shiftRpm, config: cfg };
+            shift: show && this.rpm >= shiftSpec(cfg, this.mode).shift, config: cfg };
     }
 }
 module.exports = { Policy, DEFAULTS, FRAME_RATE, PROFILES, settings, modeOf, SPORT };

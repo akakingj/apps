@@ -17,6 +17,14 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 - Redraw HUD lane guidance in the style of stock lane boards: fixed-size lanes with dashed dividers and solid outer edges, and arrows with filled heads built from straight lines, single-pass arcs and triangles. Arrow size no longer shrinks as the lane count grows; only a lane whose combined directions are too wide is narrowed. A U-turn sharing a lane with the same-side turn is drawn above it.
 - Paint the lane row directly at its HUD size instead of resampling a 240x72 image to the selected scale, which dropped pixel rows/columns and broke thin strokes. Lane data, recommendation colours, freshness rules and positions are unchanged.
+- Simplified road diagrams on the HUD for forks, branches, roundabouts (exit number), highway entries/exits, keep-on-main-road and lane changes; plain turns, U-turns and arrivals keep the large arrow. The vehicle data has no junction geometry, so shapes are generic (unused roads are faint). Direction and text tiles also paint at HUD size.
+- Sharper small text: area-averaged glyph reduction and a thicker Korean face where bold is requested (the Korean atlas has one 36 px regular size). HUD auxiliary labels/units/scale numbers are larger (15.4/12.1/13.2 → 19/14/15 px) and a long label shrinks instead of colliding with its value.
+- Auxiliary gauges get depth (lit top, shaded bottom, gloss, shadow on the cluster); oil/outside temperature use a glass thermometer with a red liquid column and scale marks.
+- New gauge-only Clock item (HH:MM) for HUD and cluster, one auxiliary slot; time from the head unit or a fixed UTC+9 choice in the gauge picker.
+- Shift alert follows the drive mode: Sport (and unknown) keeps 65/85/100 % of the shift RPM; Comfort/Eco and other modes use 90 % of it (Petrol 5500 → 5000) with lights from 50 % (2500), yellow from 80 % (4000) and red at 100 % (5000).
+- Position / size: Save / load with three slots per tab (HUD, CLUSTER, NAV) and a two-press reset to defaults. While a part is selected it is drawn even when hidden, unused in the drive mode or without guidance (sample arrow, text and lanes; lit RPM alert); the marker expires two minutes after the last edit and clears on Back.
+- Status file records exterior-temperature diagnostics (missing interface, read failure, raw value and why it was rejected) to locate the missing outside temperature.
+- New settings use keys outside the schema and Korean labels are carried in the app, so the Store runtime templates stay unchanged.
 
 ### 1.2.3
 

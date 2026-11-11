@@ -1,11 +1,13 @@
 'use strict';
-const METRICS=['boost','torque','power','gforce','outside','oil','batteryCharge','batteryVoltage','economy'];
-const LABELS={boost:'Boost',torque:'Torque',power:'Power*',gforce:'G-force',outside:'Outside temperature',oil:'Oil temperature',batteryCharge:'12 V battery charge',batteryVoltage:'Battery voltage',economy:'Average fuel economy'};
+const METRICS=['boost','torque','power','gforce','outside','oil','batteryCharge','batteryVoltage','economy','clock'];
+// The clock is a gauge-only item (it has no text-mode form).
+const GAUGE_ONLY=['clock'];
+const LABELS={boost:'Boost',torque:'Torque',power:'Power*',gforce:'G-force',outside:'Outside temperature',oil:'Oil temperature',batteryCharge:'12 V battery charge',batteryVoltage:'Battery voltage',economy:'Average fuel economy',clock:'Clock'};
 const PARTS=['RpmGauge','Gear','Alert','AuxLeft','AuxRight','RpmValue','Mark','MarkTop','MarkBottom'];
 const PART_LABELS=['RPM gauge','Gear','RPM alert','Auxiliary left','Auxiliary right','RPM number','M mark','Upper M mark','Lower M mark'];
 const LEGACY_PARTS=['Aux'];
 const NAV_PARTS=[{key:'Direction',label:'Direction',prefix:'hudNav',scale:'navUniformScale',w:240,h:112},{key:'Text',label:'Text',prefix:'hudText',scale:'hudTextScale',w:240,h:48},{key:'Lanes',label:'Lane guidance',prefix:'hudLanes',scale:'hudLanesScale',w:240,h:72}];
-const defaults={displaySettingsRevision:4,clusterAlertStyle:'circle',navDisplayMode:'all',navColor:'blue',navUniformScale:70,hudTextOffsetX:180,hudTextOffsetY:10,hudTextScale:65,hudLanesOffsetX:210,hudLanesOffsetY:115,hudLanesScale:70,hudAuxTextOffsetY:10};
+const defaults={displaySettingsRevision:4,clusterAlertStyle:'circle',navDisplayMode:'all',navColor:'blue',navUniformScale:70,hudTextOffsetX:180,hudTextOffsetY:10,hudTextScale:65,hudLanesOffsetX:210,hudLanesOffsetY:115,hudLanesScale:70,hudAuxTextOffsetY:10,clockZone:'auto',layoutPreview:''};
 NAV_PARTS.forEach(p=>{defaults[p.prefix+'Hidden']=false;});
 ['hud','cluster'].forEach(d=>{
  defaults[d+'AuxConfig']=JSON.stringify({mode:'gauges',items:['boost','torque']});
@@ -19,7 +21,7 @@ function partsFor(display,cfg){
 function auxConfig(value){
  let v=value;try{if(typeof v==='string')v=JSON.parse(v);}catch(e){v=null;}
  if(!v||!['gauges','values','off'].includes(v.mode)||!Array.isArray(v.items))return {mode:'gauges',items:['boost','torque']};
- const items=v.items.filter((x,i,a)=>METRICS.includes(x)&&a.indexOf(x)===i).slice(0,v.mode==='gauges'?2:4);
+ const items=v.items.filter((x,i,a)=>METRICS.includes(x)&&a.indexOf(x)===i&&(v.mode==='gauges'||!GAUGE_ONLY.includes(x))).slice(0,v.mode==='gauges'?2:4);
  return {mode:v.mode,items:items.length?items:['boost','torque']};
 }
 function normalize(raw,out){
@@ -39,15 +41,22 @@ function normalize(raw,out){
  NAV_PARTS.forEach(p=>{out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
  if(typeof raw.hudAuxTextOffsetY==='number'&&isFinite(raw.hudAuxTextOffsetY))out.hudAuxTextOffsetY=Math.max(-1000,Math.min(1000,raw.hudAuxTextOffsetY));
  if(raw.navUniformScale!==undefined||raw.displaySettingsRevision>=2){const n=typeof raw.navUniformScale==='number'&&isFinite(raw.navUniformScale)?raw.navUniformScale:out.hudNavWidthScale;out.hudNavWidthScale=out.hudNavHeightScale=Math.max(20,Math.min(200,n));}
- out.navUniformScale=out.hudNavWidthScale;return out;
+ out.navUniformScale=out.hudNavWidthScale;
+ out.clockZone=['auto','utc9'].includes(raw.clockZone)?raw.clockZone:'auto';
+ out.layoutPreview=typeof raw.layoutPreview==='string'&&/^(hud|cluster|nav):[A-Za-z]{1,20}@[0-9]{1,15}$/.test(raw.layoutPreview)?raw.layoutPreview:'';
+ return out;
 }
 function metricSlots(items){if(items.length<3)return items.map((id,i)=>({id,side:i,row:0,rows:1,index:i+1}));return items.map((id,i)=>({id,side:i<2?0:1,row:i%2,rows:i<2||items.length===4?2:1,index:i+1}));}
 function sportMode(mode){return /^(SPORT|PHEV_SPORT)/.test(String(mode||''));}
 function navAllowed(cfg,mode){return cfg.hudNavigationEnabled&&cfg.navDisplayMode!=='stock'&&!(cfg.navDisplayMode==='excludeSport'&&sportMode(mode));}
 function rpmOutput(cfg,name,mode){return cfg['all'+name+'Output']==='redline'||sportMode(mode)&&cfg['sport'+name+'Output']==='redline';}
 function navVisible(cfg,mode){const on=navAllowed(cfg,mode);return {direction:on&&!cfg.hudNavHidden,text:on&&!cfg.hudTextHidden,lanes:on&&!cfg.hudLanesHidden};}
+// Settings layout editor: the part being adjusted, honoured for two minutes after the last edit.
+function layoutPreview(cfg,now){const m=/^(hud|cluster|nav):([A-Za-z]+)@([0-9]+)$/.exec(cfg.layoutPreview||'');if(!m)return null;const at=Number(m[3]),t=typeof now==='number'?now:Date.now();return t>=at-5000&&t-at<=120000?{display:m[1]==='nav'?'hud':m[1],tab:m[1],part:m[2]}:null;}
+// HH:MM in the head unit's local time, or fixed UTC+9 when the system clock has no Korean time zone.
+function clockText(cfg,date){const d=date||new Date(),t=cfg.clockZone==='utc9'?new Date(d.getTime()+9*3600000):d,h=cfg.clockZone==='utc9'?t.getUTCHours():t.getHours(),m=cfg.clockZone==='utc9'?t.getUTCMinutes():t.getMinutes();return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
 function navRect(cfg,key){const p=NAV_PARTS.find(p=>p.key===key),s=cfg[p.scale]/100,w=Math.round(p.w*s),h=Math.round(p.h*s);return {x:Math.round((800-w)/2+cfg[p.prefix+'OffsetX']),y:Math.round(240+cfg[p.prefix+'OffsetY']),w,h};}
 function visibleMetrics(cfg,display){const a=auxConfig(cfg[display+'AuxConfig']);return a.mode==='off'?[]:metricSlots(a.items).filter(s=>!cfg[display+(s.side?'AuxRight':'AuxLeft')+'Hidden']).map(s=>s.id);}
 function faceVisible(cfg,d){return partsFor(d,cfg).some(p=>!cfg[d+p.key+'Hidden'])||(d==='hud'?!cfg.hudMarkLineHidden:!cfg.clusterMarkTopLineHidden||!cfg.clusterMarkBottomLineHidden);}
 function faceRpmNeeded(cfg,d){return !cfg[d+'RpmGaugeHidden']||!cfg[d+'RpmValueHidden']||!cfg[d+'AlertHidden']&&(d!=='hud'||cfg.hudAlertStyle!=='circle'||!cfg.hudGearHidden)||visibleMetrics(cfg,d).includes('power');}
-module.exports={METRICS,LABELS,PARTS,PART_LABELS,NAV_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};
+module.exports={METRICS,GAUGE_ONLY,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};

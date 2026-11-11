@@ -13,7 +13,7 @@ const gear = require('./gear');
 const guidance = require('./guidance');
 const {NativeNavigation} = require('./native-navigation');
 const {AuxInfo,SOURCES}=require('./aux-info');
-const {navAllowed,auxConfig,rpmOutput}=require('./display-config');
+const {navAllowed,auxConfig,rpmOutput,clockText}=require('./display-config');
 const {BatteryVoltage}=require('./battery-voltage');
 const {PROJECTED} = require('./projection-config');
 const {HudGuidance,INTERFACE:HUD_GUIDANCE,INSTANCE:HUD_INSTANCE,METHODS:HUD_METHODS}=require('./hud-guidance');
@@ -245,10 +245,10 @@ function start(ctx) {
                 entry.pending=true;entry.lastPoll=at;const epoch=entry.epoch,revision=entry.revision;
                 Promise.resolve().then(()=>sub.proxy.getValue(source.field,1000)).then(value=>{
                     if(!stopped&&entry.epoch===epoch&&entry.revision===revision)auxInfo.sample(source,value,mono());
-                },()=>{if(!stopped&&entry.epoch===epoch&&entry.revision===revision)auxInfo.clearSource(source);}).then(()=>{entry.pending=false;});
+                },()=>{if(!stopped&&entry.epoch===epoch&&entry.revision===revision)auxInfo.clearSource(source,'read_failed');}).then(()=>{entry.pending=false;});
             });
             const voltageWanted=live&&neededAux.has('batteryVoltage');
-            batteryVoltage.tick(at,voltageWanted,controller.policy.rpm>0&&controller.policy.rpmAt!==null&&at-controller.policy.rpmAt<=2500);controller.aux=Object.assign(auxInfo.read(at),{batteryVoltage:batteryVoltage.read(at)});
+            batteryVoltage.tick(at,voltageWanted,controller.policy.rpm>0&&controller.policy.rpmAt!==null&&at-controller.policy.rpmAt<=2500);controller.aux=Object.assign(auxInfo.read(at),{batteryVoltage:batteryVoltage.read(at)},neededAux.has('clock')?{clock:clockText(config)}:{});
             const navigationAvailable = !!(guidanceSub && guidanceSub.available === true && !guidanceSub.error);
             if (!navigationAvailable) { navigationRevision++; navigation.clear(); maneuvers.clearGuidance(); }
             Object.keys(PROJECTED).forEach((provider)=>{
@@ -319,6 +319,7 @@ function start(ctx) {
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
                     outputs: state.outputs, navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
+                    auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
                     collection:{fields:Array.from(collection.fields),metrics:Array.from(collection.aux),subscriptions:collectors.status()},
                     navigationInputs: {fields:navigationFields.filter(field=>collection.fields.has(guidance.INTERFACE+'.'+field)),available:navigationAvailable,pending:guidancePending,reads:navigationFields.reduce((out,field)=>{if(collection.fields.has(guidance.INTERFACE+'.'+field))out[field]=navigationReadState[field];return out;},{}),
                         agesMs:navigationFields.reduce((out,field)=>{if(collection.fields.has(guidance.INTERFACE+'.'+field))out[field]=navigationSeenAt[field]===undefined?null:Math.max(0,at-navigationSeenAt[field]);return out;},{})}, nativeStatus: nativeStatus,

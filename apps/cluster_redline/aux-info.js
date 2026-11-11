@@ -24,9 +24,12 @@ SOURCES.forEach(source=>{
  source.ttlMs=slow?source.pollMs*3:2500;
 });
 class AuxInfo {
- constructor(){this.samples={};}
- sample(source,value,now){Object.keys(source.members).forEach(k=>{const a=source.members[k],raw=value&&value[a[0]],v=source.decode?source.decode(value):typeof raw==='number'&&Number.isInteger(raw)&&raw>=0&&raw<a[3]?raw*a[1]+a[2]:null;this.samples[k]={v,at:now,ttl:source.ttlMs||2500};});}
- clearSource(source){Object.keys(source.members).forEach(k=>{delete this.samples[k];});}
+ constructor(){this.samples={};this.diag={};}
+ sample(source,value,now){Object.keys(source.members).forEach(k=>{const a=source.members[k],raw=value&&value[a[0]],v=source.decode?source.decode(value):typeof raw==='number'&&Number.isInteger(raw)&&raw>=0&&raw<a[3]?raw*a[1]+a[2]:null;this.samples[k]={v,at:now,ttl:source.ttlMs||2500};
+  // Bounded diagnostics: why a received value was or was not usable (no other data).
+  if(!source.decode)this.diag[k]={at:now,member:a[0],raw:typeof raw==='number'&&isFinite(raw)?raw:raw===undefined?null:typeof raw,keys:value&&typeof value==='object'?Object.keys(value).slice(0,8):typeof value,
+   result:v!==null?'ok':raw===undefined?'member_missing':typeof raw!=='number'?'not_number':!Number.isInteger(raw)?'not_integer':raw<0?'negative':'invalid_or_out_of_range',value:v};});}
+ clearSource(source,reason){Object.keys(source.members).forEach(k=>{delete this.samples[k];if(reason&&this.diag[k])this.diag[k]=Object.assign({},this.diag[k],{result:reason});});}
  read(now){
   const get=k=>{const s=this.samples[k];return s&&typeof now==='number'&&now>=s.at&&now-s.at<=s.ttl?s.v:null;};
   const gl=get('gLong'),ga=get('gLat'),gforce=gl!==null&&ga!==null&&Math.abs(gl)<=3&&Math.abs(ga)<=3?Math.sqrt(gl*gl+ga*ga):null;

@@ -125,3 +125,14 @@ Reuse static tracks/ticks, M marks and unchanged auxiliary/navigation rasters; r
 Core RPM/mode/torque delivery is unchanged. Poll oil/SOC/economy every 5 seconds, outside temperature every 10 seconds and successful battery voltage every 5 seconds; consume notifications immediately.
 
 The custom settings UI no longer refreshes the unused generic HMI settings page. Persist multi-component moves/resizes/visibility in one batch and coalesce page updates. Korean tab/button/instruction coverage is checked. Verify v1.2.2 after updating. Host/installation and Store package checks do not replace vehicle validation.
+
+## 1.2.4 display and settings
+
+- **HUD lanes:** stock lane-board style with one arrow size for any lane count, painted at HUD size (no resampling).
+- **Junction diagrams:** forks, branches, roundabouts (exit number), highway entries/exits, keep-on-main-road and lane changes show a simplified road; plain turns, U-turns and arrivals keep the large arrow. Shapes are generic because the vehicle data has no junction geometry.
+- **Text:** sharper small Korean text, larger HUD auxiliary labels; long labels shrink instead of colliding with values.
+- **Gauges:** depth shading; oil/outside temperature as a glass thermometer.
+- **Clock:** gauge-only HH:MM item in one auxiliary slot; choose head-unit time or UTC+9 in the gauge picker.
+- **Shift alert:** Sport unchanged; Comfort/Eco and other modes use 90 % of the shift RPM with 50/80/100 % green/yellow/red.
+- **Position / size:** Save / load (three slots) and two-press reset; the selected part is drawn while adjusting even when hidden or without guidance (expires two minutes after the last edit, clears on Back).
+- **Outside temperature:** diagnostics in the status file. Stock HUD music/phone popups still take priority (renderer policy).

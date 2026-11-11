@@ -4,6 +4,7 @@ const { Controller } = require('./controller');
 const { Policy, settings } = require('./policy');
 const { Telemetry } = require('./telemetry');
 const D=require('./display-config'),{navAllowed,rpmOutput}=D;
+const { tr } = require('./strings');
 const { UploadPacer } = require('./upload');
 // One socket and one upload allowance, with independently released outputs.
 class OutputClient extends EventEmitter {
@@ -33,6 +34,17 @@ class OutputClient extends EventEmitter {
     drop(ref) { this.refs.delete(ref); return this.client.drop(ref); }
     close() { this.listeners.forEach((pair) => this.client.removeListener(pair[0], pair[1])); }
 }
+function previewConfig(cfg,name,pv){
+    const out=Object.assign({},cfg);
+    if(pv.tab==='nav'){const p=D.NAV_PARTS.find(v=>v.key===pv.part);out.hudNavigationEnabled=true;out.navDisplayMode='all';if(p)out[p.prefix+'Hidden']=false;}
+    else{out[name+pv.part+'Hidden']=false;if(name==='hud'&&pv.part==='Gear')out.hudAlertHidden=false;}
+    return out;
+}
+function sampleNavigation(){
+    const lane=(d,hl)=>({directions:[d],other:[],highlighted:hl,blocked:false});
+    return {visible:true,maneuverVisible:true,reason:'layout_preview',kind:'intersection',maneuver:'RIGHT',distanceText:'300 m',description:tr('Navigation preview'),provider:'PREVIEW',
+        lanes:{visible:true,lanes:[lane('LEFT',false),lane('STRAIGHT_ON',false),lane('STRAIGHT_ON',false),lane('RIGHT',true)]}};
+}
 class Outputs {
     constructor(client, clusterPainter, hudPainter) {
         this.client = client; this.policy = new Policy(); this.telemetry = new Telemetry(); this.upload = new UploadPacer();
@@ -54,16 +66,21 @@ class Outputs {
         }
         this.profile = cfg.engineProfile;
         const states = {}, order = this.order++ % 2 ? ['hud','cluster'] : ['cluster','hud'];
+        // Settings layout editor: draw the part being moved even when it is hidden, unused
+        // in the current drive mode or has no live data (sample guidance / lit alert).
+        const preview = D.layoutPreview(cfg);
         order.forEach((name) => {
-            const out=this[name],rpm=rpmOutput(cfg,name==='hud'?'Hud':'Cluster',this.policy.mode)&&D.faceVisible(cfg,name);
-            const nav=name==='hud'&&navAllowed(cfg,this.policy.mode)&&this.navigation&&this.navigation.visible;
+            const out=this[name],pv=preview&&preview.display===name?preview:null,local=pv?previewConfig(cfg,name,pv):cfg;
+            const rpm=pv&&pv.tab!=='nav'?true:rpmOutput(local,name==='hud'?'Hud':'Cluster',this.policy.mode)&&D.faceVisible(local,name);
+            const navigation=pv&&pv.tab==='nav'?sampleNavigation():this.navigation;
+            const nav=name==='hud'&&(pv&&pv.tab==='nav'||navAllowed(local,this.policy.mode)&&navigation&&navigation.visible);
             const selected=rpm||nav?'redline':'stock';
             out.renderRpm=rpm;out.aux=this.aux||{};
-            out.requiresRpm=rpm&&D.faceRpmNeeded(cfg,name);
+            out.requiresRpm=!pv&&rpm&&D.faceRpmNeeded(local,name);out.preview=pv;
             out.profile = cfg.engineProfile; out.gear = this.gear; out.gearMode = this.gearMode;
-            out.navigation = name === 'hud' && navAllowed(cfg,this.policy.mode) ? this.navigation : null;
+            out.navigation = name === 'hud' && navAllowed(local,this.policy.mode) ? navigation : null;
             const blocked=name==='hud' && this.hudBlocked;
-            states[name] = out.tick(now, Object.assign({}, cfg, { displayMode: cfg['all'+(name==='hud'?'Hud':'Cluster')+'Output']==='redline'||nav?'all':'sport', displayTarget: name === 'hud' ? 'hud' : 'map', appEnabled: cfg.appEnabled && selected === 'redline' && !blocked }));
+            states[name] = out.tick(now, Object.assign({}, local, { displayMode: pv||local['all'+(name==='hud'?'Hud':'Cluster')+'Output']==='redline'||nav?'all':'sport', displayTarget: name === 'hud' ? 'hud' : 'map', appEnabled: cfg.appEnabled && selected === 'redline' && !blocked }));
             if (selected === 'stock' && cfg.appEnabled) states[name].reason = 'stock';
             else if(blocked && cfg.appEnabled)states[name].reason=this.hudBlockReason || 'hud_safety';
         });
@@ -76,4 +93,4 @@ class Outputs {
         this.client.removeListener('budget', this.onBudget); this.client.removeListener('ready', this.onReady);
     }
 }
-module.exports = { Outputs };
+module.exports = { Outputs, previewConfig, sampleNavigation };
