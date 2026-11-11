@@ -97,9 +97,12 @@ function start(ctx) {
             try{
                 const cfg=signals.loadConfig(iface),handlers={},entries=[];
                 auxGroups[iface].forEach(source=>{
-                    if(!cfg.fields||!cfg.fields[source.field]||!cfg.fields[source.field].getter)return;
-                    const entry={source,sub:null,pending:false,lastPoll:-Infinity,epoch:0,revision:0,available:false,wanted:false};entries.push(entry);
-                    handlers[source.field]=value=>{if(!stopped){entry.revision++;if(entry.wanted){entry.lastPoll=mono();auxInfo.sample(source,value,entry.lastPoll);}}};
+                    const f=cfg.fields&&cfg.fields[source.field];if(!f||!f.getter&&!f.notifier)return;
+                    // A notifier-only field (the exterior temperature on some cars, as the eDrive app reads it)
+                    // cannot be polled: keep its last notified value while the interface is available.
+                    const notifyOnly=!f.getter,kept=notifyOnly?Object.assign({},source,{ttlMs:6*3600000}):source;
+                    const entry={source,kept,notifyOnly,sub:null,pending:false,lastPoll:-Infinity,epoch:0,revision:0,available:false,wanted:false};entries.push(entry);
+                    handlers[source.field]=value=>{if(!stopped){entry.revision++;if(entry.wanted||notifyOnly){entry.lastPoll=mono();auxInfo.sample(kept,value,entry.lastPoll);}}};
                 });
                 if(!entries.length)return;
                 signals.watch(iface,'1',handlers,log,{}).then(sub=>{entries.forEach(entry=>{entry.sub=sub;auxSubs.push(entry);});keep(sub);}).catch(()=>{});
@@ -238,10 +241,11 @@ function start(ctx) {
             auxSubs.forEach(entry=>{
                 const {source,sub}=entry,available=!!(sub.available&&!sub.error);
                 const wanted=Object.keys(source.members).some(key=>neededAux.has(key==='oilFallback'?'oil':key==='gLat'||key==='gLong'?'gforce':key));
-                if(entry.wanted!==wanted){entry.epoch++;entry.wanted=wanted;entry.lastPoll=-Infinity;auxInfo.clearSource(source);}
+                if(entry.wanted!==wanted){entry.epoch++;entry.wanted=wanted;entry.lastPoll=-Infinity;if(!entry.notifyOnly)auxInfo.clearSource(source);}
                 if(entry.available!==available){entry.epoch++;entry.available=available;}
-                if(!available||!wanted){auxInfo.clearSource(source);return;}
-                if(!sub.proxy||typeof sub.proxy.getValue!=='function'||entry.pending||at-entry.lastPoll<source.pollMs)return;
+                if(!available){auxInfo.clearSource(source,'unavailable');return;}
+                if(!wanted&&!entry.notifyOnly){auxInfo.clearSource(source);return;}
+                if(entry.notifyOnly||!wanted||!sub.proxy||typeof sub.proxy.getValue!=='function'||entry.pending||at-entry.lastPoll<source.pollMs)return;
                 entry.pending=true;entry.lastPoll=at;const epoch=entry.epoch,revision=entry.revision;
                 Promise.resolve().then(()=>sub.proxy.getValue(source.field,1000)).then(value=>{
                     if(!stopped&&entry.epoch===epoch&&entry.revision===revision)auxInfo.sample(source,value,mono());
@@ -319,7 +323,7 @@ function start(ctx) {
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
                     outputs: state.outputs, navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
-                    auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
+                    auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
                     collection:{fields:Array.from(collection.fields),metrics:Array.from(collection.aux),subscriptions:collectors.status()},
                     navigationInputs: {fields:navigationFields.filter(field=>collection.fields.has(guidance.INTERFACE+'.'+field)),available:navigationAvailable,pending:guidancePending,reads:navigationFields.reduce((out,field)=>{if(collection.fields.has(guidance.INTERFACE+'.'+field))out[field]=navigationReadState[field];return out;},{}),
                         agesMs:navigationFields.reduce((out,field)=>{if(collection.fields.has(guidance.INTERFACE+'.'+field))out[field]=navigationSeenAt[field]===undefined?null:Math.max(0,at-navigationSeenAt[field]);return out;},{})}, nativeStatus: nativeStatus,

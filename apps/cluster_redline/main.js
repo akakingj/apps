@@ -44,6 +44,9 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
     let background = null;
     const queue = new RenderQueue(render, report);
     const page = new SettingsPage(ctx.settings, () => queue.request(), ctx.spec.version);
+    // A preview left by an earlier process ends now; leaving the settings screen ends Position / size.
+    if (ctx.settings.get('layoutPreview')) ctx.settings.set('layoutPreview', '');
+    if (ctx.ui && typeof ctx.ui.onVisible === 'function') ctx.ui.onVisible((name, visible) => { if (name === 'MAIN' && !visible) page.leave(); });
     if (ctx.app && ctx.app.once) ctx.app.once('shutdown', () => queue.stop());
     function report(e) { ctx.log.error('settings', e.message || e); }
     function syncWorker() {

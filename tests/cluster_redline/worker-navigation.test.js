@@ -84,7 +84,7 @@ function harness(options) {
         loadConfig(iface) {
             loads.push(iface);
             if(opt.lanes&&iface===LANES)return {fields:{[LANE_FIELD]:{getter:{id:7}}}};
-            if(opt.aux&&SOURCES.some(s=>s.iface===iface)){const fields={};SOURCES.filter(s=>s.iface===iface).forEach(s=>{fields[s.field]={getter:{id:1}};});return {fields};}
+            if(opt.aux&&SOURCES.some(s=>s.iface===iface)){const fields={};SOURCES.filter(s=>s.iface===iface).forEach(s=>{fields[s.field]=opt.outsideNotifyOnly&&s.field==='ExteriorTemperature'?{notifier:{id:32770}}:{getter:{id:1}};});return {fields};}
             if(opt.routeEvents&&iface===ROUTE_EVENTS)return {methods:{queryContent:{methodId:4}}};
             if(opt.renderedHUD&&iface===HUD_GUIDANCE)return {fields:{registeredViews:{getter:{id:1}}},methods:{getViewConfig:{methodId:5},getViewContent:{methodId:3}}};
             if (iface === guidance.INTERFACE) {
@@ -361,6 +361,20 @@ async function queriedRouteEventFallback(){
   }finally{h.worker.stop();await flush();h.stopped();}
  }
 }
+async function notifierOnlyOutsideTemperature(){
+ // Some cars give the exterior temperature as a notifier only (the eDrive app subscribes to it the same way).
+ const h=harness({aux:true,outsideNotifyOnly:true});
+ try{
+  h.config.hudAuxConfig=JSON.stringify({mode:'values',items:['outside']});
+  await flush();h.navigate('INACTIVE');h.tick(1000);await flush();h.tick(1025);await flush();
+  assert(!h.auxReads.some(r=>r.field==='ExteriorTemperature'),'a notifier-only field is never polled');
+  const outside=h.watches.find(w=>w.handlers.ExteriorTemperature);assert(outside,'the notifier-only field is subscribed');
+  outside.handlers.ExteriorTemperature({temperatureExterior:116});h.tick(1100);assert.strictEqual(h.worker.controller.aux.outside,18);
+  h.tick(61100);await flush();assert.strictEqual(h.worker.controller.aux.outside,18,'the last notified value stays while the interface is available');
+  outside.handlers.ExteriorTemperature({temperatureExterior:117});h.tick(61200);assert.strictEqual(h.worker.controller.aux.outside,18.5);
+  outside.sub.available=false;h.tick(61300);assert.strictEqual(h.worker.controller.aux.outside,null,'interface loss clears it');
+ }finally{h.worker.stop();await flush();h.stopped();}
+}
 async function slowAuxiliaryCadence(){
  const h=harness({aux:true});
  try{
@@ -489,7 +503,7 @@ async function delayedPhoneGuidanceKeepsRpm(){
  }
 }
 (async () => {
-    await slowAuxiliaryCadence();
+    await slowAuxiliaryCadence();await notifierOnlyOutsideTemperature();
     await lanesOnlyNeedsNoHiddenRpmOrTurnData();await hiddenComponentsStopTheirStreams();await carplayLaneFeed();await delayedPhoneGuidanceKeepsRpm();await unusedAuxiliaryDoesNotCompeteWithNavigation();await optionalAuxiliaryWorker();await queriedRouteEventFallback();await actualHudViewFallback();await reportedProjectedGuidanceWithNativeInactive();await repeatedNotificationsWhilePolling();await composedNavigation();await eventYield(); await optionalReadSafety(); await pollingAndRaces(); await providerReconnectRace(); await lateReadsAndSubscriptions();
     console.log('PASS: actual worker native-guidance getter gating/instance, immediate HUD-only yield, fresh recovery, optional/stale/provider safety, bounded polling, event/read/provider-reconnect races and complete late-work shutdown');
 })().catch(error => { console.error(error); process.exitCode = 1; });

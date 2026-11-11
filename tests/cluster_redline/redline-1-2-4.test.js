@@ -35,8 +35,9 @@ assert(D.visibleMetrics(clockConfig,'hud').includes('clock'));
 // Exterior temperature: decoded as before, and every unusable value records why.
 const outside=SOURCES.find(s=>s.field==='ExteriorTemperature'),info=new AuxInfo();
 info.sample(outside,{temperatureExterior:116},0);assert.strictEqual(info.read(1).outside,18);assert.strictEqual(info.diag.outside.result,'ok');
-[[{temperatureExterior:255},'invalid_or_out_of_range'],[{temperatureExterior:18.5},'not_integer'],[{temperatureExterior:-3},'negative'],[{exteriorTemp:116},'member_missing'],[{temperatureExterior:'18'},'not_number']].forEach(([value,reason])=>{
+[[{temperatureExterior:255},'invalid_or_out_of_range'],[{temperatureExterior:-3},'negative'],[{exteriorTemp:116},'member_missing'],[{temperatureExterior:'18'},'not_number']].forEach(([value,reason])=>{
  info.sample(outside,value,2);assert.strictEqual(info.read(3).outside,null);assert.strictEqual(info.diag.outside.result,reason);});
+info.sample(outside,{temperatureExterior:116.5},4);assert.strictEqual(info.read(5).outside,18.25,'a fractional raw value is accepted, as the eDrive app does');
 info.clearSource(outside,'read_failed');assert.strictEqual(info.diag.outside.result,'read_failed');
 
 // Layout presets (3 slots per tab), reset and the preview marker.

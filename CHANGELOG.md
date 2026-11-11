@@ -13,6 +13,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.6
+
+- Outside temperature now shows on cars that publish `EnvironmentalInformation.ExteriorTemperature` only as a notification (no getter). The Store build used to drop a field without a getter and the worker only polled; the field is now subscribed (`s`) and the last notified value is kept while the interface is available, as the eDrive app does. Cars with a getter keep `r`/`rs` and polling. A fractional raw value (0.5 °C steps) is accepted.
+- Position / size ends when the settings screen is left by any means (home button, another app, screen change), not only with Back: the layout editor closes and the moving-part preview is cleared. A preview left over from a previous start is cleared at start-up; the 2-minute expiry stays as a backstop.
+
 ### 1.2.5
 
 - HUD design can be one of the Redline app's nine HUD layouts (Standard, Minimal, Split wings, 80s digital dash, VFD glow, Vector arcade, Arc after the F80 M3/M4, Ramp after the G80 M3/M4, Dial after the E60 M5), ported from appsKOR `apps/redline` (cauliflowermossgrape/idrive7-apps Redline, HUD output by @biscotit, MIT). Design → Redline app layouts, with live previews; Cluster Redline's own designs switch back.

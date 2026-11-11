@@ -156,9 +156,9 @@ def optional_lane_source(text):
 
 
 def optional_aux_source(text):
-    if '// Jam optional auxiliary fields v8' in text:
+    if '// Jam optional auxiliary fields v9' in text:
         return optional_lane_source(text)
-    addition = r"""        // Jam optional auxiliary fields v8: never drop required RPM/torque for an absent extra field.
+    addition = r"""        // Jam optional auxiliary fields v9: never drop required RPM/torque for an absent extra field; notifier-only fields are subscribed.
         const auxiliaryFields = [
             ["de.bmw.infotainment.vehicle.CDS", "statusEngineTemperature"],
             ["de.bmw.infotainment.vehicle.CDS", "statusBattery2"],
@@ -174,8 +174,9 @@ def optional_aux_source(text):
             if(!proxy || !proxy.attributes || proxy.attributes[name]===undefined)return;
             const field=have[entry[0]] && have[entry[0]].fields && have[entry[0]].fields[name];
             const validId=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;
-            if(!field || !field.getter || !validId(field.getter.id,1,32767))delete proxy.attributes[name];
-            else proxy.attributes[name]=field.notifier && validId(field.notifier.id,32768,65535) ? "rs" : "r";
+            const getter=field && field.getter && validId(field.getter.id,1,32767), notifier=field && field.notifier && validId(field.notifier.id,32768,65535);
+            if(!getter && !notifier)delete proxy.attributes[name];
+            else proxy.attributes[name]=getter ? (notifier ? "rs" : "r") : "s";
         });
         ["de.bmw.infotainment.vehicle.CDS2","de.bmw.infotainment.KombiIF"].forEach(iface=>{if(m.proxies[iface]&&!Object.keys(m.proxies[iface].attributes||{}).length)delete m.proxies[iface];});
         const tasu="com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu",def=have[tasu],ids=all.instanceIDs&&all.instanceIDs[tasu];
@@ -184,8 +185,8 @@ def optional_aux_source(text):
             else m.proxies[tasu]={instances:"SystemFunctionsInternalTasuInst1",methods:["sendTasuRequest"],broadcasts:["sendTasuResponse"]};
         }
 """
-    marker = '        // Jam optional auxiliary fields v7'
-    if marker in text:
+    marker = next((m for m in ('        // Jam optional auxiliary fields v8', '        // Jam optional auxiliary fields v7') if m in text), None)
+    if marker:
         start = text.index(marker)
         end = text.index('        // Jam optional guidance field persistence v3', start)
         return optional_lane_source(text[:start] + addition + text[end:])

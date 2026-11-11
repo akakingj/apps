@@ -25,10 +25,10 @@ SOURCES.forEach(source=>{
 });
 class AuxInfo {
  constructor(){this.samples={};this.diag={};}
- sample(source,value,now){Object.keys(source.members).forEach(k=>{const a=source.members[k],raw=value&&value[a[0]],v=source.decode?source.decode(value):typeof raw==='number'&&Number.isInteger(raw)&&raw>=0&&raw<a[3]?raw*a[1]+a[2]:null;this.samples[k]={v,at:now,ttl:source.ttlMs||2500};
+ sample(source,value,now){Object.keys(source.members).forEach(k=>{const a=source.members[k],raw=value&&value[a[0]],v=source.decode?source.decode(value):typeof raw==='number'&&isFinite(raw)&&raw>=0&&raw<a[3]?raw*a[1]+a[2]:null;this.samples[k]={v,at:now,ttl:source.ttlMs||2500};
   // Bounded diagnostics: why a received value was or was not usable (no other data).
   if(!source.decode)this.diag[k]={at:now,member:a[0],raw:typeof raw==='number'&&isFinite(raw)?raw:raw===undefined?null:typeof raw,keys:value&&typeof value==='object'?Object.keys(value).slice(0,8):typeof value,
-   result:v!==null?'ok':raw===undefined?'member_missing':typeof raw!=='number'?'not_number':!Number.isInteger(raw)?'not_integer':raw<0?'negative':'invalid_or_out_of_range',value:v};});}
+   result:v!==null?'ok':raw===undefined?'member_missing':typeof raw!=='number'||!isFinite(raw)?'not_number':raw<0?'negative':'invalid_or_out_of_range',value:v};});}
  clearSource(source,reason){Object.keys(source.members).forEach(k=>{delete this.samples[k];if(reason&&this.diag[k])this.diag[k]=Object.assign({},this.diag[k],{result:reason});});}
  read(now){
   const get=k=>{const s=this.samples[k];return s&&typeof now==='number'&&now>=s.at&&now-s.at<=s.ttl?s.v:null;};
@@ -41,8 +41,10 @@ function filterAux(manifest,catalog){
  const proxies=manifest.proxies||{},defs=catalog.interfaces||{};
  SOURCES.forEach(s=>{const p=proxies[s.iface];if(!p||!p.attributes||p.attributes[s.field]===undefined)return;
   const f=defs[s.iface]&&defs[s.iface].fields&&defs[s.iface].fields[s.field];
-  if(!f||!f.getter||!validId(f.getter.id,1,32767)){delete p.attributes[s.field];return;}
-  p.attributes[s.field]=f.notifier&&validId(f.notifier.id,32768,65535)?'rs':'r';
+  // A getter is polled; a notifier-only field (the exterior temperature on some cars) is subscribed.
+  const getter=f&&f.getter&&validId(f.getter.id,1,32767),notifier=f&&f.notifier&&validId(f.notifier.id,32768,65535);
+  if(!getter&&!notifier){delete p.attributes[s.field];return;}
+  p.attributes[s.field]=getter?(notifier?'rs':'r'):'s';
  });
  [CDS2,KOMBI].forEach(i=>{if(proxies[i]&&!Object.keys(proxies[i].attributes||{}).length)delete proxies[i];});
  if(proxies[TASU]){if(!voltageSupported(catalog))delete proxies[TASU];else proxies[TASU]={instances:'SystemFunctionsInternalTasuInst1',methods:['sendTasuRequest'],broadcasts:['sendTasuResponse']};}

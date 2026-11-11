@@ -39,6 +39,9 @@ class SettingsPage{
  keys(){return GROUPS[this.tab];}
  item(){const key=this.keys()[this.focus];if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
  selectTab(i){this.tab=Math.max(0,Math.min(3,i|0));this.focus=0;this.open=null;this.draft=null;this.choice=0;this.changed();}
+ // The settings screen left without Back (Home, another app, screen off): end Position / size so its
+ // preview never stays on the HUD or cluster.
+ leave(){if(this.open==='layout'||this.open==='layoutPresets'){this.setPreview(false);this.open=null;this.draft=null;this.resetArmed=false;this.presetMessage='';this.choice=0;this.changed();}else if(this.settings.get('layoutPreview'))this.setPreview(false);}
  back(){
   if(this.open==='rlDesign'){this.open='design';this.choice=2;}
   else if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}
