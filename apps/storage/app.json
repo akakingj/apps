@@ -1,0 +1,234 @@
+{
+  "id": "storage",
+  "title": "Storage",
+  "description": "Head-unit storage: free space per file system, RAM in use, per-app size, with a usage alert",
+  "version": "1.0.1",
+  "vendor": "custom",
+  "loggingId": "OST1",
+  "iconGlyph": "GB",
+  "signals": {},
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "canvas",
+      "title": "Storage",
+      "buttons": [
+        [
+          "BTN_ACTION",
+          "Refresh"
+        ],
+        [
+          "BTN_PAGE",
+          "Next page"
+        ],
+        [
+          "BTN_SETTINGS",
+          "Settings"
+        ]
+      ]
+    }
+  ],
+  "startWidget": {
+    "comment": "Home-screen widget (eDrive / Drive Recorder layout). Big widget shows a drawn gauge of the apps file system; small widget shows text + the layout progress bar. Turns red at the alert threshold.",
+    "name": "Storage",
+    "layout": "LT_Table_OnlineApps_DriveRecorderWidget",
+    "image": "BackgroundImage1",
+    "scale": 2,
+    "size": [
+      384,
+      256
+    ],
+    "safe": [
+      0.09,
+      0.1
+    ],
+    "cells": {
+      "ErrorInfo": [
+        false,
+        "Bool"
+      ],
+      "background": [
+        true,
+        "Bool"
+      ],
+      "ProgressbarVisible": [
+        false,
+        "Bool"
+      ],
+      "TextRecordings": [
+        "",
+        "Text"
+      ]
+    }
+  },
+  "settings": [
+    {
+      "key": "alertPct",
+      "label": "Alert when apps storage above",
+      "type": "number",
+      "unit": "%",
+      "default": 80,
+      "steps": [
+        70,
+        80,
+        90,
+        95
+      ]
+    },
+    {
+      "key": "page",
+      "label": "Start page",
+      "type": "choice",
+      "default": "disks",
+      "options": [
+        [
+          "disks",
+          "Disks"
+        ],
+        [
+          "apps",
+          "Apps"
+        ]
+      ]
+    },
+    {
+      "key": "showRam",
+      "label": "Show RAM disks (tmpfs)",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "showRo",
+      "label": "Show read-only system partitions",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "key": "units",
+      "label": "Size units",
+      "type": "choice",
+      "default": "bin",
+      "options": [
+        [
+          "bin",
+          "GB = 1024 MB (like df -h)"
+        ],
+        [
+          "dec",
+          "GB = 1000 MB"
+        ]
+      ]
+    },
+    {
+      "key": "theme",
+      "label": "Colour theme",
+      "type": "choice",
+      "default": "m_tricolour",
+      "options": [
+        [
+          "m_red",
+          "M Red"
+        ],
+        [
+          "m_tricolour",
+          "M Tricolour"
+        ],
+        [
+          "ice",
+          "Ice White"
+        ],
+        [
+          "amber",
+          "Night Amber"
+        ]
+      ]
+    },
+    {
+      "key": "demo",
+      "label": "Preview data (emulator)",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "Auto (real df on car, demo off-car)"
+        ],
+        [
+          "ok",
+          "Demo 44%"
+        ],
+        [
+          "warn",
+          "Demo 78%"
+        ],
+        [
+          "crit",
+          "Demo 95%"
+        ]
+      ]
+    }
+  ],
+  "translations": {
+    "ko": {
+      "Storage": "저장공간",
+      "Disks": "디스크",
+      "Apps": "앱",
+      "Refresh": "새로고침",
+      "Next page": "다음 화면",
+      "Settings": "설정",
+      "File systems": "파일시스템",
+      "Free for apps": "앱 설치 여유 공간",
+      "Memory (RAM)": "메모리 (RAM)",
+      "Installed apps": "설치된 앱",
+      "APPS": "앱",
+      "READ-ONLY": "읽기 전용",
+      "App storage": "앱 저장공간",
+      "system": "시스템",
+      "Reading...": "조회 중...",
+      "No file systems found": "파일시스템을 찾지 못했습니다",
+      "not available": "확인할 수 없음",
+      "No data": "데이터 없음",
+      "APP STORAGE": "앱 저장공간",
+      "FULL": "용량 경고",
+      "DEMO": "미리보기",
+      "App platform (MainApp)": "앱 플랫폼 (MainApp)",
+      "this app": "현재 앱",
+      "Press Refresh to measure": "새로고침을 눌러 측정하세요",
+      "STORAGE HIGH - apps {percent}% used - {free} free": "저장공간 경고 - 앱 {percent}% 사용 - {free} 여유",
+      "{size} free": "{size} 여유",
+      "{used} of {total}": "전체 {total} 중 {used}",
+      "also at {count} other paths": "다른 경로 {count}곳에도 연결됨",
+      "+ {count} more: {paths}": "+ {count}개 더: {paths}",
+      "total {size} - {percent}% used": "전체 {size} - {percent}% 사용",
+      "not found ({path})": "찾지 못함 ({path})",
+      "up {hours}h {minutes}m": "가동 {hours}시간 {minutes}분",
+      "used {used} of {total}": "{used} / {total} 사용",
+      "Scanning {done} / {total} ...": "측정 중 {done} / {total} ...",
+      "Cannot open {path} ({error})": "{path} 열기 실패 ({error})",
+      "{count} apps - {size} in all": "앱 {count}개 - 전체 {size}",
+      "+ {count} smaller: {size}": "+ 작은 앱 {count}개: {size}",
+      "* incomplete measurement: at least this much": "* 일부 측정값: 표시된 용량 이상 사용 중",
+      "LOW {percent}%": "용량 {percent}%",
+      "App storage {percent}% - free {size}": "앱 {percent}% 사용 - {size} 여유",
+      "free {size} / {total}": "여유 {size} / {total}",
+      "Alert when apps storage above": "앱 저장공간 경고 기준",
+      "Start page": "시작 화면",
+      "Show RAM disks (tmpfs)": "RAM 디스크 표시 (tmpfs)",
+      "Show read-only system partitions": "읽기 전용 시스템 파티션 표시",
+      "Size units": "용량 단위",
+      "GB = 1024 MB (like df -h)": "GB = 1024 MB (df -h 기준)",
+      "GB = 1000 MB": "GB = 1000 MB",
+      "Colour theme": "화면 색상",
+      "M Red": "M 레드",
+      "M Tricolour": "M 삼색",
+      "Ice White": "아이스 화이트",
+      "Night Amber": "나이트 앰버",
+      "Preview data (emulator)": "미리보기 데이터",
+      "Auto (real df on car, demo off-car)": "자동 (차량: 실제값 / PC: 예시값)",
+      "Demo 44%": "예시 44%",
+      "Demo 78%": "예시 78%",
+      "Demo 95%": "예시 95%",
+      "Head-unit storage: free space per file system, RAM in use, per-app size, with a usage alert": "헤드유닛 디스크·RAM·앱별 용량과 사용률 경고"
+    }
+  }
+}

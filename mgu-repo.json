@@ -144,6 +144,77 @@
           "apps/cluster_redline"
         ]
       }
+    },
+    {
+      "id": "storage",
+      "kind": "app",
+      "path": "apps/storage",
+      "title": "저장공간 (한국어)",
+      "description": "디스크·RAM·앱별 용량과 홈 위젯 사용률 경고",
+      "mguHmi": [
+        "ID7"
+      ],
+      "requires": {
+        "mgu-deploy": "0.7.17"
+      },
+      "build": {
+        "node": "tools/store-build.js",
+        "args": [
+          "--template",
+          "storage",
+          "--id",
+          "{id}",
+          "--version",
+          "{version}",
+          "--dir",
+          "{dir}",
+          "--language",
+          "ko"
+        ],
+        "network": false,
+        "shared": [
+          "store/runtime",
+          "tools/store-build.js",
+          "localization/ko-additions.tsv"
+        ]
+      }
+    },
+    {
+      "id": "storage_en",
+      "kind": "app",
+      "path": "store/apps/storage_en",
+      "title": "Storage (English)",
+      "description": "Disk, RAM and per-app usage with a home-screen widget",
+      "mguHmi": [
+        "ID7"
+      ],
+      "requires": {
+        "mgu-deploy": "0.7.17"
+      },
+      "build": {
+        "node": "tools/store-build.js",
+        "args": [
+          "--template",
+          "storage",
+          "--id",
+          "{id}",
+          "--version",
+          "{version}",
+          "--dir",
+          "{dir}",
+          "--language",
+          "en",
+          "--source",
+          "apps/storage"
+        ],
+        "network": false,
+        "shared": [
+          "store/runtime",
+          "tools/store-build.js",
+          "localization/ko-additions.tsv",
+          "apps/storage"
+        ]
+      }
     }
   ]
 }

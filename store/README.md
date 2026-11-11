@@ -30,7 +30,7 @@ the `main` branch. Each app has a **한국어** and **English** listing.
 They install separately and retain separate settings; use only one Cluster Redline
 edition's Sport auto-display. See [Korean guide](../docs/MGU-STORE.ko.md).
 
-Both Cluster Redline entries declare `cluster-render >= 0.3.10` and
+Both Cluster Redline entries declare `cluster-render >= 0.4.0` and
 `mgu-deploy >= 0.7.17`. The Store queues missing/older requirements before
 the app; a compatible installed renderer is reused. Its registered upstream
 source must offer the dependency (normally the default
@@ -40,3 +40,8 @@ blocks the install plan instead of installing a renderer-less app.
 `tests/renderer-dependencies.test.js` runs the upstream Store's actual
 dependency and queue methods against both parsed listings. Set
 `MGU_STORE_UPDATER_JS` to an upstream `native/mgu-updater/js` folder.
+
+Storage 1.0.1 uses `python3 tools/prepare-storage.py --kit-root <appsKOR checkout>`
+to generate both SDK-free language templates directly from the MIT kit,
+without an SDK build. Its translation dictionary is in `apps/storage/app.json`.
+Keep the template provenance and all font/framework notices.

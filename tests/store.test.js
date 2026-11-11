@@ -98,7 +98,7 @@ async function checkSettingsEntry(file, id, version) {
         sourceParser = require(path.join(process.env.MGU_STORE_UPDATER_JS, 'sources'));
         const catalog = await sourceParser.repoCatalog((name) => Promise.resolve(fs.readFileSync(path.join(ROOT, name))), null, 'local');
         assert.deepStrictEqual(catalog.skipped, []);
-        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'idrive_circuit', 'idrive_circuit_en']);
+        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'idrive_circuit', 'idrive_circuit_en', 'storage', 'storage_en']);
         assert(catalog.components.every((c) => c.script.node === 'tools/store-build.js' && !c.script.network));
         for (const id of ['cluster_redline', 'cluster_redline_en']) {
             assert.strictEqual(catalog.components.find((c) => c.id === id).requires['cluster-render'], '0.4.0');
@@ -187,7 +187,7 @@ async function checkSettingsEntry(file, id, version) {
             checkPackage(renamedFile, id + '3', spec.version, start, options.language);
         }
     }
-    console.log('PASS: four English/Korean Store listings and SDK-free builds, actual packaged settings entry and version, distinct language identities, real Store collision-id builds, autostart and stale-UI rejection');
+    console.log('PASS: six English/Korean Store listings and SDK-free builds, actual packaged settings entry and version, distinct language identities, Store collision-id builds, autostart and stale-UI rejection');
 })().catch((e) => { console.error(e); process.exitCode = 1; }).then(() => {
     fs.rmSync(temp, { recursive: true, force: true }); fs.rmSync(sourceCopy, { recursive: true, force: true });
 });

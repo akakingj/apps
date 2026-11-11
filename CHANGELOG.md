@@ -2,6 +2,15 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Storage
+
+### 1.0.1
+
+- Publish separate Korean (`storage`) and English (`storage_en`) MGU Store entries, both version 1.0.1, with offline SDK-free builds and independent RHMI identities.
+- Localize disk/app/RAM screens, settings, usage warnings and home widgets; preserve setting keys and use StringBundle handles for Korean widget text.
+- Keep storage measurement read-only. Force C-locale df parsing, skip symlink app roots and mark incomplete scans.
+- Check both installed packages with host rendering and filesystem fixtures. Real-vehicle verification remains pending.
+
 ## Cluster Redline
 
 ### 1.2.2

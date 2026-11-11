@@ -1,0 +1,15 @@
+Storage 1.0.1
+
+App sources and icon were supplied by the repository owner as the uploaded
+BMW MGU Storage App archive. Original source comments credit the community
+mgu_storage demo for sysinfo.js and the app author for alerts/widgets/demo.
+No separate upstream license was supplied for those files; attribution is
+preserved. The repository's MIT license is not a new license grant for that
+supplied third-party material.
+
+Korean localization and MGU Store packaging: jaimeen77-cmyk/apps.
+SDK-free framework/RHMI generation: jaimeen77-cmyk/appsKOR, MIT,
+kit baseline ce660077eb89b59bdaf318a63f8c0a388af383f4.
+The runtime includes LICENSE.idrive7-apps and applicable OFL font notices.
+The Korean font is Noto Sans KR, SIL Open Font License 1.1.
+No BMW firmware, OAP SDK or node_modules is distributed in these templates.
