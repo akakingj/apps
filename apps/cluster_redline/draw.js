@@ -19,6 +19,12 @@ function frame(cv, cfg, y, lower) {
     });
     part(cv,cfg,'cluster',key,{x:W/2-44,y:y-14,w:88,h:28},c=>{if(!cfg['cluster'+key+'Hidden'])drawMark(c,W/2,y-14);});
 }
+// Depth for the cluster RPM bar: whole-length translucent overlays on the flat bands,
+// so the colour slices keep no seams (lit/gloss top and shaded bottom on the fill,
+// inner shadow on the track). The HUD keeps its flat bar (dark overlays dim a HUD).
+function shade(c,x0,x1,top,bottom,slant,t0,t1,col){if(x1<=x0)return;const h=bottom-top,a=slant*(1-t0),b=slant*(1-t1);c.quad([[x0+a,top+h*t0],[x1+a,top+h*t0],[x1+b,top+h*t1],[x0+b,top+h*t1]],col);}
+function lit(c,x0,x1,top,bottom,slant){shade(c,x0,x1,top,bottom,slant,0,0.45,'#ffffff3a');shade(c,x0,x1,top,bottom,slant,0.06,0.2,'#ffffff3c');shade(c,x0,x1,top,bottom,slant,0.68,1,'#00000066');}
+function recess(c,x0,x1,top,bottom,slant){shade(c,x0,x1,top,bottom,slant,0,0.32,'#00000070');shade(c,x0,x1,top,bottom,slant,0.85,1,'#ffffff14');}
 function draw(state,target) {
     if(!target&&state.renderCache){state.renderCache.begin(W,H);state.renderCache.face(module.exports,state,{x:0,y:0,w:W,h:H},'cluster');return state.renderCache.finish();}
     const cv=target||new Canvas(W,H),cfg=state.config,rpm=state.rpm;
@@ -26,11 +32,12 @@ function draw(state,target) {
     frame(cv,cfg,L.upperFrame,false);frame(cv,cfg,450,true);
     const span=L.right-L.left-L.slant;
     const gaugeBounds={x:204,y:L.top-5,w:680,h:90},band=(c,a,b,color)=>{if(b<=a)return;const xa=L.left+span*a/cfg.maxRpm,xb=L.left+span*b/cfg.maxRpm;c.quad([[xa+L.slant,L.top],[xb+L.slant,L.top],[xb,L.bottom],[xa,L.bottom]],color);};
-    part(cv,cfg,'cluster','RpmGauge',gaugeBounds,c=>{band(c,0,cfg.maxRpm,C.track);band(c,cfg.redlineRpm,cfg.maxRpm,'#4c1621');},'track');
+    part(cv,cfg,'cluster','RpmGauge',gaugeBounds,c=>{band(c,0,cfg.maxRpm,C.track);band(c,cfg.redlineRpm,cfg.maxRpm,'#4c1621');recess(c,L.left,L.left+span,L.top,L.bottom,L.slant);},'track');
     part(cv,cfg,'cluster','RpmGauge',gaugeBounds,c=>{
         const polygon=(a,b,color)=>{if(b<=a)return;const xa=L.left+span*a/cfg.maxRpm,xb=L.left+span*b/cfg.maxRpm;c.quad([[xa+L.slant,L.top],[xb+L.slant,L.top],[xb,L.bottom],[xa,L.bottom]],color);};
         const top=clamp(rpm,0,cfg.maxRpm);
         for(let r=0;r<top;r+=50)polygon(r,Math.min(r+75,top),rpmColors.colorAt(r,cfg));
+        if(top>0)lit(c,L.left,L.left+span*top/cfg.maxRpm,L.top,L.bottom,L.slant);
     },'fill');
     part(cv,cfg,'cluster','RpmGauge',gaugeBounds,c=>{
         for(let r=500;r<cfg.maxRpm;r+=500){const x=L.left+span*r/cfg.maxRpm;c.line(x+L.slant,L.top,x,L.bottom,0.7,'#05060a');}

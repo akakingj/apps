@@ -131,7 +131,7 @@ The custom settings UI no longer refreshes the unused generic HMI settings page.
 - **HUD lanes:** stock lane-board style with one arrow size for any lane count, painted at HUD size (no resampling).
 - **Junction diagrams:** forks, branches, roundabouts (exit number), highway entries/exits, keep-on-main-road and lane changes show a simplified road; plain turns, U-turns and arrivals keep the large arrow. Shapes are generic because the vehicle data has no junction geometry.
 - **Text:** sharper small Korean text, larger HUD auxiliary labels; long labels shrink instead of colliding with values.
-- **Gauges:** depth shading; oil/outside temperature as a glass thermometer.
+- **Gauges:** depth shading on the cluster RPM bar and auxiliary gauges (HUD RPM bar stays flat for brightness); oil/outside temperature as a glass thermometer.
 - **Clock:** gauge-only HH:MM item in one auxiliary slot; choose head-unit time or UTC+9 in the gauge picker.
 - **Shift alert:** Sport unchanged; Comfort/Eco and other modes use 90 % of the shift RPM with 50/80/100 % green/yellow/red.
 - **Position / size:** Save / load (three slots) and two-press reset; the selected part is drawn while adjusting even when hidden or without guidance (expires two minutes after the last edit, clears on Back).
