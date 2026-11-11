@@ -13,6 +13,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.4
+
+- Redraw HUD lane guidance in the style of stock lane boards: fixed-size lanes with dashed dividers and solid outer edges, and arrows with filled heads built from straight lines, single-pass arcs and triangles. Arrow size no longer shrinks as the lane count grows; only a lane whose combined directions are too wide is narrowed. A U-turn sharing a lane with the same-side turn is drawn above it.
+- Paint the lane row directly at its HUD size instead of resampling a 240x72 image to the selected scale, which dropped pixel rows/columns and broke thin strokes. Lane data, recommendation colours, freshness rules and positions are unchanged.
+
 ### 1.2.3
 
 - Speed up scaled component blits used for moved/resized parts and navigation tiles: compute the source column table once per blit and copy opaque or uncovered pixels directly. Output stays bit-identical (new `blit-scaled` regression test); host measurements show about 2x faster translucent and about 7x faster opaque parts. No visual, setting or signal changes.

@@ -1,4 +1,4 @@
-# 계기판 레드라인 1.2.3 사용 설명서
+# 계기판 레드라인 1.2.4 사용 설명서
 
 [English](CLUSTER-REDLINE.md) · [설치 안내](INSTALL.ko.md) · [전체 스크린샷](../screenshots/README.md) · [업데이트 이력](../CHANGELOG.md)
 

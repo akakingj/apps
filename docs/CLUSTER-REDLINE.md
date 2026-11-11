@@ -1,4 +1,4 @@
-# Cluster Redline 1.2.3 user guide
+# Cluster Redline 1.2.4 user guide
 
 [한국어](CLUSTER-REDLINE.ko.md) · [Installation](INSTALL.md) · [All screenshots](../screenshots/README.md) · [Changelog](../CHANGELOG.md)
 

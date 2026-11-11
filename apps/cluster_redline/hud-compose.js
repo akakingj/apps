@@ -11,7 +11,8 @@ function draw(state) {
     if(state.renderRpm!==false)drawWithParts(face,state,cv,placement(state.config,'hud',face),'hud');
     if(D.navAllowed(state.config,state.mode)&&state.navigation&&state.navigation.visible){
         const hasTurn=state.navigation.maneuverVisible!==false;
-        const paintNav=(id,painter,value)=>{if(cache){const key=require('./render-state').navKey(state,id);if(key)cache.navigation(id,key,painter,value,D.navRect(state.config,id));}else blitScaled(cv,painter.draw(value),D.navRect(state.config,id));};
+        // Painters with drawSized() paint at the final HUD size (1:1 copy, no resampling).
+        const paintNav=(id,base,value)=>{const r=D.navRect(state.config,id),painter=base.drawSized?{W:r.w,H:r.h,draw:v=>base.drawSized(v,r.w,r.h)}:base;if(cache){const key=require('./render-state').navKey(state,id);if(key)cache.navigation(id,key,painter,value,r);}else blitScaled(cv,painter.draw(value),r);};
         if(hasTurn&&!state.config.hudNavHidden)paintNav('Direction',nav,Object.assign({},state.navigation,{color:state.config.navColor}));
         if(!state.config.hudLanesHidden&&state.navigation.lanes&&state.navigation.lanes.visible){
             paintNav('Lanes',lanes,Object.assign({},state.navigation.lanes,{color:state.config.navColor}));

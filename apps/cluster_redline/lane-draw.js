@@ -1,28 +1,79 @@
 'use strict';
 const {Canvas}=require('./kit/canvas');
-const W=240,H=72;
-function arrow(cv,d,cx,color){
- const left=/LEFT/.test(d),right=/RIGHT/.test(d),sign=left?-1:1;
- const line=p=>cv.polyline(p,3,color);
- if(d==='STRAIGHT_ON'){line([[cx,49],[cx,18]]);line([[cx-6,25],[cx,18],[cx+6,25]]);}
- else if(/UTURN/.test(d)){const u=left?1:-1,pts=[[cx+u*7,49],[cx+u*7,29]];for(let i=1;i<=12;i++){const a=-Math.PI*i/12;pts.push([cx+u*7*Math.cos(a),29+7*Math.sin(a)]);}pts.push([cx-u*7,39]);line(pts);line([[cx-u*7-5,34],[cx-u*7,40],[cx-u*7+5,34]]);}
- else if(left||right){
-  const slight=/SLIGHT/.test(d),endY=slight?17:29;
-  line([[cx,49],[cx,35],[cx+sign*10,endY]]);
-  line(slight?[[cx+sign*3,endY],[cx+sign*10,endY],[cx+sign*10,endY+8]]:[[cx+sign*4,endY-6],[cx+sign*10,endY],[cx+sign*4,endY+6]]);
- }
+// HUD lane guidance in the style of stock lane boards: fixed-size lanes with
+// dashed dividers, solid outer edges and arrows with filled heads. Glyphs never
+// shrink when more lanes are shown, and drawSized() paints directly at the HUD
+// pixel size so the image is not resampled (resampling broke thin strokes).
+// Arrows use only straight lines, single-pass arcs and filled triangles; a
+// many-segment polyline blends its overlapping joints and looks jagged.
+const W=240,H=72,CELL=29,BOTTOM=60,TOP=8,SW=4.6,HB=12.5,HL=9.5,PAD=2;
+const DIM='#5d6670',OTHER='#3f4750',LINE='#68717c';
+const D2R=Math.PI/180;
+const dir=a=>[Math.sin(a*D2R),-Math.cos(a*D2R)];        // heading, degrees clockwise from up
+// Arrow geometry in local units: trunk at x=0, lane base at y=BOTTOM.
+// paired: this lane also has the U-turn and 90-degree turn to the same side;
+// the turn bends lower and the U-turn tail is shorter so both stay readable.
+function glyph(d,paired){
+ const parts=[];let x=0,y=BOTTOM,heading=0;
+ const straight=len=>{const v=dir(heading),nx=x+v[0]*len,ny=y+v[1]*len;parts.push({t:'line',a:[x,y],b:[nx,ny]});x=nx;y=ny;};
+ const turn=(deg,r)=>{                                  // deg>0 clockwise, centre-line radius r
+  const s=Math.sign(deg),v=dir(heading+s*90),cx=x+v[0]*r,cy=y+v[1]*r,from=heading-s*90,to=from+deg;
+  parts.push({t:'arc',c:[cx,cy],r,a0:Math.min(from,to),a1:Math.max(from,to)});
+  const p=dir(to);x=cx+p[0]*r;y=cy+p[1]*r;heading+=deg;
+ };
+ const head=()=>{const v=dir(heading),n=[-v[1],v[0]],tip=[x+v[0]*HL,y+v[1]*HL];parts.push({t:'tri',p:[[x+n[0]*HB/2,y+n[1]*HB/2],[x-n[0]*HB/2,y-n[1]*HB/2],tip]});};
+ const s=/LEFT/.test(d)?-1:1;
+ if(d==='STRAIGHT_ON'){straight(BOTTOM-TOP-HL);}
+ else if(/^SLIGHT_/.test(d)){straight(20);turn(s*45,10);straight(9);}
+ else if(/^HARD_/.test(d)){straight(22);turn(s*135,6.5);straight(5);}
+ else if(/^UTURN_/.test(d)){straight(32);turn(s*180,6.5);straight(paired?0.5:4);}
+ else if(d==='LEFT'||d==='RIGHT'){straight(paired?6:22);turn(s*90,7);straight(6);}
+ else return null;
+ head();return parts;
 }
-function draw(state){
- const cv=new Canvas(W,H);cv.clear([0,0,0,0]);
+function bounds(parts){
+ let lo=Infinity,hi=-Infinity;const add=(px,pad)=>{lo=Math.min(lo,px-pad);hi=Math.max(hi,px+pad);};
+ parts.forEach(p=>{
+  if(p.t==='line'){add(p.a[0],SW/2);add(p.b[0],SW/2);}
+  else if(p.t==='tri')p.p.forEach(q=>add(q[0],0.5));
+  else for(let a=p.a0;a<=p.a1;a+=5)add(p.c[0]+Math.sin(a*D2R)*p.r,SW/2);
+ });return [lo,hi];
+}
+function paint(cv,parts,map,k,width,color){
+ parts.forEach(p=>{
+  if(p.t==='line'){const a=map(p.a),b=map(p.b);cv.line(a[0],a[1],b[0],b[1],width*k,color);}
+  else if(p.t==='tri')cv.triangle(p.p.map(map),color);
+  else{const c=map(p.c),r=p.r*k,hw=width*k/2;
+   // Split arcs that cross 12 o'clock so a0<a1 stays within one turn.
+   const spans=p.a0<0?[[p.a0+360,360],[0,p.a1]]:p.a1>360?[[p.a0,360],[0,p.a1-360]]:[[p.a0,p.a1]];
+   spans.forEach(s=>{if(s[1]>s[0])cv.arc(c[0],c[1],r-hw,r+hw,s[0],s[1],color);});}
+ });
+}
+function drawSized(state,w,h){
+ const s=(w||W)/W,cv=new Canvas(Math.max(1,Math.round(w||W)),Math.max(1,Math.round(h||H*s)));cv.clear([0,0,0,0]);
  if(!state||!state.visible||!Array.isArray(state.lanes)||!state.lanes.length)return cv;
- const cell=W/state.lanes.length,selected=state.color==='gray'?'#929aa3':state.color==='white'?'#f2f4f8':'#29c5ff';
- state.lanes.forEach((lane,i)=>{
-  const x=Math.round(cell*(i+0.5));
-  if(lane.highlighted)cv.polyline([[cell*i+2,57],[cell*(i+1)-2,57]],4,selected);
-  if(i)cv.polyline([[cell*i,16],[cell*i,54]],1,'#4c5664');
-  lane.other.forEach(d=>arrow(cv,d,x,'#55606e'));
-  lane.directions.forEach(d=>arrow(cv,d,x,lane.highlighted?selected:'#75808e'));
-  if(lane.blocked){cv.polyline([[x-6,27],[x+6,43]],3,'#75808e');cv.polyline([[x+6,27],[x-6,43]],3,'#75808e');}
- });return cv;
+ const lanes=state.lanes.slice(0,Math.floor(W/CELL)),n=lanes.length,left=(W-CELL*n)/2;
+ const selected=state.color==='gray'?'#a3abb4':state.color==='white'?'#f2f4f8':'#29c5ff';
+ const vline=(x,y0,y1,width)=>cv.line(x*s,y0*s,x*s,y1*s,width*s,LINE);
+ // Solid outer edges, dashed lane dividers.
+ vline(left,TOP,BOTTOM,1.8);vline(left+CELL*n,TOP,BOTTOM,1.8);
+ for(let i=1;i<n;i++)for(let y=TOP+1;y<BOTTOM;y+=10)vline(left+CELL*i,y,Math.min(BOTTOM,y+5),1.6);
+ lanes.forEach((lane,i)=>{
+  const cx=left+CELL*(i+0.5),on=lane.highlighted;
+  const list=lane.other.map(d=>({d,color:OTHER})).concat(lane.directions.map(d=>({d,color:on?selected:DIM})));
+  const all=lane.directions.concat(lane.other),side=d=>(d.match(/LEFT|RIGHT/)||[''])[0],paired=d=>(d==='LEFT'||d==='RIGHT'||/^UTURN_/.test(d))&&all.includes(side(d))&&all.includes('UTURN_'+side(d));
+  const shapes=list.map(e=>Object.assign(e,{parts:glyph(e.d,paired(e.d))})).filter(e=>e.parts);
+  if(shapes.length){
+   // One transform per lane: centre the combined glyph; shrink only a lane whose
+   // combined directions are wider than its cell, never because of the lane count.
+   let lo=0,hi=0;shapes.forEach(e=>{const b=bounds(e.parts);lo=Math.min(lo,b[0]);hi=Math.max(hi,b[1]);});
+   const k=Math.min(1,(CELL-2*PAD)/(hi-lo)),x0=cx-(lo+hi)/2*k;
+   const map=p=>[(x0+p[0]*k)*s,(BOTTOM+(p[1]-BOTTOM)*k)*s];
+   shapes.forEach(e=>paint(cv,e.parts,map,k*s,SW,e.color));
+  }
+  if(lane.blocked){const r=6,y=(TOP+BOTTOM)/2;cv.line((cx-r)*s,(y-r)*s,(cx+r)*s,(y+r)*s,3.4*s,DIM);cv.line((cx+r)*s,(y-r)*s,(cx-r)*s,(y+r)*s,3.4*s,DIM);}
+ });
+ return cv;
 }
-module.exports={W,H,draw};
+function draw(state){return drawSized(state,W,H);}
+module.exports={W,H,draw,drawSized};
