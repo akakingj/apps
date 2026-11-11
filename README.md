@@ -25,3 +25,5 @@ Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and c
 [Source integration / 소스 통합](docs/JAM-INTEGRATION.ko.md) · [Changelog / 업데이트 이력](CHANGELOG.md) · [Licenses](NOTICE.cluster-redline.md)
 
 For the 15 localized upstream iDrive apps, use the separate [appsKOR repository](https://github.com/jaimeen77-cmyk/appsKOR). This repository contains the two custom apps above.
+
+The 15 general Korean app listings and their latest compiled packages have moved to [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR). Refresh both main sources in MGU Store. This source lists only the Korean and English editions of Circuit and Cluster Redline.
