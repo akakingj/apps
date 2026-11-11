@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.3
+
+- Speed up scaled component blits used for moved/resized parts and navigation tiles: compute the source column table once per blit and copy opaque or uncovered pixels directly. Output stays bit-identical (new `blit-scaled` regression test); host measurements show about 2x faster translucent and about 7x faster opaque parts. No visual, setting or signal changes.
+
 ### 1.2.2
 
 - Retain bounded per-output component rasters and projected tiles. Reuse static RPM tracks/ticks, M marks and unchanged auxiliary/navigation parts; clear/recompose only damaged regions when values, geometry or visibility change. Reuse the sent-frame buffer and cache projection lookups to avoid per-pixel allocation churn.
