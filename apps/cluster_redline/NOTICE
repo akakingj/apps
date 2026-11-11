@@ -15,6 +15,12 @@
 - Drive mode field and mappings: `cauliflowermossgrape/idrive7-apps`
   `apps/live_data/signals.js` at `990c105870edb21bd8f23796fcf95182530790e8`.
 
+- `apps/cluster_redline/rl-hud-draw.js`, `rl-hud-m.js`: the Redline app's HUD drawing
+  (`cauliflowermossgrape/idrive7-apps` Redline, HUD output by @biscotit), MIT, taken from
+  `jaimeen77-cmyk/appsKOR` `apps/redline/hud-draw.js` and `hud-m.js` at
+  `9cd5badd6c7a8bb23086a8414c7ad2782a5bc9e2`. Locally changed only in module paths and a
+  fallback when the kit has no `fonts.has()`. `redline-hud.js` maps Cluster Redline's data to it.
+
 No BMW SDK is included in the source distribution. A private install bundle
 may vendor the SDK the vehicle owner provided, as the original kit does.
 

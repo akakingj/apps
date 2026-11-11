@@ -2,12 +2,14 @@
 const METRICS=['boost','torque','power','gforce','outside','oil','batteryCharge','batteryVoltage','economy','clock'];
 // The clock is a gauge-only item (it has no text-mode form).
 const GAUGE_ONLY=['clock'];
+// HUD designs: Cluster Redline's own face, or a Redline app layout (redline-hud.js).
+const HUD_DESIGNS=['own','rl-standard','rl-minimal','rl-wings','rl-digital','rl-vfd','rl-vector','rl-arc','rl-ramp','rl-dial'];
 const LABELS={boost:'Boost',torque:'Torque',power:'Power*',gforce:'G-force',outside:'Outside temperature',oil:'Oil temperature',batteryCharge:'12 V battery charge',batteryVoltage:'Battery voltage',economy:'Average fuel economy',clock:'Clock'};
 const PARTS=['RpmGauge','Gear','Alert','AuxLeft','AuxRight','RpmValue','Mark','MarkTop','MarkBottom'];
 const PART_LABELS=['RPM gauge','Gear','RPM alert','Auxiliary left','Auxiliary right','RPM number','M mark','Upper M mark','Lower M mark'];
 const LEGACY_PARTS=['Aux'];
 const NAV_PARTS=[{key:'Direction',label:'Direction',prefix:'hudNav',scale:'navUniformScale',w:240,h:112},{key:'Text',label:'Text',prefix:'hudText',scale:'hudTextScale',w:240,h:48},{key:'Lanes',label:'Lane guidance',prefix:'hudLanes',scale:'hudLanesScale',w:240,h:72}];
-const defaults={displaySettingsRevision:4,clusterAlertStyle:'circle',navDisplayMode:'all',navColor:'blue',navUniformScale:70,hudTextOffsetX:180,hudTextOffsetY:10,hudTextScale:65,hudLanesOffsetX:210,hudLanesOffsetY:115,hudLanesScale:70,hudAuxTextOffsetY:10,clockZone:'auto',layoutPreview:''};
+const defaults={displaySettingsRevision:4,clusterAlertStyle:'circle',navDisplayMode:'all',navColor:'blue',navUniformScale:70,hudTextOffsetX:180,hudTextOffsetY:10,hudTextScale:65,hudLanesOffsetX:210,hudLanesOffsetY:115,hudLanesScale:70,hudAuxTextOffsetY:10,clockZone:'auto',layoutPreview:'',hudDesign:'own'};
 NAV_PARTS.forEach(p=>{defaults[p.prefix+'Hidden']=false;});
 ['hud','cluster'].forEach(d=>{
  defaults[d+'AuxConfig']=JSON.stringify({mode:'gauges',items:['boost','torque']});
@@ -15,6 +17,8 @@ NAV_PARTS.forEach(p=>{defaults[p.prefix+'Hidden']=false;});
  ['Mark','MarkTop','MarkBottom'].forEach(p=>{defaults[d+p+'Hidden']=false;defaults[d+p+'LineHidden']=false;});
 });
 function partsFor(display,cfg){
+ // A Redline app layout is one image: the RPM gauge part moves and sizes it.
+ if(display==='hud'&&cfg.hudDesign&&cfg.hudDesign!=='own')return [{key:'RpmGauge',label:'Redline HUD'}];
  const keys=display==='hud'?['RpmGauge','Gear'].concat(cfg.hudAlertStyle==='circle'?[]:['Alert'],['AuxLeft','AuxRight','RpmValue','Mark']):['RpmGauge','Gear','Alert','AuxLeft','AuxRight','RpmValue','MarkTop','MarkBottom'];
  return keys.map(key=>({key,label:display==='hud'&&key==='Gear'&&cfg.hudAlertStyle==='circle'?'Gear + circle alert':PART_LABELS[PARTS.indexOf(key)]}));
 }
@@ -43,6 +47,7 @@ function normalize(raw,out){
  if(raw.navUniformScale!==undefined||raw.displaySettingsRevision>=2){const n=typeof raw.navUniformScale==='number'&&isFinite(raw.navUniformScale)?raw.navUniformScale:out.hudNavWidthScale;out.hudNavWidthScale=out.hudNavHeightScale=Math.max(20,Math.min(200,n));}
  out.navUniformScale=out.hudNavWidthScale;
  out.clockZone=['auto','utc9'].includes(raw.clockZone)?raw.clockZone:'auto';
+ out.hudDesign=HUD_DESIGNS.includes(raw.hudDesign)?raw.hudDesign:'own';
  out.layoutPreview=typeof raw.layoutPreview==='string'&&/^(hud|cluster|nav):[A-Za-z]{1,20}@[0-9]{1,15}$/.test(raw.layoutPreview)?raw.layoutPreview:'';
  return out;
 }
@@ -59,4 +64,4 @@ function navRect(cfg,key){const p=NAV_PARTS.find(p=>p.key===key),s=cfg[p.scale]/
 function visibleMetrics(cfg,display){const a=auxConfig(cfg[display+'AuxConfig']);return a.mode==='off'?[]:metricSlots(a.items).filter(s=>!cfg[display+(s.side?'AuxRight':'AuxLeft')+'Hidden']).map(s=>s.id);}
 function faceVisible(cfg,d){return partsFor(d,cfg).some(p=>!cfg[d+p.key+'Hidden'])||(d==='hud'?!cfg.hudMarkLineHidden:!cfg.clusterMarkTopLineHidden||!cfg.clusterMarkBottomLineHidden);}
 function faceRpmNeeded(cfg,d){return !cfg[d+'RpmGaugeHidden']||!cfg[d+'RpmValueHidden']||!cfg[d+'AlertHidden']&&(d!=='hud'||cfg.hudAlertStyle!=='circle'||!cfg.hudGearHidden)||visibleMetrics(cfg,d).includes('power');}
-module.exports={METRICS,GAUGE_ONLY,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};
+module.exports={METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};

@@ -1,4 +1,4 @@
-# Cluster Redline 1.2.4 user guide
+# Cluster Redline 1.2.5 user guide
 
 [한국어](CLUSTER-REDLINE.ko.md) · [Installation](INSTALL.md) · [All screenshots](../screenshots/README.md) · [Changelog](../CHANGELOG.md)
 
@@ -136,3 +136,11 @@ The custom settings UI no longer refreshes the unused generic HMI settings page.
 - **Shift alert:** Sport unchanged; Comfort/Eco and other modes use 90 % of the shift RPM with 50/80/100 % green/yellow/red.
 - **Position / size:** Save / load (three slots) and two-press reset; the selected part is drawn while adjusting even when hidden or without guidance (expires two minutes after the last edit, clears on Back).
 - **Outside temperature:** diagnostics in the status file. Stock HUD music/phone popups still take priority (renderer policy).
+
+## 1.2.5 Redline app HUD layouts
+
+HUD display setting → **Design** → **Redline app layouts** offers the Redline app's nine HUD layouts (appsKOR, MIT): Standard, Minimal, Split wings, 80s digital dash, VFD glow, Vector arcade, Arc (F80 M3/M4), Ramp (G80 M3/M4) and Dial (E60 M5). Choosing one of Cluster Redline's designs switches back.
+
+- Uses rpm, gear, the drive-mode shift point (lights count the last 1500 rpm and flash at it), the red zone and the selected auxiliary items as readouts; navigation, lanes and text stay alongside.
+- Move and size it with **Redline HUD** in Position / size (400×130 by default).
+- The Redline app is not needed. Its learning, shift grades, downshift cue and peak hold are not included.

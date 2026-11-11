@@ -13,6 +13,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.5
+
+- HUD design can be one of the Redline app's nine HUD layouts (Standard, Minimal, Split wings, 80s digital dash, VFD glow, Vector arcade, Arc after the F80 M3/M4, Ramp after the G80 M3/M4, Dial after the E60 M5), ported from appsKOR `apps/redline` (cauliflowermossgrape/idrive7-apps Redline, HUD output by @biscotit, MIT). Design → Redline app layouts, with live previews; Cluster Redline's own designs switch back.
+- The layout replaces the RPM face and uses Cluster Redline's data: rpm, gear (mode letter), the drive-mode shift point (lights count the last 1500 rpm and flash at it), the red zone, and the selected auxiliary items as its readouts. Navigation, lanes and text stay alongside. Painted at HUD size (400x130 at the default HUD size); Position / size moves and scales it as the RPM gauge.
+- Not ported: Redline's learning (rev limit, best upshift, reaction time), shift grades, downshift cue and peak hold. The Redline app itself is not needed.
+
 ### 1.2.4
 
 - Redraw HUD lane guidance in the style of stock lane boards: fixed-size lanes with dashed dividers and solid outer edges, and arrows with filled heads built from straight lines, single-pass arcs and triangles. Arrow size no longer shrinks as the lane count grows; only a lane whose combined directions are too wide is narrowed. A U-turn sharing a lane with the same-side turn is drawn above it.

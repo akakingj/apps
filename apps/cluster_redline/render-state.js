@@ -31,6 +31,7 @@ function key(s,d){
   const config={};Object.keys(c).sort().forEach(k=>{if(k.indexOf(d)===0&&!(d==='hud'&&/^hud(?:Nav|Text|Lanes|Navigation)/.test(k)))config[k]=c[k];});
   values.push(config);
   D.partsFor(d,c).forEach(p=>{if(!c[d+p.key+'Hidden'])values.push(partKey(s,d,p.key));});
+  if(d==='hud'&&c.hudDesign&&c.hudDesign!=='own')values.push(['redline',require('./redline-hud').key(s)]);
  }
  if(d==='hud')D.NAV_PARTS.forEach(p=>{const n=navKey(s,p.key);if(n)values.push([p.key,n,D.navRect(c,p.key)]);});
  return JSON.stringify(values);

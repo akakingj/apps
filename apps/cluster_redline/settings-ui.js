@@ -3,7 +3,7 @@ const {t}=require('./kit/i18n'),G=require('./kit/gauges'),{header}=require('./se
 require('./crisp-text');
 const {tr}=require('./strings');
 const {settings:effective,PROFILES,DEFAULTS}=require('./policy');
-const D=require('./display-config'),HUD=require('./hud-draw'),CLUSTER=require('./draw'),NAV=require('./nav-draw');
+const D=require('./display-config'),RL=require('./redline-hud'),HUD=require('./hud-draw'),CLUSTER=require('./draw'),NAV=require('./nav-draw');
 const {measurePart}=require('./component-canvas'),{placement}=require('./layout'),NAV_TEXT=require('./nav-text');
 const W=1600,H=520,TABS=['Basic settings','HUD display setting','CLUSTER display setting','NAV display setting'];
 const GROUPS=[['autoStart','appEnabled','engineProfile','powerUnit','torqueUnit','shiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout'],['sportClusterOutput','allClusterOutput','aux','design','layout'],['navDisplayMode','navColor','layout']];
@@ -34,25 +34,26 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview'].forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign'].forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return GROUPS[this.tab];}
  item(){const key=this.keys()[this.focus];if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
  selectTab(i){this.tab=Math.max(0,Math.min(3,i|0));this.focus=0;this.open=null;this.draft=null;this.choice=0;this.changed();}
  back(){
-  if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}
+  if(this.open==='rlDesign'){this.open='design';this.choice=2;}
+  else if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}
   else if(this.open==='layoutPresets'){this.open='layout';this.choice=0;this.presetMessage='';}
   else{if(this.open==='layout')this.setPreview(false);this.open=null;this.draft=null;}
   this.changed();
  }
  move(delta){
   if(!this.open)this.focus=(this.focus+delta+this.keys().length)%this.keys().length;
-  else{const n=this.open==='layout'||this.open==='layoutPresets'?this.layoutActions.length:this.open==='auxMode'||this.open==='design'?2:this.open==='auxSelect'?D.METRICS.length+1+(this.draft&&this.draft.items.includes('clock')?1:0):options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
+  else{const n=this.open==='layout'||this.open==='layoutPresets'?this.layoutActions.length:this.open==='auxMode'?2:this.open==='design'?(this.display()==='hud'?3:2):this.open==='rlDesign'?RL.STYLES.length:this.open==='auxSelect'?D.METRICS.length+1+(this.draft&&this.draft.items.includes('clock')?1:0):options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
   this.changed();
  }
  value(item,cfg){
   if(item.key==='aux'){const a=D.auxConfig(cfg[this.display()+'AuxConfig']);return t(a.mode==='values'?'Text':'Gauges')+' · '+a.items.map(k=>tr(D.LABELS[k])).join(' / ');}
-  if(item.key==='design')return t(cfg[this.display()+'AlertStyle']==='circle'?'Circle beside gear':'Top alert bar');
+  if(item.key==='design'){if(this.display()==='hud'&&RL.active(cfg))return tr('Redline HUD')+' · '+tr(RL.NAMES[RL.style(cfg)]);return t(cfg[this.display()+'AlertStyle']==='circle'?'Circle beside gear':'Top alert bar');}
   if(item.key==='layout')return t('Adjust');
   if(item.key==='appEnabled')return t(cfg.appEnabled?'Running':'Stopped');
   if(item.key==='shiftRpm'&&!this.settings.get(item.key))return cfg.shiftRpm+' rpm';
@@ -73,7 +74,10 @@ class SettingsPage{
   if(this.open==='layout'||this.open==='layoutPresets'){const a=this.layoutActions[index];if(a)a.act();return;}
   if(this.open==='auxMode'){this.draft={mode:index===1?'values':'gauges',items:[]};this.open='auxSelect';this.choice=0;this.changed();return;}
   if(this.open==='auxSelect'){if(index===D.METRICS.length)this.commitAux();else if(index===D.METRICS.length+1)this.toggleClockZone();else this.toggleMetric(D.METRICS[index]);return;}
-  if(this.open==='design'){this.settings.set(this.display()+'AlertStyle',index===1?'circle':'bar');this.open=null;this.changed();return;}
+  if(this.open==='design'){
+   if(index===2&&this.display()==='hud'){this.open='rlDesign';this.choice=Math.max(0,RL.STYLES.indexOf(RL.style(this.config())));this.changed();return;}
+   const values={[this.display()+'AlertStyle']:index===1?'circle':'bar'};if(this.display()==='hud')values.hudDesign='own';this.setValues(values);this.open=null;this.changed();return;}
+  if(this.open==='rlDesign'){const st=RL.STYLES[index];if(st){this.settings.set('hudDesign','rl-'+st);this.open=null;this.changed();}return;}
   const list=options(this.item(),this.config());if(!list[index])return;
   this.settings.set(this.item().key,list[index][0]);if(this.item().key==='navDisplayMode')this.settings.set('hudNavigationEnabled',true);this.open=null;this.changed();
  }
@@ -81,7 +85,7 @@ class SettingsPage{
  toggleMetric(id){if(!this.draft||!D.METRICS.includes(id)||this.draft.mode!=='gauges'&&D.GAUGE_ONLY.includes(id))return;const a=this.draft.items,i=a.indexOf(id);if(i>=0)a.splice(i,1);else if(a.length<(this.draft.mode==='gauges'?2:4))a.push(id);this.changed();}
  commitAux(){if(!this.draft||!this.draft.items.length)return;this.settings.set(this.display()+'AuxConfig',JSON.stringify(this.draft));this.open=null;this.draft=null;this.changed();}
  button(cv,targets,label,x,y,w,h,act,on,id){
-  const layoutFocus=(this.open==='layout'||this.open==='layoutPresets')&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===D.METRICS.length||id==='clock-zone'&&this.choice===D.METRICS.length+1);
+  const layoutFocus=(this.open==='layout'||this.open==='layoutPresets')&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===D.METRICS.length||id==='clock-zone'&&this.choice===D.METRICS.length+1)||this.open==='rlDesign'&&id==='rl-'+RL.STYLES[this.choice]||this.open==='design'&&id==='design'+this.choice;
   cv.roundRect(x,y,w,h,6,on||focused?'#57202d':'#252a31');if(layoutFocus&&/^part/.test(id||'')&&!on)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],2,'#9bacc4');let size=30;while(size>18&&cv.textWidth(t(label),size)>w-24)size--;
   if(label==='−'||label==='+'){cv.line(x+w/2-17,y+h/2,x+w/2+17,y+h/2,3,'#f3f5f7');if(label==='+')cv.line(x+w/2,y+h/2-17,x+w/2,y+h/2+17,3,'#f3f5f7');}
   else cv.text(label,x+w/2,y+h/2+size*0.36,size,'#f3f5f7',{align:'center',font:'bold'});targets.push({x,y,w,h,act,label,id:id||label});
@@ -96,6 +100,7 @@ class SettingsPage{
   else if(this.open==='auxMode')this.drawAuxMode(cv,cfg,targets);
   else if(this.open==='auxSelect')this.drawAuxSelect(cv,cfg,targets);
   else if(this.open==='design')this.drawDesign(cv,cfg,targets);
+  else if(this.open==='rlDesign')this.drawRedlineDesigns(cv,cfg,targets);
   else if(this.open==='navColor')this.drawColors(cv,cfg,targets);
   else if(this.open)this.drawChoices(cv,cfg,targets);
   else this.drawRows(cv,cfg,targets,status);
@@ -152,7 +157,20 @@ class SettingsPage{
   const display=this.display();['Top alert bar','Circle beside gear'].forEach((label,i)=>{
    const x=84+i*740;this.button(cv,targets,label,x,106,712,64,()=>this.choose(i),this.choice===i,'design'+i);
    const preview=Object.assign({},cfg);preview[display+'AlertStyle']=i?'circle':'bar';this.preview(cv,preview,x+10,182,display==='cluster'?590:690,display);
-  });this.backButton(cv,targets);
+  });if(display==='hud')this.button(cv,targets,tr('Redline app layouts')+(RL.active(cfg)?' · '+tr(RL.NAMES[RL.style(cfg)]):''),84,448,1100,64,()=>this.choose(2),RL.active(cfg),'design2');
+  this.backButton(cv,targets);
+ }
+ // The Redline app's nine HUD layouts with live previews (sample: 6300 rpm, 3rd gear).
+ drawRedlineDesigns(cv,cfg,targets){
+  cv.text(tr('Redline app layouts'),100,126,32,'#ef4050',{literal:true});
+  const current=RL.style(cfg),sample=Object.assign({},cfg),state={config:sample,rpm:6300,gear:'M3',shift:false,flash:false,mode:'SPORT',torqueNm:380,powerPS:260,aux:{boost:1.1,oil:96,outside:18,clock:'23:00'}};
+  RL.STYLES.forEach((st,i)=>{const x=84+(i%3)*490,y=140+Math.floor(i/3)*100,on=st===current;
+   this.button(cv,targets,'',x,y,464,94,()=>this.choose(i),on,'rl-'+st);
+   sample.hudDesign='rl-'+st;RL.paint(cv,state,0.56,x+8,y+10);
+   cv.text(tr(RL.NAMES[st]),x+456,y+86,20,on?'#ffffff':'#b8c5d4',{align:'right',literal:true});
+  });
+  cv.text(tr('Layout from the Redline app (appsKOR, MIT). Navigation, lanes and auxiliary items stay as set.'),84,470,20,'#a8b6c8',{literal:true});
+  this.backButton(cv,targets);
  }
  drawColors(cv,cfg,targets){
   [['gray','Gray'],['white','White'],['blue','Blue']].forEach((o,i)=>{
@@ -232,6 +250,7 @@ class SettingsPage{
   });
   let width,height;
   if(nav){const rect=D.navRect(cfg,selected.key);width=rect.w;height=rect.h;}
+  else if(display==='hud'&&RL.active(cfg)){const r=RL.rect(cfg,placement(cfg,'hud',HUD));width=r.w;height=r.h;}
   else{const painter=display==='hud'?HUD:CLUSTER,b=measurePart(painter,{config:cfg,rpm:0,gear:this.liveState&&this.liveState.gear||'--'},display,selected.key,cv)||{w:0,h:0},r=placement(cfg,display==='hud'?'hud':cfg.displayTarget==='panel'?'panel':'map',painter);width=Math.round(b.w*cfg[prefix+'WidthScale']/100*r.w/painter.W);height=Math.round(b.h*cfg[prefix+'HeightScale']/100*r.h/painter.H);}
   cv.text(group.length?group.length+' '+t('selected')+' · '+t(selected.label):t('Select items to adjust'),84,456,21,'#b8c5d4',{literal:true});
   cv.text(group.length?'X '+cfg[prefix+'OffsetX']+' · Y '+cfg[prefix+'OffsetY']+' · '+width+' × '+height+' px':'',84,500,21,'#ffad45',{literal:true});

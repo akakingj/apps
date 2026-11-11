@@ -1,14 +1,20 @@
 'use strict';
 const {Canvas}=require('./kit/canvas');
 const face=require('./hud-draw'),nav=require('./nav-draw'),text=require('./nav-text');
-const lanes=require('./lane-draw');
+const lanes=require('./lane-draw'),RL=require('./redline-hud');
 const D=require('./display-config');
 const {placement}=require('./layout');
 const W=800,H=480;
 const {blitScaled,drawWithParts}=require('./component-canvas');
 function draw(state) {
     const cache=state.renderCache,cv=cache?(cache.begin(W,H),cache.surface):new Canvas(W,H);if(!cache)cv.clear([0,0,0,0]);
-    if(state.renderRpm!==false)drawWithParts(face,state,cv,placement(state.config,'hud',face),'hud');
+    if(state.renderRpm!==false){
+        const at=placement(state.config,'hud',face);
+        if(RL.active(state.config)){
+            // A Redline app layout replaces the RPM face; painted at HUD size (no resampling).
+            if(!state.config.hudRpmGaugeHidden){const r=RL.rect(state.config,at),painter={W:r.w,H:r.h,draw:v=>RL.drawSized(v,r.w,r.h)};if(cache)cache.navigation('redline',RL.key(state),painter,state,r);else blitScaled(cv,painter.draw(state),r);}
+        }else drawWithParts(face,state,cv,at,'hud');
+    }
     if(D.navAllowed(state.config,state.mode)&&state.navigation&&state.navigation.visible){
         const hasTurn=state.navigation.maneuverVisible!==false;
         // Painters with drawSized() paint at the final HUD size (1:1 copy, no resampling).
