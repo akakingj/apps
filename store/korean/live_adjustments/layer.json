@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "language": "ko",
+  "size": 214862,
+  "sha256": "340865a53947331c33efe457fea0d5495e5f8887c8b03b17d403f5d47b68f09c",
+  "parts": [
+    "part-000",
+    "part-001"
+  ],
+  "id": "live_adjustments",
+  "version": "0.9.3",
+  "compiled_version": "0.9.3-ko.1",
+  "common_sha256": "37c759d7b35e9410e7c871cec0ec0b9f4ae245d5b20ef96f306593d41bf7a288",
+  "source_commit": "ecf2261a0154b9ff92ca7781b7e9b410023dc226",
+  "source_hash": "5beabe6d55fc218ee09fdca01f47f2160add210f67db3046c78bd072c2203bb2"
+}
