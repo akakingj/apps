@@ -1,11 +1,22 @@
 'use strict';
 const {Canvas}=require('./kit/canvas');
+// Nearest-neighbour scaled "source over" blit. Output is bit-identical to the original
+// per-pixel formula; the source column table is computed once per call instead of once per
+// pixel, and fully opaque source pixels / empty destination pixels are copied directly.
 function blitScaled(dst,src,r){
  if(!r.w||!r.h)return;
- for(let y=Math.max(0,r.y);y<Math.min(dst.h,r.y+r.h);y++)for(let x=Math.max(0,r.x);x<Math.min(dst.w,r.x+r.w);x++){
-  const i=(Math.min(src.h-1,Math.floor((y-r.y+0.5)*src.h/r.h))*src.w+Math.min(src.w-1,Math.floor((x-r.x+0.5)*src.w/r.w)))*4;
-  const a=src.d[i+3]/255;if(!a)continue;const p=(y*dst.w+x)*4,da=dst.d[p+3]/255,oa=a+da*(1-a);
-  for(let k=0;k<3;k++)dst.d[p+k]=Math.round((src.d[i+k]*a+dst.d[p+k]*da*(1-a))/oa);dst.d[p+3]=Math.round(oa*255);
+ const x0=Math.max(0,r.x),x1=Math.min(dst.w,r.x+r.w),y0=Math.max(0,r.y),y1=Math.min(dst.h,r.y+r.h);
+ if(x0>=x1||y0>=y1)return;
+ const sd=src.d,dd=dst.d,sw=src.w,sh=src.h,dw=dst.w,n=x1-x0,cols=new Int32Array(n);
+ for(let c=0;c<n;c++)cols[c]=Math.min(sw-1,Math.floor((x0+c-r.x+0.5)*sw/r.w))*4;
+ for(let y=y0;y<y1;y++){
+  const row=Math.min(sh-1,Math.floor((y-r.y+0.5)*sh/r.h))*sw*4;
+  for(let c=0,p=(y*dw+x0)*4;c<n;c++,p+=4){
+   const i=row+cols[c],sa=sd[i+3];if(!sa)continue;
+   if(sa===255||!dd[p+3]){dd[p]=sd[i];dd[p+1]=sd[i+1];dd[p+2]=sd[i+2];dd[p+3]=sa;continue;}
+   const a=sa/255,da=dd[p+3]/255,oa=a+da*(1-a);
+   dd[p]=Math.round((sd[i]*a+dd[p]*da*(1-a))/oa);dd[p+1]=Math.round((sd[i+1]*a+dd[p+1]*da*(1-a))/oa);dd[p+2]=Math.round((sd[i+2]*a+dd[p+2]*da*(1-a))/oa);dd[p+3]=Math.round(oa*255);
+  }
  }
 }
 function translated(cv,x,y){
