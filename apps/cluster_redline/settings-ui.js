@@ -32,12 +32,21 @@ function options(item,cfg){
  const range=PROFILES[cfg.engineProfile]&&PROFILES[cfg.engineProfile].ranges[item.key];
  return (item.steps||[]).filter(v=>!range||!v||v>=range[0]&&v<=range[1]).map(v=>[v,v===0?'Preset default':String(v)+' '+(item.unit||'')]);
 }
+// On the car (a recorded frame) a design preview is recorded once as a layer the renderer keeps, and only
+// drawn again when what it shows changes; the settings screen repaints twice a second and on every press.
+// draw(c,x,y) paints at x, y; key covers everything it depends on. Other canvases draw it directly.
+function cached(cv,key,x,y,w,h,draw){
+ if(typeof cv.words!=='function'||typeof cv.blit!=='function'||typeof G.layer!=='function'){draw(cv,x,y);return;}
+ const L=G.layer('redline-preview|'+key,Math.ceil(w),Math.ceil(h),r=>draw(r,0,0),cv.textScale||1);cv.blit(L,x,y);
+}
 function vector(cv,x,y,s){
  return {text:(v,a,b,z,c,o)=>cv.text(v,x+a*s,y+b*s,z*s,c,o),textWidth:(v,z,o)=>cv.textWidth(v,z*s,o)/s,
   line:(a,b,c,d,w,k)=>cv.line(x+a*s,y+b*s,x+c*s,y+d*s,w*s,k),polyline:(p,w,c)=>cv.polyline(p.map(v=>[x+v[0]*s,y+v[1]*s]),w*s,c),
   quad:(p,c)=>cv.quad(p.map(v=>[x+v[0]*s,y+v[1]*s]),c),arc:(a,b,r0,r1,f,l,c)=>cv.arc(x+a*s,y+b*s,r0*s,r1*s,f,l,c),
   fillRect:(a,b,w,h,c)=>cv.fillRect(x+a*s,y+b*s,w*s,h*s,c),roundRect:(a,b,w,h,r,c)=>cv.roundRect(x+a*s,y+b*s,w*s,h*s,r*s,c),
-  blit:(im,a,b)=>{for(let row=0;row<im.h;row++)for(let col=0;col<im.w;col++){const p=(row*im.w+col)*4;if(im.d[p+3])cv.fillRect(x+(a+col)*s,y+(b+row)*s,s,s,Array.from(im.d.slice(p,p+4)));}}};
+  // an image as rectangles: each run of same-colour pixels in a row is one rectangle, not one per pixel
+  blit:(im,a,b)=>{const D=new Uint32Array(im.d.buffer,im.d.byteOffset,im.d.length>>2);for(let row=0;row<im.h;row++){let col=0;while(col<im.w){const v=D[row*im.w+col];let end=col+1;while(end<im.w&&D[row*im.w+end]===v)end++;
+   if(v>>>24){const p=(row*im.w+col)*4;cv.fillRect(x+(a+col)*s,y+(b+row)*s,(end-col)*s,s,[im.d[p],im.d[p+1],im.d[p+2],im.d[p+3]]);}col=end;}}}};
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
@@ -96,8 +105,10 @@ class SettingsPage{
  toggleMetric(id){if(!this.draft||!D.METRICS.includes(id)||this.draft.mode!=='gauges'&&D.GAUGE_ONLY.includes(id))return;const a=this.draft.items,i=a.indexOf(id);if(i>=0)a.splice(i,1);else if(a.length<(this.draft.mode==='gauges'?2:4))a.push(id);this.changed();}
  commitAux(){if(!this.draft||!this.draft.items.length)return;this.settings.set(this.display()+'AuxConfig',JSON.stringify(this.draft));this.open=null;this.draft=null;this.changed();}
  button(cv,targets,label,x,y,w,h,act,on,id){
-  const layoutFocus=(this.open==='layout'||this.open==='layoutPresets')&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===D.METRICS.length||id==='clock-zone'&&this.choice===D.METRICS.length+1)||this.open==='rlDesign'&&id==='rl-'+RL.STYLES[this.choice]||this.open==='design'&&id==='design'+this.choice;
-  cv.roundRect(x,y,w,h,6,on||focused?'#57202d':'#252a31');if(layoutFocus&&/^part/.test(id||'')&&!on)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],2,'#9bacc4');let size=30;while(size>18&&cv.textWidth(t(label),size)>w-24)size--;
+  const layoutFocus=(this.open==='layout'||this.open==='layoutPresets')&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===D.METRICS.length||id==='clock-zone'&&this.choice===D.METRICS.length+1)||this.open==='rlDesign'&&id==='rl-'+RL.stylesFor(this.display())[this.choice]||this.open==='design'&&id==='design'+this.choice;
+  // On the design pickers the fill marks the design in use and a white outline the cursor; elsewhere the cursor fills.
+  const picker=(this.open==='design'||this.open==='rlDesign')&&focused;
+  cv.roundRect(x,y,w,h,6,on||focused&&!picker?'#57202d':'#252a31');if(picker)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],3,'#f3f5f7');if(layoutFocus&&/^part/.test(id||'')&&!on)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],2,'#9bacc4');let size=30;while(size>18&&cv.textWidth(t(label),size)>w-24)size--;
   if(label==='−'||label==='+'){cv.line(x+w/2-17,y+h/2,x+w/2+17,y+h/2,3,'#f3f5f7');if(label==='+')cv.line(x+w/2,y+h/2-17,x+w/2,y+h/2+17,3,'#f3f5f7');}
   else cv.text(label,x+w/2,y+h/2+size*0.36,size,'#f3f5f7',{align:'center',font:'bold'});targets.push({x,y,w,h,act,label,id:id||label});
  }
@@ -188,8 +199,9 @@ class SettingsPage{
  previewHUD(cv,cfg,x,y,width){this.preview(cv,cfg,x,y,width,'hud');}
  drawDesign(cv,cfg,targets){
   const display=this.display();['Top alert bar','Circle beside gear'].forEach((label,i)=>{
-   const x=84+i*740;this.button(cv,targets,label,x,106,712,64,()=>this.choose(i),this.choice===i,'design'+i);
-   const preview=Object.assign({},cfg);preview[display+'AlertStyle']=i?'circle':'bar';preview[display+'Design']='own';this.preview(cv,preview,x+10,182,display==='cluster'?590:690,display);
+   const x=84+i*740;this.button(cv,targets,label,x,106,712,64,()=>this.choose(i),!RL.active(cfg,display)&&(cfg[display+'AlertStyle']==='circle')===(i===1),'design'+i);
+   const preview=Object.assign({},cfg);preview[display+'AlertStyle']=i?'circle':'bar';preview[display+'Design']='own';const pw=display==='cluster'?590:690,painter=display==='cluster'?CLUSTER:HUD;
+   cached(cv,'own|'+display+'|'+JSON.stringify(preview),x+10,182,pw,painter.H*pw/painter.W+2,(c,px,py)=>this.preview(c,preview,px,py,pw,display));
   });this.button(cv,targets,tr('Redline app layouts')+(RL.active(cfg,display)?' · '+tr(RL.NAMES[RL.style(cfg,display)]):''),84,448,1100,64,()=>this.choose(2),RL.active(cfg,display),'design2');
   this.backButton(cv,targets);
  }
@@ -200,7 +212,8 @@ class SettingsPage{
   // Four columns: the Redline app's nine, then Cluster Redline's five; each preview fitted to its cell.
   RL.stylesFor(this.display()).forEach((st,i)=>{const x=84+(i%4)*366,y=138+Math.floor(i/4)*80,on=st===current,k=Math.min(200/RL.IW,52/RL.heightOf(st));
    this.button(cv,targets,'',x,y,354,76,()=>this.choose(i),on,'rl-'+st);
-   sample[d+'Design']='rl-'+st;RL.paint(cv,Object.assign({},state,{aux:Object.assign({gLat:0.3,gLong:-0.25,gforce:0.39},state.aux)}),k,x+8,y+4,0,d);
+   sample[d+'Design']='rl-'+st;const shown=Object.assign({},state,{config:Object.assign({},sample),aux:Object.assign({gLat:0.3,gLong:-0.25,gforce:0.39},state.aux)});
+   cached(cv,'rl|'+d+'|'+st+'|'+require('./strings').language()+'|'+JSON.stringify(shown.config),x+8,y+4,RL.IW*k+2,RL.heightOf(st)*k+2,(c,px,py)=>RL.paint(c,shown,k,px,py,0,d));
    cv.text(tr(RL.NAMES[st]),x+346,y+70,17,on?'#ffffff':'#b8c5d4',{align:'right',literal:true});
   });
   cv.text(tr('Redline app layouts (appsKOR, MIT) and Cluster Redline layouts. Navigation, lanes and auxiliary items stay as set.'),84,476,20,'#a8b6c8',{literal:true});
@@ -259,7 +272,9 @@ class SettingsPage{
   const d=this.display(),cur=this.config()[d+'Design']||'own',values={[d+'Design']:next};if(cur===next)return values;
   const keys=['RpmGauge'].concat(D.RL_PARTS).reduce((a,p)=>a.concat(['OffsetX','OffsetY','WidthScale','HeightScale','Hidden'].map(x=>d+p+x)),[]);
   let saved={};try{saved=JSON.parse(this.settings.get(d+'RlLayouts')||'{}')||{};}catch(e){saved={};}
-  const now={};keys.forEach(k=>{const v=this.settings.get(k);if(v!==undefined)now[k]=v;});saved[cur]=now;
+  const now={};keys.forEach(k=>{const v=this.settings.get(k);if(v!==undefined&&v!==defaultOf(this.settings.schema,k))now[k]=v;});if(Object.keys(now).length)saved[cur]=now;else delete saved[cur];
+  // Only values changed from the defaults are kept, so the saved list stays small however many designs are tried.
+  Object.keys(saved).forEach(n=>{const o=saved[n]||{};Object.keys(o).forEach(k=>{if(o[k]===defaultOf(this.settings.schema,k))delete o[k];});if(!Object.keys(o).length)delete saved[n];});
   const back=saved[next]||{};keys.forEach(k=>{values[k]=back[k]!==undefined?back[k]:defaultOf(this.settings.schema,k);});
   values[d+'RlLayouts']=JSON.stringify(saved);return values;
  }

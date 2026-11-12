@@ -160,13 +160,17 @@ function partRect(cfg,layout,b,key,d,spread){
 // only when its look changes) and the live needle over it, so a new rpm does not repaint the whole dial.
 const SPLIT=['sportdial','classic'];
 function nodes(state,e,d,key){
+ if(typeof key==='function')key=key(e.id);
  if(e.id!=='gauge'||!SPLIT.includes(style(state.config,d)))return [{id:e.id,key,painter:partPainter(state,e.id,e.b,e.r,d)}];
  const f=frame(state,0,d),still=JSON.stringify([f.opts.style,'face',f.redline,f.max,require('./strings').language(),/ECO/.test(String(f.drive||''))?'eco':/SPORT/.test(String(f.drive||''))||!f.drive?'sport':'comfort']);
  return [{id:'gauge.face',key:still,painter:partPainter(state,'gauge',e.b,e.r,d,'face')},{id:'gauge',key,painter:partPainter(state,'gauge',e.b,e.r,d,'live')}];
 }
 function partPainter(state,id,b,r,d,sel){
- if(id==='mark')return {W:r.w,H:r.h,draw:()=>{const {Canvas}=kit(),cv=new Canvas(r.w,r.h);cv.clear([0,0,0,0]);require('./m-mark').drawMark(cv,r.w/2,0,r.w,r.h);return cv;}};
- return {W:r.w,H:r.h,draw:v=>{const {Canvas,DRAW}=kit(),cv=new Canvas(r.w,r.h),k=r.w/b.w;cv.clear([0,0,0,0]);const f=frame(v,0,d);f.only=id;f.sel=sel;DRAW.drawLayer(DRAW.scaled(cv,k,-b.x*k,-b.y*k),f);return cv;}};
+ // draw(v): a new transparent canvas with the element; into(cv,v): the same, drawn on a cleared canvas of that size
+ // (the render cache's tile, without an extra canvas and copy each time the element changes).
+ if(id==='mark'){const into=cv=>{require('./m-mark').drawMark(cv,r.w/2,0,r.w,r.h);return cv;};return {W:r.w,H:r.h,into,draw:()=>{const {Canvas}=kit(),cv=new Canvas(r.w,r.h);cv.clear([0,0,0,0]);return into(cv);}};}
+ const into=(cv,v)=>{const {DRAW}=kit(),k=r.w/b.w,f=frame(v,0,d);f.only=id;f.sel=sel;DRAW.drawLayer(DRAW.scaled(cv,k,-b.x*k,-b.y*k),f);return cv;};
+ return {W:r.w,H:r.h,into,draw:v=>{const {Canvas}=kit(),cv=new Canvas(r.w,r.h);cv.clear([0,0,0,0]);return into(cv,v);}};
 }
 // The visible elements with their places: [{id, key, b, r}].
 function clampTo(r,face){if(!face)return r;const w=Math.min(r.w,face.w),h=Math.min(r.h,face.h),s=Math.min(w/r.w,h/r.h),W=Math.max(1,Math.round(r.w*s)),H=Math.max(1,Math.round(r.h*s));
@@ -184,4 +188,21 @@ function placed(state,layout,d,face0){
   return Object.assign({b,r:clampTo(partRect(cfg,layout,b,e.key,d,spread),wholeMoved||cfg[p+e.key+'OffsetX']||cfg[p+e.key+'OffsetY']?face:band)},e);});
 }
 function key(state,d){const f=frame(state,0,d);return JSON.stringify([f.opts.style,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode]);}
-module.exports={CLUSTER_ONLY,HUD_ONLY,stylesFor,HUD_BASE,safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,elements,bounds,partRect,partPainter,nodes,placed};
+// Each element's own key, so a tile repaints only when what it shows changes (the mode, readouts, M mark,
+// temperature and G-meter do not follow the revs; the gear does on the layouts that light it towards the
+// shift point, and on the others flashes at the limiter). One frame is read for all of them.
+const GEAR_FOLLOWS_REVS=['ramp','sportdial','classic'];
+function keys(state,d){
+ const f=frame(state,0,d),st=f.opts.style,full=JSON.stringify([st,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode,f.drive]);
+ const base=[st,f.redline,f.max,f.drive,f.mode,f.d.gear,f.d.stage,language()],memo={};
+ return id=>{if(memo[id])return memo[id];let v;
+  if(id==='gauge'||id==='alert'||id==='rpm'||id==='gear'&&GEAR_FOLLOWS_REVS.includes(st))v=full;
+  else if(id==='gear')v=JSON.stringify(base.concat([f.cue.shift,f.cue.limiter,f.blink]));
+  else if(id==='read')v=JSON.stringify(base.concat([f.readouts]));
+  else if(/^read[A-D]$/.test(id))v=JSON.stringify(base.concat([f.readouts['ABCD'.indexOf(id[4])]||null]));
+  else if(id==='gmeter')v=JSON.stringify(base.concat([f.g]));
+  else if(id==='temp')v=JSON.stringify(base.concat([f.oil]));
+  else v=JSON.stringify(base.concat([id]));
+  return (memo[id]=v);};
+}
+module.exports={CLUSTER_ONLY,HUD_ONLY,stylesFor,HUD_BASE,safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,keys,elements,bounds,partRect,partPainter,nodes,placed};

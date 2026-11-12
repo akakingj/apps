@@ -13,6 +13,13 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.37
+
+- **Fix: the Korean edition's settings watermark lost "서울II잼님" and "배움터".** The check for the Korean font called `kit/fonts.has()`, which the Store runtime's kit does not have; the call failed and the English watermark was drawn. The Korean atlas is now checked with `get()`.
+- **Design screen:** the fill marks the design in use and a white outline the cursor (both were the same red fill, so a default design looked still selected after a Redline layout was chosen). The previews on the design and Redline layout screens are recorded once as layers on the car instead of being redrawn twice a second (the cluster design screen was about 55,000 drawing words a frame; now about 600 plus the cached layers), and a preview's images are drawn as runs of rectangles, not one per pixel.
+- **Faster drawing:** each Redline element repaints only when what it shows changes (the mode, readouts, M mark, temperature and G-meter no longer repaint with every rpm change), elements paint straight into their cached tile, and tiles are composed and copied a pixel word at a time. A sweep through all layouts takes about half the time.
+- Each design's saved positions keep only values changed from the defaults (trying every layout had grown the saved list to about 24 KB).
+
 ### 1.2.36
 
 - **New layout: Sport HUD** (HUD only, not offered on the cluster): four yellow and three red pips as the rpm alert; a long slanted segment bar from 0 to the top revs, white then yellow towards the shift point and red at the redline, with the scale and RPM ×1000 under it; the gear big inside a stepped frame; the rpm big under it; the drive mode at the foot in the drive-mode colour (Sport red, Comfort blue, Eco sky blue); up to four readouts left and right.

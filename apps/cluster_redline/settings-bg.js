@@ -23,7 +23,13 @@ function columns(cv,w,h){
  if(!source())return;const cw=4,step=10;
  for(let x=0;x<w;x+=cw){const stops=[];for(let y=0;y<=h;y+=step){const c=sample((x+cw/2)*W/w-0.5,y*H/h-0.5);stops.push([Math.min(1,y/h),[c[0],c[1],c[2],255]]);}cv.gradientRect(x,0,Math.min(cw,w-x),h,stops);}
 }
-function korean(){try{return require('./strings').language()==='ko'&&require('./kit/fonts').has('korean');}catch(e){return false;}}
+// The Korean edition (its locale says ko) shows the Korean watermark. The Store runtime's kit/fonts has no
+// has(), so the Korean atlas is checked with get() (which falls back to 'label' when it is missing).
+function korean(){
+ let ko=false;try{ko=require('./strings').language()==='ko';}catch(e){return false;}
+ if(!ko)return false;
+ try{const F=require('./kit/fonts');if(typeof F.has==='function')return F.has('korean');const f=F.get('korean',20,'잼');return !!(f&&f.glyphs&&f.glyphs['잼'.codePointAt(0)]);}catch(e){return true;}
+}
 // Watermark: profile picture, cafe address and name, in the free space at the bottom right of the HUD,
 // cluster and navigation tabs (under their last row, right of their notes), never over a setting.
 function watermark(cv,w,h){

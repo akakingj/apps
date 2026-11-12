@@ -5,12 +5,16 @@ function bounds(b){const x=Math.floor(b.x),y=Math.floor(b.y);return {x,y,w:Math.
 function same(a,b){return a&&b&&a.x===b.x&&a.y===b.y&&a.w===b.w&&a.h===b.h;}
 function blend(dst,tile,r,clip){
  const area=intersection(r,clip);if(!area)return;
- const d=dst.d,s=tile.d;
- for(let y=area.y;y<area.y+area.h;y++)for(let x=area.x;x<area.x+area.w;x++){
-  const p=(y*dst.w+x)*4,i=((y-r.y)*tile.w+x-r.x)*4,alpha=s[i+3];if(!alpha)continue;
-  if(alpha===255||!d[p+3]){d[p]=s[i];d[p+1]=s[i+1];d[p+2]=s[i+2];d[p+3]=alpha;continue;}
-  const a=alpha/255,da=d[p+3]/255,oa=a+da*(1-a);
-  for(let k=0;k<3;k++)d[p+k]=Math.round((s[i+k]*a+d[p+k]*da*(1-a))/oa);d[p+3]=Math.round(oa*255);
+ // Whole pixels as 32-bit words (RGBA bytes, alpha in the top byte): empty source pixels are skipped and
+ // opaque ones, or any over an empty destination, copied in one write; only translucent over drawn is mixed.
+ const d=dst.d,s=tile.d,D=new Uint32Array(d.buffer,d.byteOffset,d.length>>2),T=new Uint32Array(s.buffer,s.byteOffset,s.length>>2);
+ for(let y=area.y;y<area.y+area.h;y++){let q=y*dst.w+area.x,j=(y-r.y)*tile.w+area.x-r.x;
+  for(let x=0;x<area.w;x++,q++,j++){
+   const sp=T[j];if(!sp)continue;const alpha=sp>>>24;if(!alpha)continue;
+   if(alpha===255||!(D[q]>>>24)){D[q]=sp;continue;}
+   const p=q*4,i=j*4,a=alpha/255,da=d[p+3]/255,oa=a+da*(1-a);
+   for(let k=0;k<3;k++)d[p+k]=Math.round((s[i+k]*a+d[p+k]*da*(1-a))/oa);d[p+3]=Math.round(oa*255);
+  }
  }
 }
 class RetainedScene{
@@ -21,7 +25,7 @@ class RetainedScene{
   let node=old;
   if(changed){
    let image=old&&same(old.rawBounds,rawBounds)?old.image:new Canvas(rawBounds.w,rawBounds.h);
-   if(!old||old.key!==key||!same(old.rawBounds,rawBounds)){image.clear([0,0,0,0]);paint(translated(image,-rawBounds.x,-rawBounds.y));this.metrics.paints++;}else this.metrics.hits++;
+   if(!old||old.key!==key||!same(old.rawBounds,rawBounds)){image.clear([0,0,0,0]);paint(translated(image,-rawBounds.x,-rawBounds.y),image,rawBounds);this.metrics.paints++;}else this.metrics.hits++;
    const region=project.region(rawBounds),r=intersection(region,{x:0,y:0,w:this.surface.w,h:this.surface.h})||{x:0,y:0,w:0,h:0};
    const tile=old&&old.tile.w===r.w&&old.tile.h===r.h?old.tile:new Canvas(r.w,r.h);tile.clear([0,0,0,0]);
    let columns,rows;
@@ -32,7 +36,11 @@ class RetainedScene{
     for(let y=0;y<r.h;y++){const sy=Math.round(project.sample(r.x,r.y+y,rawBounds)[1]-rawBounds.y);rows[y]=sy>=0&&sy<image.h?sy*image.w:-1;}
    }
    const sourcePixels=new Uint32Array(image.d.buffer,image.d.byteOffset,image.d.length/4),targetPixels=new Uint32Array(tile.d.buffer,tile.d.byteOffset,tile.d.length/4);
-   for(let y=0;y<r.h;y++){const row=rows[y],offset=y*r.w;for(let x=0;x<r.w;x++)targetPixels[offset+x]=row>=0&&columns[x]>=0?sourcePixels[row+columns[x]]:0;}
+   // An unscaled tile wholly inside the image is copied row by row; otherwise sampled pixel by pixel.
+   let plain=columns.length>0&&columns[0]>=0&&columns[r.w-1]===columns[0]+r.w-1;for(let x=1;plain&&x<r.w;x++)if(columns[x]!==columns[x-1]+1)plain=false;
+   for(let y=0;y<r.h;y++){const row=rows[y],offset=y*r.w;
+    if(plain&&row>=0){targetPixels.set(sourcePixels.subarray(row+columns[0],row+columns[0]+r.w),offset);continue;}
+    for(let x=0;x<r.w;x++)targetPixels[offset+x]=row>=0&&columns[x]>=0?sourcePixels[row+columns[x]]:0;}
    node={id,key,geometry,rawBounds,image,tile,r,columns,rows};this.nodes.set(id,node);if(old)this.changed.push(old.r);this.changed.push(r);
   }else this.metrics.hits++;
   this.seen.add(id);this.order.push(node);
@@ -59,7 +67,9 @@ class RetainedScene{
   const project={type:'scaled',r,region:()=>r,sample:(x,y,raw)=>[raw.x+Math.min(raw.w-1,Math.floor((x-r.x+.5)*raw.w/r.w)),raw.y+Math.min(raw.h-1,Math.floor((y-r.y+.5)*raw.h/r.h))]};
   this.add(id,key,b,paint,project);
  }
- navigation(id,key,painter,state,r){this.addScaled('nav.'+id,JSON.stringify(key),{x:0,y:0,w:painter.W,h:painter.H},c=>{const im=painter.draw(state);c.blit(im,0,0);},r);}
+ navigation(id,key,painter,state,r){this.addScaled('nav.'+id,typeof key==='string'?key:JSON.stringify(key),{x:0,y:0,w:painter.W,h:painter.H},(c,image)=>{
+  // A painter that can draw on the cleared tile does so; otherwise its own canvas is copied in.
+  if(painter.into&&image&&image.w===painter.W&&image.h===painter.H)painter.into(image,state);else{const im=painter.draw(state);c.blit(im,0,0);}},r);}
  finish(){
   this.nodes.forEach((n,id)=>{if(!this.seen.has(id)){this.changed.push(n.r);this.nodes.delete(id);}});
   const regions=[];this.changed.forEach(r=>{if(!r.w||!r.h)return;let current=Object.assign({},r),again=true;while(again){again=false;for(let i=regions.length-1;i>=0;i--)if(intersection(current,regions[i])){const b=regions.splice(i,1)[0],x=Math.min(current.x,b.x),y=Math.min(current.y,b.y);current={x,y,w:Math.max(current.x+current.w,b.x+b.w)-x,h:Math.max(current.y+current.h,b.y+b.h)-y};again=true;}}regions.push(current);});
