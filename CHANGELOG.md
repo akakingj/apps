@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.16
+
+- The M mark's default place is set per layout where it has room, so it no longer covers a light or a readout when added (bottom left on Standard, 80s digital dash, VFD glow, Vector arcade and Dial; top left on Split wings, Arc and Ramp; beside the gear on M shift lights; top centre on Analog needle; top right elsewhere). A mark already moved keeps its offset from the new place.
+
 ### 1.2.15
 
 - **M mark on every layout**: each of the fifteen layouts, on the HUD and the cluster, has an M mark element (the Cluster Redline design's own procedural mark). It is off until added with **Add M mark** in Position / size; once added it is selected, and moves, sizes and hides like any element, and is saved, loaded and reset with the layout (Reset removes it). **Remove M mark** takes it off.

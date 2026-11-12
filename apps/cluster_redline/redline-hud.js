@@ -102,8 +102,11 @@ function bboxCanvas(){
 const boundsCache=new Map();
 // The M mark (m-mark.js, as on the Cluster Redline design): off until added, top right of the image.
 const MARK={x:IW-62,y:2,w:56,h:18};
+// Where each layout has room for it by default (image units); the top right elsewhere.
+const MARK_AT={standard:{x:2,y:106},wings:{x:2,y:0,w:44,h:14},digital:{x:2,y:108,w:50,h:16},vfd:{x:2,y:108,w:50,h:16},vector:{x:2,y:106},
+ arc:{x:2,y:2},ramp:{x:2,y:2},dial:{x:2,y:108},shift:{x:322,y:78},needle:{x:172,y:2}};
 function bounds(state,id,d){
- if(id==='mark')return Object.assign({},MARK);
+ if(id==='mark')return Object.assign({},MARK,MARK_AT[style(state.config,d)]||{});
  const cfg=state.config,f=frame(Object.assign({},state,{rpm:cfg.maxRpm,gear:'M8',flash:true}),0,d);
  f.d=Object.assign({},f.d,{rpm:f.max,gear:8,stage:'D'});f.mode='M';f.blink=true;f.cue=Object.assign({},f.cue,{shift:true});
  f.readouts=(f.readouts||[]).map(r=>Object.assign({},r,{value:'88.88'}));f.only=id;
