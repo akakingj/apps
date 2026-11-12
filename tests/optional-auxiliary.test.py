@@ -36,6 +36,8 @@ with tempfile.TemporaryDirectory(prefix='aux-optional-') as tmp:
     # v9: a field with an unusable getter but a valid notifier is still subscribed.
     if kind=='missing':assert k not in attrs,label
     elif kind=='getter_bad':assert attrs[k]=='s',label
+    # v10: the exterior temperature is subscribed only (as the eDrive app reads it) whenever it has a notifier.
+    elif k=='ExteriorTemperature' and kind=='none':assert attrs[k]=='s',label
     else:assert attrs[k]==('rs' if kind=='none' else 'r'),label
 print('PASS: Store/desktop parity for six optional fields, missing/invalid getter isolation, notifier downgrade, read-only access and preserved core RPM/torque/unit inputs')
 # The voltage transport is optional and may expose only the named read API.

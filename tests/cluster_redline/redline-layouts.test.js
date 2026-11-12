@@ -13,7 +13,10 @@ const own=HUD.draw(Object.assign({},base,{config:settings({})}));
 const images={};
 for(const st of RL.STYLES){
  const cfg=settings({hudDesign:'rl-'+st,hudAuxConfig:JSON.stringify({mode:'gauges',items:['boost','clock']})}),state=Object.assign({},base,{config:cfg});
- const r=RL.rect(cfg,placement(cfg,'hud',face));assert.deepStrictEqual([r.w,r.h],[400,RL.heightOf(st)],'400 wide at the default HUD size (130 high; 176 for the five taller layouts)');
+ const hf=placement(cfg,'hud',face),r=RL.rect(cfg,hf,'hud'),sa=RL.safe(hf,'hud');
+ if(RL.heightOf(st)===RL.IH)assert.deepStrictEqual([r.w,r.h],[400,RL.IH],'400 × 130 at the default HUD size');
+ else assert(r.w<=400&&r.w>=340&&Math.abs(r.h/r.w-RL.heightOf(st)/400)<0.01,st+': a taller layout keeps its shape, shrunk only to stay in the HUD');
+ {const u=RL.extent(cfg,'hud'),k=r.w/RL.IW;assert(r.x+u.x0*k>=sa.x-1&&r.y+u.y0*k>=sa.y-1&&r.x+u.x1*k<=sa.x+sa.w+1&&r.y+u.y1*k<=sa.y+sa.h+1,st+' stays inside the area the default design uses');}
  const direct=HUD.draw(state),cached=HUD.draw(Object.assign({},state,{renderCache:HUD.createCache()}));
  assert(alpha(direct,r.x,r.y,r.x+r.w,r.y+r.h)>800,st+' draws its layout');
  assert.strictEqual(alpha(direct,0,0,800,480),alpha(direct,r.x,r.y,r.x+r.w,r.y+r.h),st+' draws nothing outside its rectangle (no RPM face)');

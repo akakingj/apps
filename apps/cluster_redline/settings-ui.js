@@ -6,7 +6,7 @@ const {settings:effective,PROFILES,DEFAULTS}=require('./policy');
 const D=require('./display-config'),RL=require('./redline-hud'),HUD=require('./hud-draw'),CLUSTER=require('./draw'),NAV=require('./nav-draw');
 const {measurePart}=require('./component-canvas'),{placement}=require('./layout'),NAV_TEXT=require('./nav-text');
 const W=1600,H=520,TABS=['Basic settings','HUD display setting','CLUSTER display setting','NAV display setting'];
-const GROUPS=[['autoStart','appEnabled','engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout'],['sportClusterOutput','allClusterOutput','aux','design','layout'],['navDisplayMode','navColor','layout']];
+const GROUPS=[['autoStart','appEnabled','engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout'],['sportClusterOutput','allClusterOutput','aux','design','layout'],['navDisplayMode','navColor','clusterYieldGuidance','layout']];
 const RENDERER_NOTICE='Install Cluster renderer (cluster-render) from MGU Store first.';
 const MAP_WARNING='Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
 const HUD_WARNING='HUD navigation shows received turn guidance; unavailable data preserves stock guidance.';
@@ -23,6 +23,7 @@ function layoutKeys(tab,schema){
 // Comfort / Eco shift alert RPM: kept outside app.json (like clockZone) so the Store templates stay valid.
 // The two shift alert rows are named for the modes they apply to (Shift alert RPM keeps its app.json key).
 const ROW_LABELS={shiftRpm:'Shift alert RPM · Sport',comfortShiftRpm:'Shift alert RPM · Comfort / Eco'};
+const YIELD_ITEM={key:'clusterYieldGuidance',label:'Cluster · yield to navigation',type:'choice',options:[['off',tr('Off · keep the cluster display')],['phone',tr('Phone navigation (Waze · CarPlay / Android Auto)')],['any',tr('Any route guidance (BMW + phone)')]]};
 const COMFORT_ITEM={key:'comfortShiftRpm',label:'Shift alert RPM · Comfort / Eco',type:'choice',options:[[0,tr('Automatic (90 % of Sport)')]].concat([2000,2250,2500,2750,3000,3250,3500,4000,4500,5000].map(v=>[v,v+' rpm']))};
 function options(item,cfg){
  if(!item)return [];
@@ -40,10 +41,10 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm'].concat(RL_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance'].concat(RL_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return GROUPS[this.tab];}
- item(){const key=this.keys()[this.focus];if(key==='comfortShiftRpm')return COMFORT_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
+ item(){const key=this.keys()[this.focus];if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
  selectTab(i){this.tab=Math.max(0,Math.min(3,i|0));this.focus=0;this.open=null;this.draft=null;this.choice=0;this.changed();}
  // The settings screen left without Back (Home, another app, screen off): end Position / size so its
  // preview never stays on the HUD or cluster.
@@ -67,7 +68,7 @@ class SettingsPage{
   if(item.key==='appEnabled')return t(cfg.appEnabled?'Running':'Stopped');
   if(item.key==='shiftRpm'&&!this.settings.get(item.key))return cfg.shiftRpm+' rpm';
   if(item.key==='comfortShiftRpm')return cfg.comfortShiftRpm?cfg.comfortShiftRpm+' rpm':tr('Automatic')+' · '+Math.round(cfg.shiftRpm*0.9/100)*100+' rpm';
-  const selected=options(item,cfg).find(o=>o[0]===this.settings.get(item.key));return selected?t(selected[1]):t('Check required');
+  const selected=options(item,cfg).find(o=>o[0]===(item.key==='clusterYieldGuidance'?cfg.clusterYieldGuidance:this.settings.get(item.key)));return selected?t(selected[1]):t('Check required');
  }
  change(delta){if(this.open==='layoutPresets')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
  activate(index){
@@ -119,7 +120,7 @@ class SettingsPage{
  drawRows(cv,cfg,targets,status){
   let y=100;
   this.keys().forEach((key,i)=>{
-   const item=key==='comfortShiftRpm'?COMFORT_ITEM:['aux','design','layout'].includes(key)?{key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key]}:this.settings.schema.find(s=>s.key===key);
+   const item=key==='comfortShiftRpm'?COMFORT_ITEM:key==='clusterYieldGuidance'?YIELD_ITEM:['aux','design','layout'].includes(key)?{key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key]}:this.settings.schema.find(s=>s.key===key);
    const h=this.tab===0?(key==='autoStart'?108:50):68,ty=h===50?35:39;
    if(i===this.focus){cv.gradientRect(78,y,1460,h-1,[[0,'#30131a'],[1,'#090b0e']]);cv.fillRect(78,y+(h===50?6:8),4,h===50?37:42,'#f32b40');}
    const label=/^sport/.test(key)?'Sport mode RPM display':/^all/.test(key)?'All modes RPM display':ROW_LABELS[key]||item.label;
@@ -134,7 +135,7 @@ class SettingsPage{
    cv.line(84,y+h-1,1536,y+h-1,0.6,'#292d34');y+=h;
   });
   if(this.tab===1||this.tab===2)cv.text('All modes Redline also applies in Sport.',84,492,23,'#91a1b6');
-  if(this.tab===3)cv.text(HUD_WARNING,84,390,25,'#91a1b6');
+  if(this.tab===3){cv.text(HUD_WARNING,84,390,25,'#91a1b6');cv.text(tr('Yield: while phone (Waze) or chosen route guidance runs, the cluster RPM display steps aside for the stock map.'),84,426,25,'#91a1b6');}
  }
  backButton(cv,targets){this.button(cv,targets,'Back',1210,448,326,64,()=>this.back(),false,'back');}
  drawChoices(cv,cfg,targets){
@@ -245,10 +246,14 @@ class SettingsPage{
   if(!on){const i=this.layoutParts().findIndex(p=>p.key==='RlMark');if(i>=0){this.layoutPart=i;this.layoutSelected=new Set(['RlMark']);}}this.changed();}
  adjust(param,delta){
   this.layoutParam=param;const cfg=this.config(),nav=this.tab===3,parts=this.selectedLayoutParts();if(!parts.length)return;
+  // Several parts (or All) resize as one picture: every part by the same factor, about the group's
+  // centre, so their sizes and the gaps between them keep their proportions.
+  if(!nav&&parts.length>1&&!parts.some(p=>p.uniform)&&param>=2){this.groupScale(cfg,parts,delta);return;}
   if(!nav&&(parts.length>1||parts.some(p=>p.uniform))&&param>=2){
    const values=parts.map(p=>{const prefix=this.layoutPrefix(p),w=cfg[prefix+'WidthScale'],h=cfg[prefix+'HeightScale'];return {prefix,w,h,lo:Math.max(20-w,20-h,Math.ceil((Math.max(w-1.3*h,h-1.3*w)/0.3-1e-7)/5)*5),hi:Math.min(200-w,200-h)};});
    const step=Math.max(...values.map(v=>v.lo),Math.min(delta*5,...values.map(v=>v.hi)));
-   const changes=this.previewRefresh();values.forEach(v=>{changes[v.prefix+'WidthScale']=v.w+step;changes[v.prefix+'HeightScale']=v.h+step;});this.setValues(changes);this.changed();return;
+   const changes=this.previewRefresh();values.forEach(v=>{changes[v.prefix+'WidthScale']=v.w+step;changes[v.prefix+'HeightScale']=v.h+step;});
+   if(this.rlUnchanged(cfg,parts,changes))return;this.setValues(changes);this.changed();return;
   }
   const edits=parts.map(p=>{
    const prefix=this.layoutPrefix(p),key=param<2?prefix+(param?'OffsetY':'OffsetX'):nav?p.scale:prefix+(param===2?'WidthScale':'HeightScale');
@@ -257,14 +262,52 @@ class SettingsPage{
    return {key,value:cfg[key],lo,hi};
   });
   const step=Math.max(...edits.map(e=>e.lo-e.value),Math.min(delta*(param<2?10:5),...edits.map(e=>e.hi-e.value)));
-  const changes=this.previewRefresh();edits.forEach(e=>{changes[e.key]=e.value+step;});this.setValues(changes);this.changed();
+  const changes=this.previewRefresh();edits.forEach(e=>{changes[e.key]=e.value+step;});
+  // A Redline layout element held at the edge of the HUD does not keep counting offsets it cannot show,
+  // so the way back (and every other direction) answers on the first press.
+  // Pressing back from a stored overshoot skips the steps that would not move it.
+  if(param<2&&!nav&&RL.active(cfg,this.display())&&step){
+   const at=v=>{const c=Object.assign({},cfg);edits.forEach(e=>{c[e.key]=Math.max(e.lo,Math.min(e.hi,e.value+v));});return JSON.stringify(parts.map(p=>this.rlRect(c,p)));},now=at(0);
+   let v=step,n=0;while(at(v)===now&&n<200&&edits.some(e=>e.value+v>e.lo&&e.value+v<e.hi)){v+=step;n++;}
+   if(at(v)===now)return;edits.forEach(e=>{changes[e.key]=Math.max(e.lo,Math.min(e.hi,e.value+v));});
+  }
+  if(param>=2&&this.rlUnchanged(cfg,parts,changes))return;
+  this.setValues(changes);this.changed();
  }
+ // A Redline layout already as large as the HUD allows (or held at its edge) does not store a size it cannot show.
+ rlUnchanged(cfg,parts,changes){if(this.tab===3||!RL.active(cfg,this.display()))return false;const after=Object.assign({},cfg,changes);return JSON.stringify(parts.map(p=>this.rlRect(cfg,p)))===JSON.stringify(parts.map(p=>this.rlRect(after,p)));}
+ partBase(cfg,p){
+  const display=this.display();
+  if(RL.active(cfg,display)){const e=RL.elements(cfg,display).find(v=>v.key===p.key);return e?RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display):null;}
+  const {Canvas}=require('./kit/canvas');let box=null;const noop=()=>{},text=new Canvas(1,1),painter=display==='hud'?HUD:CLUSTER;
+  const cv={clear:noop,text:noop,line:noop,polyline:noop,quad:noop,arc:noop,fillRect:noop,roundRect:noop,blit:noop,gradientRect:noop,textWidth:(v,z,o)=>text.textWidth(v,z,o),part:(c,d,n,b)=>{if(d!==display||n!==p.key||!b)return;box=box?{x:Math.min(box.x,b.x),y:Math.min(box.y,b.y),w:Math.max(box.x+box.w,b.x+b.w)-Math.min(box.x,b.x),h:Math.max(box.y+box.h,b.y+b.h)-Math.min(box.y,b.y)}:Object.assign({},b);}};
+  try{painter.draw({config:Object.assign({},cfg,{[display+p.key+'Hidden']:false}),rpm:0,gear:this.liveState&&this.liveState.gear||'--',aux:{}},cv);}catch(e){}
+  return box;
+ }
+ groupScale(cfg,parts,delta){
+  const items=parts.map(p=>{const prefix=this.layoutPrefix(p),b=this.partBase(cfg,p),w=cfg[prefix+'WidthScale']||100,h=cfg[prefix+'HeightScale']||100,ox=cfg[prefix+'OffsetX']||0,oy=cfg[prefix+'OffsetY']||0;
+   return b&&{prefix,w,h,ox,oy,cx:b.x+b.w/2+ox,cy:b.y+b.h/2+oy};}).filter(Boolean);
+  if(!items.length)return;
+  const lead=items[0],x0=Math.min(...items.map(i=>i.cx)),x1=Math.max(...items.map(i=>i.cx)),y0=Math.min(...items.map(i=>i.cy)),y1=Math.max(...items.map(i=>i.cy)),C={x:(x0+x1)/2,y:(y0+y1)/2};
+  const lo=Math.max(...items.map(i=>20/Math.min(i.w,i.h))),hi=Math.min(...items.map(i=>200/Math.max(i.w,i.h)));
+  const f=Math.max(lo,Math.min(hi,(lead.w+5*delta)/lead.w));if(Math.abs(f-1)<1e-6)return;
+  const changes=this.previewRefresh();
+  items.forEach(i=>{changes[i.prefix+'WidthScale']=Math.max(20,Math.min(200,Math.round(i.w*f)));changes[i.prefix+'HeightScale']=Math.max(20,Math.min(200,Math.round(i.h*f)));
+   changes[i.prefix+'OffsetX']=Math.max(-1000,Math.min(1000,Math.round(i.ox+(i.cx-C.x)*(f-1))));changes[i.prefix+'OffsetY']=Math.max(-1000,Math.min(1000,Math.round(i.oy+(i.cy-C.y)*(f-1))));});
+  this.setValues(changes);this.changed();
+ }
+ selectAllParts(){const parts=this.layoutParts().filter(p=>!p.uniform),all=parts.every(p=>this.layoutSelected.has(p.key));
+  this.layoutSelected=new Set(all?[parts[0].key]:parts.map(p=>p.key));this.layoutPart=Math.max(0,this.layoutParts().findIndex(p=>this.layoutSelected.has(p.key)));
+  const refresh=this.previewRefresh();if(refresh.layoutPreview!==undefined)this.settings.set('layoutPreview',refresh.layoutPreview);this.changed();}
+ rlRect(cfg,p){const display=this.display(),face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display);if(p.key==='RpmGauge')return layout;const e=RL.elements(cfg,display).find(v=>v.key===p.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display);return b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),RL.safe(face,display)):layout;}
  drawLayout(cv,cfg,targets){
   const local=[],nav=this.tab===3,display=this.display(),parts=this.layoutParts();this.layoutPart=Math.min(this.layoutPart,parts.length-1);
   // Five columns, or six when a layout has many elements (two rows with Save / load in the last cell).
   const columns=parts.length>=10?6:5,cell=columns===6?243:292;
   parts.forEach((p,i)=>this.button(cv,local,tr(p.label),84+(i%columns)*cell,96+Math.floor(i/columns)*62,cell-14,56,()=>this.selectLayoutPart(i),this.layoutSelected.has(p.key),'part'+i));
-  const presetCell=parts.length<=columns-1?columns-1:2*columns-1;
+  const allButton=this.tab!==3&&!RL.active(cfg,display),allCell=parts.length;
+  if(allButton){const sel=parts.every(p=>this.layoutSelected.has(p.key));this.button(cv,local,tr('All'),84+(allCell%columns)*cell,96+Math.floor(allCell/columns)*62,cell-14,56,()=>this.selectAllParts(),sel,'part-all');}
+  const presetCell=parts.length+(allButton?1:0)<=columns-1?columns-1:2*columns-1;
   this.button(cv,local,tr('Save / load'),84+(presetCell%columns)*cell,96+Math.floor(presetCell/columns)*62,cell-14,56,()=>{this.open='layoutPresets';this.choice=0;this.resetArmed=false;this.presetMessage='';this.changed();},false,'presets');
   const selected=parts[this.layoutPart],prefix=this.layoutPrefix(selected),group=this.selectedLayoutParts();
   cv.text('Position',100,241,28,'#b8c5d4');
@@ -276,7 +319,7 @@ class SettingsPage{
   });
   let width,height;
   if(nav){const rect=D.navRect(cfg,selected.key);width=rect.w;height=rect.h;}
-  else if(RL.active(cfg,display)){const face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display),e=RL.elements(cfg,display).find(v=>v.key===selected.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display),r=b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),face):layout;width=r.w;height=r.h;}
+  else if(RL.active(cfg,display)){const face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display),e=RL.elements(cfg,display).find(v=>v.key===selected.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display),r=b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),RL.safe(face,display)):layout;width=r.w;height=r.h;}
   else{const painter=display==='hud'?HUD:CLUSTER,b=measurePart(painter,{config:cfg,rpm:0,gear:this.liveState&&this.liveState.gear||'--'},display,selected.key,cv)||{w:0,h:0},r=placement(cfg,display==='hud'?'hud':cfg.displayTarget==='panel'?'panel':'map',painter);width=Math.round(b.w*cfg[prefix+'WidthScale']/100*r.w/painter.W);height=Math.round(b.h*cfg[prefix+'HeightScale']/100*r.h/painter.H);}
   cv.text(group.length?group.length+' '+t('selected')+' · '+tr(selected.label):t('Select items to adjust'),84,456,21,'#b8c5d4',{literal:true});
   cv.text(group.length?'X '+cfg[prefix+'OffsetX']+' · Y '+cfg[prefix+'OffsetY']+' · '+width+' × '+height+' px':'',84,500,21,'#ffad45',{literal:true});

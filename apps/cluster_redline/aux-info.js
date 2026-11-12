@@ -47,7 +47,9 @@ function filterAux(manifest,catalog){
   // A getter is polled; a notifier-only field (the exterior temperature on some cars) is subscribed.
   const getter=f&&f.getter&&validId(f.getter.id,1,32767),notifier=f&&f.notifier&&validId(f.notifier.id,32768,65535);
   if(!getter&&!notifier){delete p.attributes[s.field];return;}
-  p.attributes[s.field]=getter?(notifier?'rs':'r'):'s';
+  // The exterior temperature is subscribed only, exactly as the eDrive app does: its getter answers some
+  // cars with a placeholder, so it is not read.
+  p.attributes[s.field]=s.subscribe&&notifier?'s':getter?(notifier?'rs':'r'):'s';
  });
  [CDS2,KOMBI].forEach(i=>{if(proxies[i]&&!Object.keys(proxies[i].attributes||{}).length)delete proxies[i];});
  if(proxies[TASU]){if(!voltageSupported(catalog))delete proxies[TASU];else proxies[TASU]={instances:'SystemFunctionsInternalTasuInst1',methods:['sendTasuRequest'],broadcasts:['sendTasuResponse']};}

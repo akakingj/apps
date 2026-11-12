@@ -7,7 +7,7 @@ const manifest=()=>({proxies:{[ENV]:{attributes:{ExteriorTemperature:'rs'}}}});
 const catalog=field=>({interfaces:{[ENV]:{fields:{ExteriorTemperature:field}}}});
 const mode=field=>{const m=filterAux(manifest(),catalog(field));return m.proxies[ENV].attributes.ExteriorTemperature;};
 assert.strictEqual(mode({notifier:{id:32770}}),'s','notifier only: subscribe (as the eDrive app does)');
-assert.strictEqual(mode({getter:{id:7},notifier:{id:32770}}),'rs');assert.strictEqual(mode({getter:{id:7}}),'r');
+assert.strictEqual(mode({getter:{id:7},notifier:{id:32770}}),'s','getter and notifier: subscribe only, as eDrive');assert.strictEqual(mode({getter:{id:7}}),'r');
 assert.strictEqual(mode({}),undefined,'neither: the optional field is dropped');assert.strictEqual(mode(undefined),undefined);
 const values={};spec.settings.forEach(s=>{values[s.key]=s.default;});
 const page=new SettingsPage({schema:spec.settings,get:k=>values[k],set:(k,v)=>{values[k]=v;},setMany(c){Object.assign(values,c);}},null,'1.2.6');

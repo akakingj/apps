@@ -13,6 +13,16 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.19
+
+- **Cluster yields to navigation** (Navigation tab, new row "Cluster · yield to navigation"): Off / Phone navigation (Waze and other CarPlay / Android Auto guidance) / Any route guidance (BMW + phone). While that guidance runs the cluster RPM display steps aside for the stock map (status "Route guidance active · cluster released"); the HUD is not affected. Kept outside app.json.
+- **Redline layouts stay in the area the default design uses on the HUD**: the windscreen shows the top and outer edges of the 600x180 window poorly, so layouts are fitted to its inner area (top 12 %, bottom 5 %, sides 4 % left free, as the default design does). The taller layouts are scaled slightly to fit; no size or position can leave that area.
+- **All** button in Position / size for the default design: selects every part; Size then scales them as one picture (the same factor for width and height of each part, gaps between parts scaled about the group centre), so the shape no longer changes.
+- **No edge dead zone**: a Redline layout or element held at the HUD / cluster edge no longer keeps counting offsets it cannot show, so it comes back on the first opposite press; an overshoot stored by an earlier version is skipped. A Size already at the largest the area allows is not stored either.
+- **Outside temperature**: subscribed only (no getter read), exactly as the eDrive app does, and the last value is kept across a provider gap. Redline layouts request their readouts whatever the default design's Aux left / right hide settings are.
+- New app icon.
+- Performance checked: host render times per frame 0.7–2.1 ms (HUD) and 2.0–6.0 ms (cluster) for the default design and all 13 layouts with the retained scene.
+
 ### 1.2.18
 
 - **Positions and sizes per layout**: each design (the Cluster Redline design and every Redline layout, on the HUD and on the cluster separately) keeps its own Whole layout and element positions, sizes and hidden elements. Switching design saves the current one's and brings back the new one's (its defaults the first time). Save / load slots and Reset act on the current design.

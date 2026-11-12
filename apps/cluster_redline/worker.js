@@ -244,7 +244,8 @@ function start(ctx) {
                 const wanted=Object.keys(source.members).some(key=>neededAux.has(key==='oilFallback'?'oil':key==='gLat'||key==='gLong'?'gforce':key));
                 if(entry.wanted!==wanted){entry.epoch++;entry.wanted=wanted;entry.lastPoll=-Infinity;if(!entry.notifyOnly)auxInfo.clearSource(source);}
                 if(entry.available!==available){entry.epoch++;entry.available=available;}
-                if(!available){auxInfo.clearSource(source,'unavailable');return;}
+                // A subscribed value (the exterior temperature) is kept across a provider gap, as eDrive keeps it.
+                if(!available){if(!entry.notifyOnly)auxInfo.clearSource(source,'unavailable');return;}
                 if(!wanted&&!entry.notifyOnly){auxInfo.clearSource(source);return;}
                 if(entry.notifyOnly||!wanted||!sub.proxy||typeof sub.proxy.getValue!=='function'||entry.pending||at-entry.lastPoll<source.pollMs)return;
                 entry.pending=true;entry.lastPoll=at;const epoch=entry.epoch,revision=entry.revision;
@@ -308,6 +309,8 @@ function start(ctx) {
             const maneuverState=!commonManeuver.visible&&hudEvent?Object.assign({},hudEvent,{provider:commonManeuver.provider}):commonManeuver;
             const laneData=lanes.read(at,laneKey);
             const visible=collection.parts.direction&&maneuverState.visible||collection.parts.text&&maneuverState.visible&&!!maneuverState.description||collection.parts.lanes&&!!laneData;
+            const phoneGuiding=Object.keys(PROJECTED).some((provider)=>maneuvers.phoneActive(provider,at));
+            controller.guidanceYield=config.clusterYieldGuidance==='any'?phoneGuiding||!!navigationState.active:config.clusterYieldGuidance==='phone'&&phoneGuiding;
             controller.navigation=Object.assign({},maneuverState,{visible:!!visible,maneuverVisible:!!maneuverState.visible,lanes:laneData});
             // No decoded arrow means non-contending RPM, not disabled HUD.
             // The native renderer still yields to real stock content/popups.

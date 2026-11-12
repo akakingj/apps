@@ -4,10 +4,13 @@ const {Canvas}=require(root+'/kit/canvas'),D=require(root+'/display-config'),{se
 const spec=require(root+'/kit/app-spec.json');
 function store(){const values={};spec.settings.forEach(s=>values[s.key]=s.default);return {values,schema:spec.settings,get:k=>values[k],set:(k,v)=>values[k]=v};}
 for(const tab of [1,2,3])for(const style of ['circle','bar']){
- const s=store(),page=new SettingsPage(s);s.set('hudAlertStyle',style);s.set('clusterAlertStyle',style);page.selectTab(tab);page.activate(tab===3?2:4);
- const parts=page.layoutParts();page.selectLayoutPart(0,true);page.selectLayoutPart(1);assert.strictEqual(page.layoutSelected.size,2);const initial=page.config();page.adjust(0,1);page.adjust(2,1);
- for(const p of parts.slice(0,2)){const prefix=page.layoutPrefix(p);assert.strictEqual(page.config()[prefix+'OffsetX'],initial[prefix+'OffsetX']+10);assert.strictEqual(page.config()[tab===3?p.scale:prefix+'WidthScale'],initial[tab===3?p.scale:prefix+'WidthScale']+5);}
- if(tab!==3)for(const p of parts.slice(0,2))assert.strictEqual(page.config()[page.layoutPrefix(p)+'HeightScale'],initial[page.layoutPrefix(p)+'HeightScale']+5,'multi-selection grows width and height together');
+ const s=store(),page=new SettingsPage(s);s.set('hudAlertStyle',style);s.set('clusterAlertStyle',style);page.selectTab(tab);page.activate(page.keys().indexOf('layout'));
+ const parts=page.layoutParts();page.selectLayoutPart(0,true);page.selectLayoutPart(1);assert.strictEqual(page.layoutSelected.size,2);const initial=page.config();page.adjust(0,1);
+ for(const p of parts.slice(0,2)){const prefix=page.layoutPrefix(p);assert.strictEqual(page.config()[prefix+'OffsetX'],initial[prefix+'OffsetX']+10);}
+ const moved=page.config();page.adjust(2,1);
+ for(const p of parts.slice(0,2)){const prefix=page.layoutPrefix(p);if(tab===3){assert.strictEqual(page.config()[p.scale],initial[p.scale]+5);continue;}
+  const c=page.config(),f=c[prefix+'WidthScale']/moved[prefix+'WidthScale'];assert(f>1,'multi-selection grows');
+  assert(Math.abs(c[prefix+'HeightScale']/moved[prefix+'HeightScale']-f)<0.02,'multi-selection keeps each part\'s shape (same factor for width and height)');}
  page.toggleHidden(false);for(const p of parts.slice(0,2))assert(page.config()[page.layoutPrefix(p)+'Hidden']);
  page.toggleHidden(false);for(const p of parts.slice(0,2))assert(!page.config()[page.layoutPrefix(p)+'Hidden']);
  page.selectLayoutPart(1);assert.strictEqual(page.layoutSelected.size,1);page.selectLayoutPart(0);assert.strictEqual(page.layoutSelected.size,0);const prev=JSON.stringify(s.values);page.adjust(0,1);page.toggleHidden(false);assert.strictEqual(JSON.stringify(s.values),prev,'empty selection cannot alter settings');

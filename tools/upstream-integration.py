@@ -167,9 +167,14 @@ def optional_lane_source(text):
 
 
 def optional_aux_source(text):
-    if '// Jam optional auxiliary fields v9' in text:
+    if '// Jam optional auxiliary fields v10' in text:
         return optional_lane_source(text)
-    addition = r"""        // Jam optional auxiliary fields v9: never drop required RPM/torque for an absent extra field; notifier-only fields are subscribed.
+    if '// Jam optional auxiliary fields v9' in text:
+        v9 = '        // Jam optional auxiliary fields v9: never drop required RPM/torque for an absent extra field; notifier-only fields are subscribed.'
+        text = replace_once(text, v9, '        // Jam optional auxiliary fields v10: never drop required RPM/torque for an absent extra field; notifier-only fields and the exterior temperature (as eDrive) are subscribed.')
+        text = replace_once(text, '            else proxy.attributes[name]=getter ? (notifier ? "rs" : "r") : "s";\n', '            else proxy.attributes[name]=notifier && name==="ExteriorTemperature" ? "s" : getter ? (notifier ? "rs" : "r") : "s";\n')
+        return optional_lane_source(text)
+    addition = r"""        // Jam optional auxiliary fields v10: never drop required RPM/torque for an absent extra field; notifier-only fields and the exterior temperature (as eDrive) are subscribed.
         const auxiliaryFields = [
             ["de.bmw.infotainment.vehicle.CDS", "statusEngineTemperature"],
             ["de.bmw.infotainment.vehicle.CDS", "statusBattery2"],
@@ -187,7 +192,7 @@ def optional_aux_source(text):
             const validId=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;
             const getter=field && field.getter && validId(field.getter.id,1,32767), notifier=field && field.notifier && validId(field.notifier.id,32768,65535);
             if(!getter && !notifier)delete proxy.attributes[name];
-            else proxy.attributes[name]=getter ? (notifier ? "rs" : "r") : "s";
+            else proxy.attributes[name]=notifier && name==="ExteriorTemperature" ? "s" : getter ? (notifier ? "rs" : "r") : "s";
         });
         ["de.bmw.infotainment.vehicle.CDS2","de.bmw.infotainment.KombiIF"].forEach(iface=>{if(m.proxies[iface]&&!Object.keys(m.proxies[iface].attributes||{}).length)delete m.proxies[iface];});
         const tasu="com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu",def=have[tasu],ids=all.instanceIDs&&all.instanceIDs[tasu];

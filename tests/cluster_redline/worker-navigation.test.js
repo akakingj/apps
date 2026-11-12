@@ -372,7 +372,7 @@ async function notifierOnlyOutsideTemperature(){
   outside.handlers.ExteriorTemperature({temperatureExterior:116});h.tick(1100);assert.strictEqual(h.worker.controller.aux.outside,18);
   h.tick(61100);await flush();assert.strictEqual(h.worker.controller.aux.outside,18,'the last notified value stays while the interface is available');
   outside.handlers.ExteriorTemperature({temperatureExterior:117});h.tick(61200);assert.strictEqual(h.worker.controller.aux.outside,18.5);
-  outside.sub.available=false;h.tick(61300);assert.strictEqual(h.worker.controller.aux.outside,null,'interface loss clears it');
+  outside.sub.available=false;h.tick(61300);assert.strictEqual(h.worker.controller.aux.outside,18.5,'a provider gap keeps the last value, as eDrive does');
  }finally{h.worker.stop();await flush();h.stopped();}
 }
 async function outsideTemperatureLikeEDrive(){

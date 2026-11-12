@@ -33,6 +33,7 @@ const REASONS = {
     projection_stale: 'Phone guidance state stale · stock HUD preserved',
     navigation_provider_mismatch: 'Waiting for phone guidance state · stock HUD preserved',
     renderer_recovering: 'Recovering renderer layer',
+    cluster_yield: 'Route guidance active · cluster released',
 };
 mgu.run({ settingsUI: 'custom', async start(ctx) {
     configure(ctx);
