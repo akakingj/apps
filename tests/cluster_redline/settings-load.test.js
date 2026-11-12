@@ -14,10 +14,12 @@ function nativeFixture(){
 async function run(){
  const legacy=nativeFixture();await wire(runtime)(legacy.ctx,false);legacy.calls.length=0;
  legacy.ctx.settings.set('hudRpmGaugeOffsetX',10);legacy.ctx.settings.set('hudGearOffsetX',10);
- const oldCalls=legacy.calls.length;assert(oldCalls>200,'baseline must reproduce bulk updates of unused native settings');
+ // Upstream used to refresh every generated cell (200+ updates for two moves); it now refreshes far fewer,
+ // but the generated page is still updated, which a custom settings page must avoid entirely.
+ const oldCalls=legacy.calls.length;assert(oldCalls>0,'baseline: the generic path updates the unused native settings page');
  const custom=nativeFixture();await wire(runtime)(custom.ctx,true);custom.ctx.settings.set('hudRpmGaugeOffsetX',10);custom.ctx.settings.set('hudGearOffsetX',10);
  assert.strictEqual(custom.calls.length,0);assert.strictEqual(custom.clicks.length,0);assert.strictEqual(custom.listeners.length,0);
- const generic=nativeFixture();await wire(runtime)(generic.ctx,false);assert(generic.calls.length>100);generic.calls.length=0;generic.ctx.settings.set('hudGearOffsetX',10);assert(generic.calls.length>100,'other apps retain generic settings');
+ const generic=nativeFixture();await wire(runtime)(generic.ctx,false);assert(generic.calls.length>0);generic.calls.length=0;generic.ctx.settings.set('hudGearOffsetX',10);assert(generic.calls.length>0,'other apps retain generic settings');
  let writes=0,saved;const box={module:{exports:{}},DATA_DIR:'/mock',path,fs:{existsSync:()=>false,readFileSync:()=>{throw Error('No saved settings');},writeFileSync:(file,data)=>{writes++;saved=JSON.parse(data);}},log:{warn(){},error:e=>{throw e}}};
  const start=runtime.indexOf('class Settings {'),end=runtime.indexOf('\nclass Ui',start);assert(start>=0&&end>start);
  vm.runInNewContext(runtime.slice(start,end)+';module.exports=Settings;',box);
@@ -38,6 +40,6 @@ async function run(){
  const second=jobs.entries().next().value;jobs.delete(second[0]);second[1]();for(let n=0;n<5;n++)await Promise.resolve();assert.deepStrictEqual(seen,[99,199]);assert.strictEqual(errors.length,0);
  queue.request();queue.stop();assert.strictEqual(jobs.size,0);queue.request();assert.strictEqual(jobs.size,0);
  assert(runtime.includes("wireSettings(ctx, !!(impl && impl.settingsUI === 'custom'))"),'production runtime must actually pass the opt-out flag');
- console.log('PASS: old two-element movement emitted '+oldCalls+' native settings updates; custom UI emits zero, generic apps retain settings, one atomic batch save and latest-only serialized rendering');
+ console.log('PASS: generic two-element movement emits '+oldCalls+' native settings updates; custom UI emits zero, generic apps retain settings, one atomic batch save and latest-only serialized rendering');
 }
 run().catch(e=>{console.error(e);process.exitCode=1;});

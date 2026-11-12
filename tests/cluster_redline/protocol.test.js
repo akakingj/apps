@@ -41,11 +41,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         controller.policy.modeSample('SPORT_DYNAMIC', 0); controller.policy.rpmSample(6500, 1000);
         controller.tick(1000); await sleep(30);
         assert.deepStrictEqual(commands.map((x) => x.op), ['hello', 'layer', 'frame', 'set']);
-        const layer = commands[1]; assert.strictEqual(layer.target, 'panel'); assert.strictEqual(layer.visible, 0);
-        assert.strictEqual(layer.guide_hold, 0); assert.strictEqual(layer.prewarm, 0);
-        assert.strictEqual(layer.contend, 0); assert.strictEqual(layer.exclusive, 1); assert.strictEqual(layer.z, 100);
+        // Since 1.0.0 the default output is the cluster map area: it contends for that slot and yields to stock guidance.
+        const layer = commands[1]; assert.strictEqual(layer.target, 'map'); assert.strictEqual(layer.visible, 0);
+        assert.strictEqual(layer.guide_hold, 1); assert.strictEqual(layer.prewarm, 0);
+        assert.strictEqual(layer.contend, 1); assert.strictEqual(layer.exclusive, 1); assert.strictEqual(layer.z, 100);
         assert.strictEqual(layer.fps, 20);
-        assert.strictEqual(layer.x, 958.5); assert.strictEqual(layer.y, 358.5); // centered 3x3 display of 4x4 fixture
+        assert.strictEqual(layer.x, 543); assert.strictEqual(layer.y, 239); // 3x3 display of the 4x4 fixture centred on the 1088x480 map, whole pixels
         assert.strictEqual(commands[2].type, 0x46); assert.strictEqual(commands[2].bytes, 14 + 64);
         assert.strictEqual(commands[3].visible, 1);
         for (const rate of [30, 60]) {
