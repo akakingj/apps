@@ -103,7 +103,7 @@ class SettingsPage{
  }
  draw(cv,status,liveState){
   this.liveState=liveState||null;
-  const cfg=this.config(),targets=[],theme={bg:'#090b0e',text:'#f3f5f7',dim:'#8d97a4',sel:'#f32b40',accent:'#f32b40'};cv.clear(theme.bg);
+  const cfg=this.config(),targets=[],theme={bg:'#090b0e',text:'#f3f5f7',dim:'#8d97a4',sel:'#f32b40',accent:'#f32b40'};cv.clear(theme.bg);require('./settings-bg').paint(cv,W,H);
   const badges=this.version?[{text:'v'+this.version,color:'#8d97a4'}]:[];
   if(cv.chrome)G.frame(cv,theme,TABS,this.tab,badges);else{header(cv,theme,0,0,W,80,'Cluster Redline',TABS,this.tab,badges,true,false);(cv.tabRects||[]).forEach(r=>targets.push(Object.assign({},r,{act:()=>this.selectTab(r.i),label:TABS[r.i],id:'tab'+r.i})));}
   if(this.open==='layout')this.drawLayout(cv,cfg,targets);

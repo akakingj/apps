@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.28
+
+- Settings screen background: the BMW Coding Study Cafe photo (sky and car), darkened so every menu stays readable. Built into the app (no extra file).
+
 ### 1.2.27
 
 - HUD defaults tuned on the car: the default design (top alert bar and circle beside gear) two steps lower with the gear two more down and two to the left; analog needle upper readouts one step lower; mode ribbon one step lower; hexagon upper readouts one step lower; vector arcade one step lower. Added to stored positions, so stored 0 is the new default.
