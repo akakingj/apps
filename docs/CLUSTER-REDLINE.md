@@ -1,4 +1,4 @@
-# Cluster Redline 1.2.6 user guide
+# Cluster Redline 1.2.7 user guide
 
 [한국어](CLUSTER-REDLINE.ko.md) · [Installation](INSTALL.md) · [All screenshots](../screenshots/README.md) · [Changelog](../CHANGELOG.md)
 
@@ -136,6 +136,10 @@ The custom settings UI no longer refreshes the unused generic HMI settings page.
 - **Shift alert:** Sport unchanged; Comfort/Eco and other modes use 90 % of the shift RPM with 50/80/100 % green/yellow/red.
 - **Position / size:** Save / load (three slots) and two-press reset; the selected part is drawn while adjusting even when hidden or without guidance (expires two minutes after the last edit, clears on Back).
 - **Outside temperature:** diagnostics in the status file. Stock HUD music/phone popups still take priority (renderer policy).
+
+## 1.2.7 fixes
+
+- **Outside temperature**: read the way the eDrive app does, from the car's notifications rather than asking for the value every 10 s. On some cars the direct read has no usable value, so eDrive showed the temperature while the HUD showed `--`. An invalid reading keeps the last good value.
 
 ## 1.2.6 fixes
 

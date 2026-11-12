@@ -98,9 +98,10 @@ function start(ctx) {
                 const cfg=signals.loadConfig(iface),handlers={},entries=[];
                 auxGroups[iface].forEach(source=>{
                     const f=cfg.fields&&cfg.fields[source.field];if(!f||!f.getter&&!f.notifier)return;
-                    // A notifier-only field (the exterior temperature on some cars, as the eDrive app reads it)
-                    // cannot be polled: keep its last notified value while the interface is available.
-                    const notifyOnly=!f.getter,kept=notifyOnly?Object.assign({},source,{ttlMs:6*3600000}):source;
+                    // A notifier-only field cannot be polled, and the exterior temperature is read from its
+                    // notifications whenever the car sends them, as the eDrive app does (some cars' getter answers
+                    // with no usable value): keep the last notified value while the interface is available.
+                    const notifyOnly=!f.getter||!!(source.subscribe&&f.notifier),kept=notifyOnly?Object.assign({},source,{ttlMs:6*3600000}):source;
                     const entry={source,kept,notifyOnly,sub:null,pending:false,lastPoll:-Infinity,epoch:0,revision:0,available:false,wanted:false};entries.push(entry);
                     handlers[source.field]=value=>{if(!stopped){entry.revision++;if(entry.wanted||notifyOnly){entry.lastPoll=mono();auxInfo.sample(kept,value,entry.lastPoll);}}};
                 });

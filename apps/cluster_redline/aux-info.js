@@ -14,7 +14,8 @@ const SOURCES=[
  {iface:CDS2,field:'statusInjectionVolume',members:{oilFallback:['oilTemperature',1,-48,255]}},
  {iface:CDS2,field:'statusLongitudinalAccelerationMassCenter',members:{gLong:['longitudinalAccelerationCentreOfGravity',0.002/9.80665,-65/9.80665,65535]}},
  {iface:CDS2,field:'statusLateralAccelerationMassCenter',members:{gLat:['lateralAccelerationCentreOfGravity',0.002/9.80665,-65/9.80665,65535]}},
- {iface:ENV,field:'ExteriorTemperature',members:{outside:['temperatureExterior',0.5,-40,255]}},
+ // Read as the eDrive app does: from its notifications whenever the car sends them, keeping the last good value.
+ {iface:ENV,field:'ExteriorTemperature',members:{outside:['temperatureExterior',0.5,-40,255]},subscribe:true,keepLast:true},
  {iface:CDS,field:'statusBattery2',members:{batteryCharge:['conditionBatteryChargingCondition',1,0,101]}},
  {iface:KOMBI,field:'statusBordcomputerAverage',members:{economy:[]},decode:economy}
 ];
@@ -25,7 +26,9 @@ SOURCES.forEach(source=>{
 });
 class AuxInfo {
  constructor(){this.samples={};this.diag={};}
- sample(source,value,now){Object.keys(source.members).forEach(k=>{const a=source.members[k],raw=value&&value[a[0]],v=source.decode?source.decode(value):typeof raw==='number'&&isFinite(raw)&&raw>=0&&raw<a[3]?raw*a[1]+a[2]:null;this.samples[k]={v,at:now,ttl:source.ttlMs||2500};
+ sample(source,value,now){Object.keys(source.members).forEach(k=>{const a=source.members[k],raw=value&&value[a[0]],v=source.decode?source.decode(value):typeof raw==='number'&&isFinite(raw)&&raw>=0&&raw<a[3]?raw*a[1]+a[2]:null,prev=this.samples[k];
+  // keepLast: an invalid reading (e.g. 255 while the sensor settles) leaves the last good value, as eDrive does.
+  if(!(source.keepLast&&v===null&&prev&&prev.v!==null))this.samples[k]={v,at:now,ttl:source.ttlMs||2500};
   // Bounded diagnostics: why a received value was or was not usable (no other data).
   if(!source.decode)this.diag[k]={at:now,member:a[0],raw:typeof raw==='number'&&isFinite(raw)?raw:raw===undefined?null:typeof raw,keys:value&&typeof value==='object'?Object.keys(value).slice(0,8):typeof value,
    result:v!==null?'ok':raw===undefined?'member_missing':typeof raw!=='number'||!isFinite(raw)?'not_number':raw<0?'negative':'invalid_or_out_of_range',value:v};});}

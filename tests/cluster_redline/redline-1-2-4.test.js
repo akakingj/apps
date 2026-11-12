@@ -36,7 +36,8 @@ assert(D.visibleMetrics(clockConfig,'hud').includes('clock'));
 const outside=SOURCES.find(s=>s.field==='ExteriorTemperature'),info=new AuxInfo();
 info.sample(outside,{temperatureExterior:116},0);assert.strictEqual(info.read(1).outside,18);assert.strictEqual(info.diag.outside.result,'ok');
 [[{temperatureExterior:255},'invalid_or_out_of_range'],[{temperatureExterior:-3},'negative'],[{exteriorTemp:116},'member_missing'],[{temperatureExterior:'18'},'not_number']].forEach(([value,reason])=>{
- info.sample(outside,value,2);assert.strictEqual(info.read(3).outside,null);assert.strictEqual(info.diag.outside.result,reason);});
+ info.sample(outside,value,2);assert.strictEqual(info.read(3).outside,18,'an invalid reading keeps the last good value, as eDrive does');assert.strictEqual(info.diag.outside.result,reason);
+ const fresh=new AuxInfo();fresh.sample(outside,value,2);assert.strictEqual(fresh.read(3).outside,null,'nothing good yet: no value');});
 info.sample(outside,{temperatureExterior:116.5},4);assert.strictEqual(info.read(5).outside,18.25,'a fractional raw value is accepted, as the eDrive app does');
 info.clearSource(outside,'read_failed');assert.strictEqual(info.diag.outside.result,'read_failed');
 

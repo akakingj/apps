@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.7
+
+- Outside temperature is read the way the eDrive app reads it: from `EnvironmentalInformation.ExteriorTemperature` notifications whenever the car sends them, no longer by polling the getter every 10 s on cars that offer both (some cars' getter answers without a usable value, so the HUD showed `--` while eDrive showed the temperature). An invalid reading (e.g. 255 while the sensor settles) keeps the last good value, as eDrive does; losing the interface still clears it. Cars with only a getter keep polling. Install-time access (`r` / `s` / `rs`) is unchanged.
+
 ### 1.2.6
 
 - Outside temperature now shows on cars that publish `EnvironmentalInformation.ExteriorTemperature` only as a notification (no getter). The Store build used to drop a field without a getter and the worker only polled; the field is now subscribed (`s`) and the last notified value is kept while the interface is available, as the eDrive app does. Cars with a getter keep `r`/`rs` and polling. A fractional raw value (0.5 °C steps) is accepted.
