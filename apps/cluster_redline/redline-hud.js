@@ -73,7 +73,7 @@ function room(face,d){return d==='cluster'||!face||!face.tw?face:{x:0,y:0,w:face
 // and the readouts (and Hexagon's RPM number) this much larger. Added to what Position / size stores, so
 // stored 0 / 100 % is this default and Reset brings it back.
 const HUD_BASE={standard:{y:10},digital:{y:10},vfd:{y:10},arc:{y:30},ramp:{y:10},dial:{y:20},
- shift:{y:30,read:200},logger:{},needle:{y:20,read:150},rings:{y:20,read:150},ribbon:{y:20,read:150},hexagon:{y:30,read:200,rpm:150,lift:{RlReadA:-14,RlReadC:-14}}};
+ shift:{y:30,read:200},logger:{},needle:{y:20,read:150,lift:{RlReadA:-30,RlReadB:-30}},rings:{y:20,read:150},ribbon:{y:20,read:150},hexagon:{y:30,read:200,rpm:150,lift:{RlReadA:-14,RlReadC:-14}}};
 function hudBase(cfg,d){return d==='cluster'?{}:HUD_BASE[style(cfg,d)]||{};}
 function baseScale(cfg,d,key){const b=hudBase(cfg,d);return (/^RlRead/.test(key)?b.read:key==='RlRpm'?b.rpm:0)||100;}
 function rect(cfg,face0,d){
