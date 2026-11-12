@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.34
+
+- Sport dial takes the drive mode's colour: Sport red, Comfort blue, Eco sky blue (glow, rim, trims and readout accents; the rpm alert too).
+
 ### 1.2.33
 
 - Sport dial and Classic dial are cluster-only: the HUD picker offers the other 13 layouts, and a HUD set to one of them falls back to the default design.

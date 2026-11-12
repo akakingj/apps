@@ -159,7 +159,7 @@ function partRect(cfg,layout,b,key,d,spread){
 const SPLIT=['sportdial','classic'];
 function nodes(state,e,d,key){
  if(e.id!=='gauge'||!SPLIT.includes(style(state.config,d)))return [{id:e.id,key,painter:partPainter(state,e.id,e.b,e.r,d)}];
- const f=frame(state,0,d),still=JSON.stringify([f.opts.style,'face',f.redline,f.max,require('./strings').language()]);
+ const f=frame(state,0,d),still=JSON.stringify([f.opts.style,'face',f.redline,f.max,require('./strings').language(),/ECO/.test(String(f.drive||''))?'eco':/SPORT/.test(String(f.drive||''))||!f.drive?'sport':'comfort']);
  return [{id:'gauge.face',key:still,painter:partPainter(state,'gauge',e.b,e.r,d,'face')},{id:'gauge',key,painter:partPainter(state,'gauge',e.b,e.r,d,'live')}];
 }
 function partPainter(state,id,b,r,d,sel){

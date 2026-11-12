@@ -90,14 +90,20 @@ function drawHexagon(cv,f,h){
  box.forEach((b,i)=>{if(!want(f,'read'+'ABCD'[i])||!f.readouts[i])return;const [x,y,s]=b;cv.polyline([[x,y],[x+190*s,y],[x+220*s,y+30],[x+220*s,y+90],[x+30*s,y+90],[x,y+60],[x,y]],3,'#2a2f37');
   readout(cv,f.readouts[i],x+20*s,y+35,22,44,s>0?'left':'right');});
 }
-// Sport dial: a big round tachometer with a red glow in the middle (0 at bottom left round to the end at
+// Sport dial: a big round tachometer with a glow in the drive mode's colour (Sport red, Comfort blue, Eco sky blue) in the middle (0 at bottom left round to the end at
 // the right, numbers from the redline in yellow, a yellow needle), the rpm in big digits inside it, the gear
 // in a box under it and the drive mode below; side panels hold up to four readouts in boxes, with a
 // segmented bar under each when the readouts are gauges.
 const SD={cx:544,cy:228,R:204,a0:-130,a1:112,yellow:'#ffd21f',glow:'#ff2a1a',panel:'#0d1014',box:'#15191f',edge:'#2b313a'};
-function sdBox(cv,it,x,y,w,hh,right){
+// The dial's colour follows the drive mode: Sport red, Comfort blue, Eco sky blue.
+function sdTheme(drive){const m=String(drive||'');
+ if(/ECO/.test(m))return {main:[64,200,255],trim:[110,214,255],deep:[2,12,18]};
+ if(/SPORT/.test(m)||!m)return {main:[255,40,24],trim:[255,70,50],deep:[18,4,4]};
+ return {main:[40,110,255],trim:[80,140,255],deep:[3,6,20]};}
+const rgbA=(c,a)=>[c[0],c[1],c[2],Math.round(a)];
+function sdBox(cv,it,x,y,w,hh,right,th){
  // no box background: a red accent on the outer side, then the label and value
- cv.fillRect(right?x+w-4:x,y+10,4,hh-20,'#b3241a');
+ cv.fillRect(right?x+w-4:x,y+10,4,hh-20,rgbA((th||sdTheme('')).main,200));
  if(!it)return;
  const ko=language()==='ko',bar=it.gauge&&it.frac!==null;
  cv.text(it.label,x+24,y+38,26,C.soft,{font:'bold'});
@@ -111,19 +117,19 @@ function sdBox(cv,it,x,y,w,hh,right){
  void ko;
 }
 function drawSportDial(cv,f,h){
- const d=f.d,max=f.max,{cx,cy,R}=SD,A=v=>SD.a0+(SD.a1-SD.a0)*clamp(v,0,max)/max,pt=(a,r)=>[cx+r*Math.sin(a*Math.PI/180),cy-r*Math.cos(a*Math.PI/180)];
+ const th=sdTheme(f.drive),d=f.d,max=f.max,{cx,cy,R}=SD,A=v=>SD.a0+(SD.a1-SD.a0)*clamp(v,0,max)/max,pt=(a,r)=>[cx+r*Math.sin(a*Math.PI/180),cy-r*Math.cos(a*Math.PI/180)];
  const rpm=isNum(d.rpm)?clamp(d.rpm,0,max):0,q=cue(f),atShift=f.cue.shift,ko=language()==='ko';
  if(want(f,'gauge')&&f.sel!=='live'){
   // red neon trims framing the side wings (the readouts stand on the black inside them)
   [[1],[-1]].forEach(([sg])=>{const X=x=>sg>0?x:1088-x,trim=[[X(318),20],[X(52),20],[X(16),56],[X(16),424],[X(52),460],[X(318),460]];
-   [[12,[255,40,24,30]],[6,[255,40,24,70]],[2.2,[255,70,50,255]]].forEach(([w,c])=>cv.polyline(trim,w,c));
-   [[X(300),20],[X(330),60]].forEach(()=>{});cv.line(X(318),20,X(338),46,2,[255,70,50,200]);cv.line(X(318),460,X(338),434,2,[255,70,50,200]);});
+   [[12,rgbA(th.main,30)],[6,rgbA(th.main,70)],[2.2,rgbA(th.trim,255)]].forEach(([w,c])=>cv.polyline(trim,w,c));
+   [[X(300),20],[X(330),60]].forEach(()=>{});cv.line(X(318),20,X(338),46,2,rgbA(th.trim,200));cv.line(X(318),460,X(338),434,2,rgbA(th.trim,200));});
   // the dial: a dark housing, a metal bezel lit from the top left, the red glow strongest at the rim
   cv.circle(cx+5,cy+8,R+26,[0,0,0,150]);cv.circle(cx,cy,R+22,'#060708');
   for(let a=0;a<360;a+=5){const L=0.5+0.5*Math.cos((a+2.5+45)*Math.PI/180);cv.arc(cx,cy,R+6,R+20,a,a+5.4,[0,1,2].map(k=>Math.round([38,40,46][k]+([214,220,228][k]-[38,40,46][k])*L)).concat([255]));}
-  cv.arc(cx,cy,R+2,R+6,0,360,'#ff4a2a');
-  cv.circle(cx,cy,R+2,'#120404');
-  for(let k=0;k<10;k++){const r=R-k*9,a=0.85*Math.pow(1-k/10,1.6);cv.arc(cx,cy,r-9.6,r,0,360,[255,40+k*3,20,Math.round(a*255)]);}
+  cv.arc(cx,cy,R+2,R+6,0,360,rgbA(th.trim,255));
+  cv.circle(cx,cy,R+2,rgbA(th.deep,255));
+  for(let k=0;k<10;k++){const r=R-k*9,a=0.85*Math.pow(1-k/10,1.6);cv.arc(cx,cy,r-9.6,r,0,360,rgbA(th.main,a*255));}
   for(let v=0;v<=max+1;v+=250){const major=v%1000===0,a=A(v),p=pt(a,R-6),q2=pt(a,major?R-30:R-16);cv.line(p[0]+1.5,p[1]+2,q2[0]+1.5,q2[1]+2,major?5:2.5,[0,0,0,140]);cv.line(p[0],p[1],q2[0],q2[1],major?5:2.5,v>=f.redline?SD.yellow:'#f6f7f9');}
   for(let k=0;k*1000<=max;k++){const a=A(k*1000),l=pt(a,R-58),col=k*1000>=f.redline?SD.yellow:'#f6f7f9';cv.text(String(k),l[0]+2,l[1]+17,46,[0,0,0,170],{align:'center',font:'bold'});cv.text(String(k),l[0],l[1]+15,46,col,{align:'center',font:'bold'});}
   // the inner disc: dark, a little lighter at the top, ringed in grey with a lit upper edge
@@ -139,7 +145,7 @@ function drawSportDial(cv,f,h){
  }
  if(want(f,'alert')&&rpm>50){
   // the rpm alert: the dial's rim lit red up to the rpm, brighter towards the shift point, flashing at it
-  const col=q.flash?(q.on?'#ff2a1a':null):[255,42,26,Math.round(255*(0.35+0.65*q.p))];
+  const col=q.flash?(q.on?'#ff2a1a':null):rgbA(th.main,255*(0.35+0.65*q.p));
   if(col)cv.arc(cx,cy,R+4,R+14,SD.a0,A(rpm),col);
  }
  if(want(f,'rpm')){
@@ -157,7 +163,7 @@ function drawSportDial(cv,f,h){
  if(want(f,'mode')){const m=String(f.drive||''),word=/SPORT/.test(m)?(/PLUS/.test(m)?(ko?'스포츠+':'SPORT+'):(ko?'스포츠':'SPORT')):/ECO/.test(m)?(ko?'에코 프로':'ECO PRO'):m?(ko?'컴포트':'COMFORT'):'';
   if(word){cv.text(word,cx,cy+218,34,SD.yellow,{align:'center',font:'bold',literal:true});cv.text(ko?'주행 모드':'DRIVE MODE',cx,cy+240,16,C.dim,{align:'center',font:'bold',literal:true});}}
  // readouts: A top left, B top right, C bottom left, D bottom right
- [[26,60,0],[790,60,1],[26,256,0],[790,256,1]].forEach((p,i)=>{if(want(f,'read'+'ABCD'[i])&&f.readouts[i])sdBox(cv,f.readouts[i],p[0],p[1],272,170,p[2]);});
+ [[26,60,0],[790,60,1],[26,256,0],[790,256,1]].forEach((p,i)=>{if(want(f,'read'+'ABCD'[i])&&f.readouts[i])sdBox(cv,f.readouts[i],p[0],p[1],272,170,p[2],th);});
 }
 // Classic dial: a cream dial in a knurled chrome bezel on black (0 at lower left round to the end at
 // lower right, a red band from the redline, a bronze needle on a chrome hub), "x1000 rpm" under the top
