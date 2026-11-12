@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.22
+
+- Analog needle readouts three more steps closer to the centre (six in all). Released as a new version so the Store offers the update.
+
 ### 1.2.21
 
 - **Cluster yield follows the HUD**: with "When guidance shows on the HUD", the cluster RPM display is released whenever route guidance shows (or would show) on the HUD, Waze included, as well as on the phone guidance flags. The Navigation tab check line shows HUD O / X.
