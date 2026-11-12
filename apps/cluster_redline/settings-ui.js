@@ -12,7 +12,7 @@ const MAP_WARNING='Set Central display area to Map view or Off. Assist or route 
 const HUD_WARNING='HUD navigation shows received turn guidance; unavailable data preserves stock guidance.';
 // Keys saved, loaded and reset by the position/size presets of each tab.
 const RL_KEYS=Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k)),defaultOf=(schema,k)=>{const d=schema.find(s=>s.key===k);return d&&d.default!==undefined?d.default:DEFAULTS[k];};
-const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlRead|RlReadA|RlReadB|RlReadC|RlReadD)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
+const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlGMeter|RlRead|RlReadA|RlReadB|RlReadC|RlReadD)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
 const NAV_KEYS=['hudNavOffsetX','hudNavOffsetY','navUniformScale','hudNavWidthScale','hudNavHeightScale','hudTextOffsetX','hudTextOffsetY','hudTextScale','hudLanesOffsetX','hudLanesOffsetY','hudLanesScale','hudNavHidden','hudTextHidden','hudLanesHidden'];
 function layoutKeys(tab,schema){
  const name=tab===3?'nav':tab===2?'cluster':'hud',known=new Set(schema.map(s=>s.key));
@@ -174,12 +174,13 @@ class SettingsPage{
  drawRedlineDesigns(cv,cfg,targets){
   cv.text(tr('Redline app layouts'),100,126,32,'#ef4050',{literal:true});
   const d=this.display(),current=RL.style(cfg,d),sample=Object.assign({},cfg),state={config:sample,rpm:6300,gear:'M3',shift:false,flash:false,mode:'SPORT',torqueNm:380,powerPS:260,aux:{boost:1.1,oil:96,outside:18,clock:'23:00'}};
-  RL.STYLES.forEach((st,i)=>{const x=84+(i%3)*490,y=140+Math.floor(i/3)*100,on=st===current;
-   this.button(cv,targets,'',x,y,464,94,()=>this.choose(i),on,'rl-'+st);
-   sample[d+'Design']='rl-'+st;RL.paint(cv,state,0.56,x+8,y+10,0,d);
-   cv.text(tr(RL.NAMES[st]),x+456,y+86,20,on?'#ffffff':'#b8c5d4',{align:'right',literal:true});
+  // Four columns: the Redline app's nine, then Cluster Redline's five; each preview fitted to its cell.
+  RL.STYLES.forEach((st,i)=>{const x=84+(i%4)*366,y=138+Math.floor(i/4)*80,on=st===current,k=Math.min(200/RL.IW,52/RL.heightOf(st));
+   this.button(cv,targets,'',x,y,354,76,()=>this.choose(i),on,'rl-'+st);
+   sample[d+'Design']='rl-'+st;RL.paint(cv,Object.assign({},state,{aux:Object.assign({gLat:0.3,gLong:-0.25,gforce:0.39},state.aux)}),k,x+8,y+4,0,d);
+   cv.text(tr(RL.NAMES[st]),x+346,y+70,17,on?'#ffffff':'#b8c5d4',{align:'right',literal:true});
   });
-  cv.text(tr('Layout from the Redline app (appsKOR, MIT). Navigation, lanes and auxiliary items stay as set.'),84,470,20,'#a8b6c8',{literal:true});
+  cv.text(tr('Redline app layouts (appsKOR, MIT) and Cluster Redline layouts. Navigation, lanes and auxiliary items stay as set.'),84,476,20,'#a8b6c8',{literal:true});
   this.backButton(cv,targets);
  }
  drawColors(cv,cfg,targets){

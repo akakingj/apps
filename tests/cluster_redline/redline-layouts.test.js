@@ -5,7 +5,7 @@ const {Canvas}=require(root+'/kit/canvas'),{getLanguage,t}=require(root+'/kit/i1
 const RL=require(root+'/redline-hud'),HUD=require(root+'/hud-compose'),D=require(root+'/display-config'),K=require(root+'/render-state'),{settings}=require(root+'/policy'),{placement}=require(root+'/layout'),face=require(root+'/hud-draw');
 const {SettingsPage}=require(root+'/settings-ui');
 const alpha=(im,x0,y0,x1,y1)=>{let n=0;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)if(im.d[(y*im.w+x)*4+3])n++;return n;};
-assert.strictEqual(RL.STYLES.length,9);
+assert.strictEqual(RL.STYLES.length,14,'the Redline app\'s nine and Cluster Redline\'s five');
 assert.strictEqual(settings({}).hudDesign,'own');assert.strictEqual(settings({hudDesign:'rl-nope'}).hudDesign,'own');
 assert.deepStrictEqual(RL.gearOf('M3'),{gear:3,stage:'D',mode:'M'});assert.deepStrictEqual(RL.gearOf('P'),{gear:0,stage:'P',mode:null});assert.strictEqual(RL.gearOf('--').gear,null);
 const base={renderRpm:true,rpm:5900,gear:'M3',shift:false,flash:false,torqueNm:380,powerPS:260,mode:'SPORT',aux:{boost:1.05,oil:96,outside:18,clock:'23:00'}};
@@ -13,7 +13,7 @@ const own=HUD.draw(Object.assign({},base,{config:settings({})}));
 const images={};
 for(const st of RL.STYLES){
  const cfg=settings({hudDesign:'rl-'+st,hudAuxConfig:JSON.stringify({mode:'gauges',items:['boost','clock']})}),state=Object.assign({},base,{config:cfg});
- const r=RL.rect(cfg,placement(cfg,'hud',face));assert.deepStrictEqual([r.w,r.h],[400,130],'400x130 at the default HUD size');
+ const r=RL.rect(cfg,placement(cfg,'hud',face));assert.deepStrictEqual([r.w,r.h],[400,RL.heightOf(st)],'400 wide at the default HUD size (130 high; 176 for the five taller layouts)');
  const direct=HUD.draw(state),cached=HUD.draw(Object.assign({},state,{renderCache:HUD.createCache()}));
  assert(alpha(direct,r.x,r.y,r.x+r.w,r.y+r.h)>800,st+' draws its layout');
  assert.strictEqual(alpha(direct,0,0,800,480),alpha(direct,r.x,r.y,r.x+r.w,r.y+r.h),st+' draws nothing outside its rectangle (no RPM face)');
@@ -24,7 +24,7 @@ for(const st of RL.STYLES){
  assert(!Buffer.from(HUD.draw(hi).d).equals(images[st]));
  assert.strictEqual(alpha(HUD.draw(Object.assign({},state,{config:settings({hudDesign:'rl-'+st,hudRpmGaugeHidden:true})})),0,0,800,480),0,'hidden RPM gauge hides the layout');
 }
-assert.strictEqual(new Set(Object.values(images).map(b=>b.toString('base64'))).size,9,'nine distinct layouts');
+assert.strictEqual(new Set(Object.values(images).map(b=>b.toString('base64'))).size,RL.STYLES.length,'every layout distinct');
 // Position / size moves and scales the layout through the RPM gauge part.
 const moved=settings({hudDesign:'rl-standard',hudRpmGaugeOffsetX:40,hudRpmGaugeOffsetY:20,hudRpmGaugeWidthScale:150}),r0=RL.rect(settings({hudDesign:'rl-standard'}),placement(settings({}),'hud',face)),r1=RL.rect(moved,placement(moved,'hud',face));
 assert.strictEqual(r1.w,600);assert(r1.x!==r0.x&&r1.y>r0.y);

@@ -13,10 +13,10 @@ const KO={
  'Slot':'슬롯','Saved':'저장됨','Empty':'비어 있음','Save':'저장','Load':'불러오기',
  'Saved to slot':'저장 완료 · 슬롯','Loaded slot':'불러오기 완료 · 슬롯','Slot is empty':'빈 슬롯입니다',
  'Shift alert RPM · Sport':'변속 알림 회전수 · 스포츠','Shift alert RPM · Comfort / Eco':'변속 알림 회전수 · 컴포트 / 에코','Automatic (90 % of Sport)':'자동 (스포츠 값의 90 %)','Automatic':'자동',
- 'Whole layout':'전체 레이아웃','Readouts':'부가정보','Readout 1':'부가정보 1','Readout 2':'부가정보 2','Readout 3':'부가정보 3','Readout 4':'부가정보 4',
+ 'Whole layout':'전체 레이아웃','G-force meter':'G-포스 미터','M shift lights':'M 시프트 라이트','Data logger':'데이터로거','Analog needle':'아날로그 바늘','G-force + RPM rings':'G-포스 + 회전수 링','Mode ribbon':'모드 리본','Readouts':'부가정보','Readout 1':'부가정보 1','Readout 2':'부가정보 2','Readout 3':'부가정보 3','Readout 4':'부가정보 4',
  'Navigation preview':'길안내 미리보기','Redline app layouts':'Redline 앱 레이아웃','Redline HUD':'Redline HUD','Cluster Redline design':'계기판 레드라인 기본 디자인',
  'Standard':'스탠다드','Minimal':'미니멀','Split wings':'스플릿 윙','80s digital dash':'80년대 디지털','VFD glow':'VFD 글로우','Vector arcade':'벡터 아케이드','Arc (F80 M3/M4)':'아크 (F80 M3/M4)','Ramp (G80 M3/M4)':'램프 (G80 M3/M4)','Dial (E60 M5)':'다이얼 (E60 M5)',
- 'Layout from the Redline app (appsKOR, MIT). Navigation, lanes and auxiliary items stay as set.':'Redline 앱(appsKOR, MIT)의 레이아웃입니다. 길안내·차선·부가정보 선택은 그대로 적용됩니다.','Moving parts are shown while adjusting.':'조정 중인 항목은 데이터가 없어도 화면에 표시됩니다.'
+ 'Redline app layouts (appsKOR, MIT) and Cluster Redline layouts. Navigation, lanes and auxiliary items stay as set.':'Redline 앱(appsKOR, MIT) 레이아웃과 계기판 레드라인 자체 레이아웃입니다. 길안내·차선·부가정보 선택은 그대로 적용됩니다.','Moving parts are shown while adjusting.':'조정 중인 항목은 데이터가 없어도 화면에 표시됩니다.'
 };
 function language(){return getLanguage();}
 function tr(value){return getLanguage()==='ko'&&Object.prototype.hasOwnProperty.call(KO,value)?KO[value]:t(value);}

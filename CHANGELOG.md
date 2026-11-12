@@ -13,6 +13,16 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.12
+
+- **Five new layouts**, for the HUD and the cluster, listed after the Redline app's nine (Design → Redline app layouts, now a 4 x 4 picker):
+  - **M shift lights**: 15 lights across the top (green, yellow, red to the shift point, flashing at it), a large gear, RPM and the readouts in one row.
+  - **Data logger**: a 40-segment RPM bar with a scale, the gear in a box, RPM, and up to four readout tiles.
+  - **Analog needle**: a half dial with the red zone from the redline, a needle, the gear, and up to four readouts in the corners.
+  - **G-force + RPM rings**: a G meter (dot and total G) beside a 270° RPM ring with the gear, RPM and the readouts between them. The G-force is read for the meter even when it is not a readout.
+  - **Mode ribbon**: a curved ribbon filling with RPM in the drive mode's colour (Comfort blue, Sport orange, Eco green), the gear and the drive mode, and up to four readouts.
+- Their readouts are the display's own auxiliary items, as in the other layouts. They use a taller 400x176 image (cluster 800x352 at 100 %); every element moves, sizes and hides on its own (the rings add a G-force meter element) and is saved, loaded and reset with the other parts.
+
 ### 1.2.11
 
 - **Redline app layouts on the cluster**: Cluster display settings → Design now offers the nine Redline app layouts (Standard, Minimal, Split wings, 80s digital dash, VFD glow, Vector arcade, Arc, Ramp, Dial) beside Top alert bar and Circle beside gear. A layout replaces the cluster face: 800x260 at 100 %, centred in the cluster area, with the cluster's own auxiliary items. Position / size works as on the HUD: Whole layout, then each element moves, sizes and hides on its own and is saved, loaded and reset with the cluster's other parts. The HUD and the cluster choose their designs separately (stored outside `app.json` like the HUD design).

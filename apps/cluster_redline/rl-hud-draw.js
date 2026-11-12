@@ -36,7 +36,7 @@
  */
 const { Canvas, withAlpha } = require('./kit/canvas');
 const fonts = require('./kit/fonts');
-const M = require('./rl-hud-m');
+const M = require('./rl-hud-m'), X = require('./rl-hud-x');
 
 const IW = 400, IH = 130;
 const TEMP_X = 150;          // the readouts start here: BMW draws its assistance graphic under the left of the bar
@@ -268,6 +268,7 @@ function drawLayer(cv, f, layer) {
     const o = f.opts, d = f.d, P = palette(o.style === 'vfd' ? 'vfd' : o.palette), cue = f.cue;
     // f.only: one element ('gear', 'mode', 'alert', 'rpm', 'gauge', 'read' or 'readA'..'readD'), else all
     const want = (part) => !f.only || f.only === part;
+    if (X.STYLES.includes(o.style)) { X.drawX(cv, f, layer, { P: P, gearText: gearText, gearFont: gearFont, scaled: scaled }); return; }
     if (o.style === 'arc' || o.style === 'ramp' || o.style === 'dial') {
         M.drawM(cv, f, layer, { P: P, gearText: gearText, drawDown: drawDown, lightCol: lightCol, RACE_BLUE: RACE_BLUE, gearFont: gearFont });
         return;

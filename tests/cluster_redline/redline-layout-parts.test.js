@@ -9,17 +9,20 @@ const spec=require(root+'/kit/app-spec.json');
 const AUX=JSON.stringify({mode:'values',items:['boost','torque','outside','oil']});
 const stateOf=cfg=>({config:cfg,rpm:5200,gear:'M4',aux:{boost:1.2,outside:18,oil:95},mode:'SPORT'});
 const layout={x:200,y:100,w:400,h:130};
-function compose(state){const cv=new Canvas(800,480);cv.clear([0,0,0,0]);RL.placed(state,layout).forEach(e=>blitScaled(cv,RL.partPainter(state,e.id,e.b,e.r).draw(state),e.r));return cv;}
+function compose(state,at){const cv=new Canvas(800,480);cv.clear([0,0,0,0]);RL.placed(state,at||layout).forEach(e=>blitScaled(cv,RL.partPainter(state,e.id,e.b,e.r).draw(state),e.r));return cv;}
 function litBox(cv,r){let n=0;for(let y=Math.max(0,r.y);y<Math.min(cv.h,r.y+r.h);y++)for(let x=Math.max(0,r.x);x<Math.min(cv.w,r.x+r.w);x++)if(cv.d[(y*cv.w+x)*4+3])n++;return n;}
 
 // 1. At default positions every layout looks as the single Redline image did.
 const expected={standard:['mode','gear','alert','gauge','read'],minimal:['mode','gear','alert'],wings:['mode','alert','gauge','gear'],digital:['mode','alert','gauge','gear','rpm','read'],
  vfd:['mode','alert','gauge','gear','rpm','read'],vector:['mode','gear','alert','gauge','read'],arc:['alert','gauge','gear','mode','readD','readA','readB','readC'],
- ramp:['gauge','readB','readC','readD','gear','mode','readA'],dial:['gauge','readB','readC','readD','gear','mode','readA']};
+ ramp:['gauge','readB','readC','readD','gear','mode','readA'],dial:['gauge','readB','readC','readD','gear','mode','readA'],
+ shift:['alert','gear','mode','rpm','read'],logger:['gauge','gear','mode','rpm','readA','readB','readC','readD'],needle:['gauge','gear','mode','readA','readB','readC','readD'],
+ rings:['gmeter','gauge','gear','mode','rpm','read'],ribbon:['gauge','gear','mode','readA','readB','readC','readD']};
 RL.STYLES.forEach(st=>{
  const cfg=settings({hudDesign:'rl-'+st,hudAuxConfig:AUX}),state=stateOf(cfg);
  assert.deepStrictEqual(RL.elements(cfg).map(e=>e.id),expected[st],st+' elements');
- const a=new Canvas(800,480);a.clear([0,0,0,0]);blitScaled(a,RL.drawSized(state,400,130),layout);const b=compose(state);
+ const ih=RL.heightOf(st),at={x:200,y:100,w:400,h:ih};assert.strictEqual(ih,['shift','logger','needle','rings','ribbon'].includes(st)?176:130);
+ const a=new Canvas(800,480);a.clear([0,0,0,0]);blitScaled(a,RL.drawSized(state,400,ih),at);const b=compose(state,at);
  let worst=0;for(let i=0;i<a.d.length;i++)worst=Math.max(worst,Math.abs(a.d[i]-b.d[i]));
  assert(worst<=48,st+': default positions match the original image (worst channel difference '+worst+')');
  const off=settings({hudDesign:'rl-'+st,hudAuxConfig:JSON.stringify({mode:'off',items:['boost']})});
@@ -66,4 +69,16 @@ const p0=RL.placed(clState,lay,'cluster'),p1=RL.placed(Object.assign({},clState,
 assert.strictEqual(p1.find(e=>e.id==='gear').r.x-p0.find(e=>e.id==='gear').r.x,200,'cluster offsets in image units (x2 on the cluster)');
 assert(!p1.find(e=>e.id==='readD'),'hidden on the cluster');
 assert.strictEqual(RL.placed(stateOf(settings(Object.assign({},base,{clusterRlGearOffsetX:100}))),layout).find(e=>e.id==='gear').r.x,before.find(e=>e.id==='gear').r.x,'cluster settings leave the HUD alone');
+// 5. Cluster Redline's five layouts: readouts follow the auxiliary setting, the rings read the G-force,
+// the ribbon takes the drive mode's colour.
+const demand=require(root+'/data-demand').demand;
+const rings=settings({clusterDesign:'rl-rings',clusterAuxConfig:JSON.stringify({mode:'values',items:['oil']}),allClusterOutput:'redline',sportClusterOutput:'redline'});
+assert(demand(rings,'SPORT').aux.has('gforce'),'G-force read for the G meter even when it is not a readout');
+assert(!demand(settings(Object.assign({},rings,{clusterRlGMeterHidden:true})),'SPORT').aux.has('gforce'),'not with the G meter hidden');
+assert.deepStrictEqual(D.partsFor('cluster',rings).map(p=>p.key),['RpmGauge','RlGear','RlMode','RlRpm','RlGauge','RlGMeter','RlRead']);
+const labels=items=>RL.frame(stateOf(settings({clusterDesign:'rl-logger',clusterAuxConfig:JSON.stringify({mode:'values',items})})),0,'cluster').readouts.map(r=>r.label);
+assert.notDeepStrictEqual(labels(['boost','torque']),labels(['oil','economy']),'readouts follow the chosen auxiliary items');assert.strictEqual(labels(['oil','torque','economy']).length,3);
+const ribbon=mode=>{const st=Object.assign(stateOf(settings({hudDesign:'rl-ribbon'})),{mode,rpm:4000});const cv=new Canvas(800,480);cv.clear([0,0,0,0]);RL.placed(st,{x:200,y:100,w:400,h:176}).filter(e=>e.id==='gauge').forEach(e=>blitScaled(cv,RL.partPainter(st,e.id,e.b,e.r).draw(st),e.r));
+ const n={};for(let i=0;i<cv.d.length;i+=4)if(cv.d[i+3]>200){const k=cv.d[i]>200&&cv.d[i+2]<80?'orange':cv.d[i+2]>200&&cv.d[i]<120?'blue':cv.d[i+1]>180&&cv.d[i]<120?'green':'';if(k)n[k]=(n[k]||0)+1;}return Object.keys(n).sort((x,y)=>n[y]-n[x])[0];};
+assert.strictEqual(ribbon('SPORT'),'orange');assert.strictEqual(ribbon('COMFORT'),'blue');assert.strictEqual(ribbon('ECO_PRO'),'green');
 console.log('PASS: Redline layouts split into elements matching the original image; each moves, sizes uniformly and hides; Whole layout still moves all; Position / size lists them and saves, loads and resets them; the same on the cluster with its own settings');
