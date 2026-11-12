@@ -46,6 +46,11 @@ with tempfile.TemporaryDirectory(prefix='jam-overlay-test-') as temporary:
     assert run(target, '--force').returncode == 0
     assert source.read_bytes() == (ROOT / 'apps/cluster_redline/main.js').read_bytes()
     assert (target / 'apps/idrive_circuit/app.json').is_file()
+    # Storage's own Korean strings reach the catalog the upstream build reads.
+    assert (target / 'apps/storage/app.json').is_file()
+    storage_ko = json.loads((ROOT / 'apps/storage/app.json').read_text(encoding='utf-8'))['translations']['ko']
+    words = json.loads(locale.read_text(encoding='utf-8'))
+    assert all(words[key] == value for key, value in storage_ko.items())
     before = locale.read_bytes()
     assert run(target, '--no-ko').returncode == 0
     assert locale.read_bytes() == before

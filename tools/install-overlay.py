@@ -8,7 +8,7 @@ import shutil
 import sys
 
 HERE = Path(__file__).resolve().parent.parent
-APPS = ('idrive_circuit', 'cluster_redline')
+APPS = ('idrive_circuit', 'cluster_redline', 'storage')
 
 
 def main():
@@ -30,7 +30,7 @@ def main():
             files.extend(p.relative_to(HERE) for p in images.rglob('*') if p.is_file())
         if app == 'idrive_circuit':
             files += [Path('kit/icons/idrive_circuit.svg'), Path('kit/tools/test_idrive_circuit.js')]
-        else:
+        elif app == 'cluster_redline':
             files.extend(p.relative_to(HERE) for p in (HERE / 'tests/cluster_redline').glob('*.js'))
     files += [Path('tools') / p for p in ('cluster-redline-preview.js', 'cluster-redline-preflight.js',
                                        'cluster-redline-settings-preview.js', 'collect-cluster-redline.ps1', 'collect-redline-install.ps1', 'install-overlay.py', 'upstream-integration.py')]
@@ -77,6 +77,9 @@ def main():
     if not args.no_ko:
         additions = dict(line.split('\t', 1) for line in (HERE / 'localization/ko-additions.tsv').read_text(encoding='utf-8').splitlines()
                          if line and not line.startswith('#') and '\t' in line)
+        if 'storage' in selected:
+            # Storage keeps its Korean strings in app.json; the upstream build reads only the catalog.
+            additions.update(json.loads((HERE / 'apps/storage/app.json').read_text(encoding='utf-8'))['translations']['ko'])
         words = json.loads(ko.read_text(encoding='utf-8'))
         words.update(additions)
         tsv = target / 'kit/runtime/locales/ko.tsv'
