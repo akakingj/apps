@@ -21,7 +21,9 @@ function layoutKeys(tab,schema){
  return keys.filter((k,i,a)=>(known.has(k)||/^hudRl/.test(k))&&a.indexOf(k)===i);
 }
 // Comfort / Eco shift alert RPM: kept outside app.json (like clockZone) so the Store templates stay valid.
-const COMFORT_ITEM={key:'comfortShiftRpm',label:'Comfort / Eco shift alert RPM',type:'choice',options:[[0,tr('Automatic (90 % of shift alert RPM)')]].concat([2000,2250,2500,2750,3000,3250,3500,4000,4500,5000].map(v=>[v,v+' rpm']))};
+// The two shift alert rows are named for the modes they apply to (Shift alert RPM keeps its app.json key).
+const ROW_LABELS={shiftRpm:'Shift alert RPM · Sport',comfortShiftRpm:'Shift alert RPM · Comfort / Eco'};
+const COMFORT_ITEM={key:'comfortShiftRpm',label:'Shift alert RPM · Comfort / Eco',type:'choice',options:[[0,tr('Automatic (90 % of Sport)')]].concat([2000,2250,2500,2750,3000,3250,3500,4000,4500,5000].map(v=>[v,v+' rpm']))};
 function options(item,cfg){
  if(!item)return [];
  if(item.type==='bool')return [[false,'Off'],[true,'On']];
@@ -120,7 +122,7 @@ class SettingsPage{
    const item=key==='comfortShiftRpm'?COMFORT_ITEM:['aux','design','layout'].includes(key)?{key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key]}:this.settings.schema.find(s=>s.key===key);
    const h=this.tab===0?(key==='autoStart'?108:50):68,ty=h===50?35:39;
    if(i===this.focus){cv.gradientRect(78,y,1460,h-1,[[0,'#30131a'],[1,'#090b0e']]);cv.fillRect(78,y+(h===50?6:8),4,h===50?37:42,'#f32b40');}
-   const label=/^sport/.test(key)?'Sport mode RPM display':/^all/.test(key)?'All modes RPM display':item.label;
+   const label=/^sport/.test(key)?'Sport mode RPM display':/^all/.test(key)?'All modes RPM display':ROW_LABELS[key]||item.label;
    cv.text(tr(label),100,y+ty,32,'#f3f5f7');
    if(key==='appEnabled'){
     [[true,'Start app'],[false,'Stop app']].forEach((v,n)=>this.button(cv,targets,v[1],990+n*278,y+3,260,h===50?44:50,()=>{this.settings.set(key,v[0]);this.changed();},cfg.appEnabled===v[0],'operation-'+v[0]));
@@ -136,7 +138,7 @@ class SettingsPage{
  }
  backButton(cv,targets){this.button(cv,targets,'Back',1210,448,326,64,()=>this.back(),false,'back');}
  drawChoices(cv,cfg,targets){
-  const item=this.item(),list=options(item,cfg),start=Math.max(0,Math.min(list.length-4,this.choice-1));cv.text(tr(item.label),100,126,32,'#ef4050');
+  const item=this.item(),list=options(item,cfg),start=Math.max(0,Math.min(list.length-4,this.choice-1));cv.text(tr(ROW_LABELS[item.key]||item.label),100,126,32,'#ef4050');
   list.slice(start,start+4).forEach((o,row)=>{const i=start+row,y=148+row*72;this.button(cv,targets,tr(o[1]),84,y,1452,68,()=>this.choose(i),this.choice===i,'choice'+i);});this.backButton(cv,targets);
  }
  drawAuxMode(cv,cfg,targets){

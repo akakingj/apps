@@ -12,7 +12,7 @@ const KO={
  'Press again to reset':'한 번 더 누르면 초기화','Press again to reset to defaults':'한 번 더 누르면 기본값으로 초기화',
  'Slot':'슬롯','Saved':'저장됨','Empty':'비어 있음','Save':'저장','Load':'불러오기',
  'Saved to slot':'저장 완료 · 슬롯','Loaded slot':'불러오기 완료 · 슬롯','Slot is empty':'빈 슬롯입니다',
- 'Comfort / Eco shift alert RPM':'컴포트 / 에코 변속 알림 회전수','Automatic (90 % of shift alert RPM)':'자동 (변속 알림 회전수의 90 %)','Automatic':'자동',
+ 'Shift alert RPM · Sport':'변속 알림 회전수 · 스포츠','Shift alert RPM · Comfort / Eco':'변속 알림 회전수 · 컴포트 / 에코','Automatic (90 % of Sport)':'자동 (스포츠 값의 90 %)','Automatic':'자동',
  'Whole layout':'전체 레이아웃','Readouts':'부가정보','Readout 1':'부가정보 1','Readout 2':'부가정보 2','Readout 3':'부가정보 3','Readout 4':'부가정보 4',
  'Navigation preview':'길안내 미리보기','Redline app layouts':'Redline 앱 레이아웃','Redline HUD':'Redline HUD','Cluster Redline design':'계기판 레드라인 기본 디자인',
  'Standard':'스탠다드','Minimal':'미니멀','Split wings':'스플릿 윙','80s digital dash':'80년대 디지털','VFD glow':'VFD 글로우','Vector arcade':'벡터 아케이드','Arc (F80 M3/M4)':'아크 (F80 M3/M4)','Ramp (G80 M3/M4)':'램프 (G80 M3/M4)','Dial (E60 M5)':'다이얼 (E60 M5)',

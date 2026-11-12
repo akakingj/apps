@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.10
+
+- The two shift alert rows in the Basic settings are named for the modes they apply to: **Shift alert RPM · Sport** and **Shift alert RPM · Comfort / Eco**, whose automatic choice reads *Automatic (90 % of Sport)*. Behaviour is unchanged.
+
 ### 1.2.9
 
 - **Comfort / Eco shift alert RPM** (Basic settings, under Shift alert RPM): *Automatic* keeps today's comfort shift point, 90 % of the shift alert RPM (Petrol 5500 -> 5000, lights from 2500). A set RPM (2000 to 5000) becomes the shift point in every non-sport mode (Comfort, Comfort+, Eco Pro and the others): the alert turns red there, with lights from 50 % and yellow from 80 % of it. Sport modes keep the shift alert RPM. Like the HUD design, the setting is kept outside `app.json` so the Store's settings templates stay valid. The Basic tab's rows are slightly shorter so the seven rows fit.
