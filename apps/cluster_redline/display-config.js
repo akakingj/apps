@@ -3,7 +3,7 @@ const METRICS=['boost','torque','power','gforce','outside','oil','batteryCharge'
 // The clock is a gauge-only item (it has no text-mode form).
 const GAUGE_ONLY=['clock'];
 // HUD designs: Cluster Redline's own face, or a Redline app layout (redline-hud.js).
-const HUD_DESIGNS=['own','rl-standard','rl-digital','rl-vfd','rl-vector','rl-arc','rl-ramp','rl-dial','rl-shift','rl-logger','rl-needle','rl-rings','rl-ribbon','rl-hexagon','rl-sportdial','rl-classic'];
+const HUD_DESIGNS=['own','rl-standard','rl-digital','rl-vfd','rl-vector','rl-arc','rl-ramp','rl-dial','rl-shift','rl-logger','rl-needle','rl-rings','rl-ribbon','rl-hexagon','rl-sportdial','rl-classic','rl-luxury'];
 // The HUD offers every layout but the cluster-only ones.
 const HUD_ONLY_DESIGNS=HUD_DESIGNS.filter(d=>d!=='rl-sportdial'&&d!=='rl-classic');
 const LABELS={boost:'Boost',torque:'Torque',power:'Power*',gforce:'G-force',outside:'Outside temperature',oil:'Oil temperature',batteryCharge:'12 V battery charge',batteryVoltage:'Battery voltage',economy:'Average fuel economy',clock:'Clock'};

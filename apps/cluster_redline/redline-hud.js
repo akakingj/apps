@@ -9,8 +9,8 @@ let drawing=null;const kit=()=>drawing||(drawing={DRAW:require('./rl-hud-draw'),
 const {shiftSpec}=require('./shift-alert'),{auxConfig}=require('./display-config'),{gauges}=require('./units'),{language}=require('./strings');
 // The Redline app's layouts (Minimal and Split wings not offered: Standard with parts hidden covers them),
 // then Cluster Redline's own six (rl-hud-x.js, a taller 400x176 image).
-const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon','sportdial','classic'],TALL=['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic'];
-const NAMES={standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon',sportdial:'Sport dial',classic:'Classic dial'};
+const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury'],TALL=['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury'];
+const NAMES={standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon',sportdial:'Sport dial',classic:'Classic dial',luxury:'Luxury arc'};
 // Layouts made for the cluster only (too detailed for the HUD's glass): not offered on the HUD.
 const CLUSTER_ONLY=['sportdial','classic'],stylesFor=d=>d==='hud'?STYLES.filter(s=>!CLUSTER_ONLY.includes(s)):STYLES.slice();
 const IW=400,IH=130,heightOf=st=>TALL.includes(st)?176:IH,isNum=x=>typeof x==='number'&&isFinite(x);
@@ -101,7 +101,8 @@ const ELEMENTS={
  rings:['gmeter','gauge','gear','mode','rpm','read','mark'],ribbon:['gauge','gear','mode','readA','readB','readC','readD','mark'],
  hexagon:['gauge','alert','gear','mode','rpm','readA','readB','readC','readD','mark'],
  sportdial:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],
- classic:['gauge','alert','temp','gear','mode','readA','readB','readC','readD','mark']};
+ classic:['gauge','alert','temp','gear','mode','readA','readB','readC','readD','mark'],
+ luxury:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark']};
 const PART={gear:'RlGear',mode:'RlMode',alert:'RlAlert',rpm:'RlRpm',gauge:'RlGauge',read:'RlRead',readA:'RlReadA',readB:'RlReadB',readC:'RlReadC',readD:'RlReadD',gmeter:'RlGMeter',temp:'RlTemp',mark:'RlMark'};
 const PART_NAMES=Object.keys(PART).map(k=>PART[k]);
 const LABELS={RlTemp:'Temperature gauge',RlGear:'Gear',RlMode:'Drive mode',RlAlert:'RPM alert',RlRpm:'RPM number',RlGauge:'RPM gauge',RlRead:'Readouts',RlReadA:'Readout 1',RlReadB:'Readout 2',RlReadC:'Readout 3',RlReadD:'Readout 4',RlGMeter:'G-force meter',RlMark:'M mark'};

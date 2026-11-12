@@ -241,7 +241,53 @@ function drawClassic(cv,f,h){
   if(word)cv.text(word,cx,cy-34,19,CL.bronze,{align:'center',font:'bold',literal:true});}
  [[24,52],[764,52],[24,252],[764,252]].forEach((p,i)=>{if(want(f,'read'+'ABCD'[i])&&f.readouts[i])clPanel(cv,f.readouts[i],p[0],p[1],300,170);});
 }
-const DRAW={shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic};
+// Luxury arc (for the HUD): a wide shallow gold arc across the top (rpm, 0 at the left), finely ticked, lit
+// brighter up to the rpm with a glowing marker; the rpm in big gold digits under it; the gear in a gold pill
+// between two fading rules; the drive mode spelt out below; gold pips over the number as the rpm alert;
+// readouts left and right; two gold ribbons sweeping up at the lower corners. On the glass black is clear.
+const LX={cx:544,cy:780,r:700,half:30,gold:[217,178,106],bright:[255,227,168],dim:[122,98,55]};
+const lxc=(c,a)=>[c[0],c[1],c[2],Math.round(a===undefined?255:a)];
+function drawLuxury(cv,f,h){
+ const d=f.d,max=f.max,{cx,cy,r}=LX,A=v=>-LX.half+2*LX.half*clamp(v,0,max)/max,pt=(a,rr)=>[cx+rr*Math.sin(a*Math.PI/180),cy-rr*Math.cos(a*Math.PI/180)];
+ const rpm=isNum(d.rpm)?clamp(d.rpm,0,max):0,q=cue(f),ko=language()==='ko';
+ if(want(f,'gauge')){
+  // the arc: a dim gold track, ticks every 250 rpm (taller each 1000 with its number above), the redline
+  // section in amber, then the lit part to the rpm and a glowing marker
+  cv.arc(cx,cy,r-3,r+3,-LX.half,LX.half,lxc(LX.dim,200));
+  cv.arc(cx,cy,r-3,r+3,A(f.redline),LX.half,lxc([210,120,60],220));
+  for(let v=0;v<=max+1;v+=250){const major=v%1000===0,a=A(v),p=pt(a,r+4),q2=pt(a,r+(major?26:12));cv.line(p[0],p[1],q2[0],q2[1],major?3:1.6,lxc(major?LX.gold:LX.dim,major?255:220));
+   if(major){const l=pt(a,r+52);cv.text(String(v/1000),l[0],l[1]+10,30,lxc(v>=f.redline?[235,150,90]:LX.gold),{align:'center',font:'bold'});}}
+  if(rpm>50){const hot=f.cue.shift?(f.blink?[255,90,60]:LX.gold):LX.bright;
+   cv.arc(cx,cy,r-5,r+5,-LX.half,A(rpm),lxc(hot));cv.arc(cx,cy,r-12,r-5,-LX.half,A(rpm),lxc(hot,60));
+   const a=A(rpm),p=pt(a,r-22),q2=pt(a,r+30);cv.line(p[0],p[1],q2[0],q2[1],12,lxc(LX.bright,50));cv.line(p[0],p[1],q2[0],q2[1],4,lxc([255,245,220]));}
+  // gold ribbons at the lower corners: two strands each, the outer one bright
+  [[1],[-1]].forEach(([s])=>{const X=x=>s>0?x:1088-x,B=(t,o)=>{const u=1-t;return [X(10+2*u*t*140+t*t*300)+o*s,u*u*466+2*u*t*462+t*t*404];};
+   [[0,4,LX.gold,230],[18,2,LX.dim,200],[34,1.4,LX.dim,140]].forEach(([o,w,c,al])=>{const pts=[];for(let i=0;i<=24;i++)pts.push(B(i/24,o));cv.polyline(pts,w,lxc(c,al));});});
+ }
+ if(want(f,'alert')){
+  // seven gold pips over the number: lit with the count-in, all red (flashing) at the shift point
+  const n=7,lit=q.flash?n:Math.floor(q.p*n+1e-6);
+  for(let i=0;i<n;i++){const x=cx+(i-3)*30,y=168,on=i<lit&&(!q.flash||q.on),c=q.flash?[255,70,50]:LX.bright;
+   cv.quad([[x,y-7],[x+7,y],[x,y+7],[x-7,y]],on?lxc(c):lxc(LX.dim,150));}
+ }
+ if(want(f,'rpm')){
+  const t=rpmText(d);cv.text(t,cx+3,330+4,150,[40,28,10,180],{align:'center',font:'bold'});cv.text(t,cx,330,150,lxc(f.cue.shift&&f.blink?[255,110,80]:LX.bright),{align:'center',font:'bold'});
+  cv.text('rpm',cx,368,28,lxc(LX.gold),{align:'center',font:'bold',literal:true});
+ }
+ if(want(f,'gear')){
+  // the gear in a gold pill between two rules that fade outwards
+  const w=118,y=380,g=h.gearText(d)+(f.mode&&f.mode!==h.gearText(d)?'':'');
+  cv.polyline([[cx-w/2+16,y],[cx+w/2-16,y],[cx+w/2,y+20],[cx+w/2-16,y+40],[cx-w/2+16,y+40],[cx-w/2,y+20],[cx-w/2+16,y]],2.4,lxc(LX.gold));
+  for(let k=0;k<6;k++){const a=220-k*36;cv.line(cx-w/2-12-k*36,y+20,cx-w/2-12-(k+1)*36,y+20,2,lxc(LX.gold,a));cv.line(cx+w/2+12+k*36,y+20,cx+w/2+12+(k+1)*36,y+20,2,lxc(LX.gold,a));}
+  cv.text((f.mode||'')+h.gearText(d),cx,y+33,32,lxc(LX.bright),{align:'center',font:'bold'});
+ }
+ if(want(f,'mode')){const m=String(f.drive||''),word=/SPORT/.test(m)?(ko?'스포츠':'SPORT'):/ECO/.test(m)?(ko?'에코 프로':'ECO PRO'):m?(ko?'컴포트':'COMFORT'):'';
+  if(word)cv.text(ko?word:word.split('').join(' '),cx,462,26,lxc(LX.gold),{align:'center',font:'bold',literal:true});}
+ // readouts: two left and two right, under the arc's ends
+ [[96,250,'left'],[992,250,'right'],[96,350,'left'],[992,350,'right']].forEach((p,i)=>{const it=f.readouts[i];if(!it||!want(f,'read'+'ABCD'[i]))return;
+  cv.text(it.label,p[0],p[1],24,lxc(LX.gold,220),{align:p[2],font:'bold'});cv.text(it.value,p[0],p[1]+50,46,lxc(LX.bright),{align:p[2],font:'bold'});});
+}
+const DRAW={shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury};
 // Each layout draws in one pass (no separate background layer); the bg layer request draws nothing.
 function drawX(cv,f,layer,h){if(layer==='bg')return;DRAW[f.opts.style](h.scaled(cv,S,0,0),f,h);}
 module.exports={STYLES:Object.keys(DRAW),IH,drawX};
