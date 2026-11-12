@@ -1,4 +1,4 @@
-# Cluster Redline 1.2.26 user guide
+# Cluster Redline 1.2.27 user guide
 
 [한국어](CLUSTER-REDLINE.ko.md) · [Installation](INSTALL.md) · [All screenshots](../screenshots/README.md) · [Changelog](../CHANGELOG.md)
 
@@ -136,6 +136,10 @@ The custom settings UI no longer refreshes the unused generic HMI settings page.
 - **Shift alert:** Sport unchanged; Comfort/Eco and other modes use 90 % of the shift RPM with 50/80/100 % green/yellow/red.
 - **Position / size:** Save / load (three slots) and two-press reset; the selected part is drawn while adjusting even when hidden or without guidance (expires two minutes after the last edit, clears on Back).
 - **Outside temperature:** diagnostics in the status file. Stock HUD music/phone popups still take priority (renderer policy).
+
+## 1.2.27 changes
+
+- HUD defaults: default design 2 steps lower (gear 2 more down, 2 left); needle upper readouts, ribbon, hexagon upper readouts and vector 1 step lower.
 
 ## 1.2.26 changes
 

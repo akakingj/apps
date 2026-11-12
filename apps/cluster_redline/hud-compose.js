@@ -6,6 +6,15 @@ const D=require('./display-config');
 const {placement}=require('./layout');
 const W=800,H=480;
 const {blitScaled,drawWithParts}=require('./component-canvas');
+// Default HUD design, tuned on the car (1.2.27): the whole design two presses (10 each) lower and the gear
+// two more down and two to the left, for both the top alert bar and the circle beside the gear. Added to what
+// Position / size stores, so stored 0 is this default.
+const OWN_SHIFT={all:[0,20],Gear:[-20,20]};
+function ownTuned(cfg){
+    const out=Object.assign({},cfg);
+    D.PARTS.concat(['MarkLine']).forEach(n=>{const extra=OWN_SHIFT[n]||[0,0],k='hud'+n;out[k+'OffsetX']=(cfg[k+'OffsetX']||0)+OWN_SHIFT.all[0]+extra[0];out[k+'OffsetY']=(cfg[k+'OffsetY']||0)+OWN_SHIFT.all[1]+extra[1];});
+    return out;
+}
 function draw(state) {
     const cache=state.renderCache,cv=cache?(cache.begin(W,H),cache.surface):new Canvas(W,H);if(!cache)cv.clear([0,0,0,0]);
     if(state.renderRpm!==false){
@@ -14,7 +23,7 @@ function draw(state) {
             // A Redline app layout replaces the RPM face; painted at HUD size (no resampling).
             // "Whole layout" (the RPM gauge part) places it; each element then has its own move, size and hide.
             if(!state.config.hudRpmGaugeHidden){const key=RL.key(state);RL.placed(state,RL.rect(state.config,at,'hud'),'hud',at).forEach(e=>{const painter=RL.partPainter(state,e.id,e.b,e.r);if(cache)cache.navigation('redline.'+e.id,key,painter,state,e.r);else blitScaled(cv,painter.draw(state),e.r);});}
-        }else drawWithParts(face,state,cv,at,'hud');
+        }else drawWithParts(face,Object.assign({},state,{config:ownTuned(state.config)}),cv,at,'hud');
     }
     if(D.navAllowed(state.config,state.mode)&&state.navigation&&state.navigation.visible){
         const hasTurn=state.navigation.maneuverVisible!==false;
