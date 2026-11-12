@@ -5,7 +5,7 @@ const {Canvas}=require(root+'/kit/canvas'),{getLanguage,t}=require(root+'/kit/i1
 const RL=require(root+'/redline-hud'),HUD=require(root+'/hud-compose'),D=require(root+'/display-config'),K=require(root+'/render-state'),{settings}=require(root+'/policy'),{placement}=require(root+'/layout'),face=require(root+'/hud-draw');
 const {SettingsPage}=require(root+'/settings-ui');
 const alpha=(im,x0,y0,x1,y1)=>{let n=0;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)if(im.d[(y*im.w+x)*4+3])n++;return n;};
-assert.strictEqual(RL.STYLES.length,14,'the Redline app\'s nine and Cluster Redline\'s five');
+assert.strictEqual(RL.STYLES.length,16,'the Redline app\'s nine and Cluster Redline\'s seven');
 assert.strictEqual(settings({}).hudDesign,'own');assert.strictEqual(settings({hudDesign:'rl-nope'}).hudDesign,'own');
 assert.deepStrictEqual(RL.gearOf('M3'),{gear:3,stage:'D',mode:'M'});assert.deepStrictEqual(RL.gearOf('P'),{gear:0,stage:'P',mode:null});assert.strictEqual(RL.gearOf('--').gear,null);
 const base={renderRpm:true,rpm:5900,gear:'M3',shift:false,flash:false,torqueNm:380,powerPS:260,mode:'SPORT',aux:{boost:1.05,oil:96,outside:18,clock:'23:00'}};

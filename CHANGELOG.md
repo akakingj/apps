@@ -13,6 +13,13 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.13
+
+- **Two more layouts** for the HUD and the cluster (the picker now holds sixteen, 4 x 4):
+  - **Hexagon**: an angular hexagonal tachometer filling yellow and red past the redline, the gear in a hexagonal cell, RPM, two chevrons as the shift light, and up to four readouts in angled side boxes.
+  - **Five dials**: a large round tachometer with needle, red zone and a row of five shift lights, the gear and RPM inside it, and up to four readouts in smaller round dials either side.
+- Both are original designs; readouts follow the auxiliary setting and every element is adjustable in Position / size.
+
 ### 1.2.12
 
 - **Five new layouts**, for the HUD and the cluster, listed after the Redline app's nine (Design → Redline app layouts, now a 4 x 4 picker):
