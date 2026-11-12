@@ -43,4 +43,18 @@ const {SettingsPage}=require(root+'/settings-ui'),spec=require(root+'/kit/app-sp
  assert(String(values.hudRlLayouts||'').length<10,'untouched designs keep nothing: '+values.hudRlLayouts);
  sw('rl-luxury');values.hudRlGaugeOffsetX=30;sw('rl-sporthud');assert.strictEqual(values.hudRlGaugeOffsetX,0);sw('rl-luxury');assert.strictEqual(values.hudRlGaugeOffsetX,30);
 }
-console.log('PASS: Korean watermark without fonts.has, per-element Redline tile keys match full draws, compact per-design positions');
+
+// 4. No afterimage on the HUD: the controller hides the render cache from Object.assign (non-enumerable); the
+// default design used to drop it and paint on the cache's surface, so its alert bar / circle stayed behind.
+{
+ const seq=[['own','bar',6200,true],['own','bar',2500,false],['own','circle',6300,true],['own','circle',1800,false],['rl-luxury','circle',6200,true],['own','bar',6200,true],['rl-sporthud','bar',3000,false],['own','circle',6400,true],['rl-standard','circle',2000,false]];
+ const cache=HUD.createCache();
+ seq.forEach(([design,alert,rpm,shift],i)=>{
+  const s=()=>({config:settings({hudDesign:design,hudAlertStyle:alert}),renderRpm:true,rpm,gear:'D4',mode:'SPORT',aux:{},shift,flash:true});
+  const a=s();Object.defineProperty(a,'renderCache',{value:cache,enumerable:false});
+  const cached=Buffer.from(HUD.draw(a).d),fresh=Buffer.from(HUD.draw(s()).d);let bad=0;
+  for(let k=0;k<cached.length;k++)if(Math.abs(cached[k]-fresh[k])>2)bad++;
+  assert.strictEqual(bad,0,'HUD step '+i+' ('+design+' '+alert+' '+rpm+' rpm) leaves '+bad+' stale bytes');
+ });
+}
+console.log('PASS: Korean watermark without fonts.has, per-element Redline tile keys match full draws, compact per-design positions, no HUD afterimage when switching designs');

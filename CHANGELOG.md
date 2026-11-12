@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.38
+
+- **Fix: afterimage of the default HUD design.** Since 1.2.27 the default design was drawn from a copy of the frame state made with `Object.assign`, which drops the render cache (the controller adds it as a hidden property). The design was then painted straight onto the cache's surface, which nothing ever cleared: its top alert bar and the circle beside the gear stayed on the HUD after choosing another design (and parts of it could linger as the revs fell). The copy now keeps the cache, so every part is a tracked tile that is cleared when it changes or goes away.
+
 ### 1.2.37
 
 - **Fix: the Korean edition's settings watermark lost "서울II잼님" and "배움터".** The check for the Korean font called `kit/fonts.has()`, which the Store runtime's kit does not have; the call failed and the English watermark was drawn. The Korean atlas is now checked with `get()`.

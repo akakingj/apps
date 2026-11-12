@@ -23,7 +23,14 @@ function draw(state) {
             // A Redline app layout replaces the RPM face; painted at HUD size (no resampling).
             // "Whole layout" (the RPM gauge part) places it; each element then has its own move, size and hide.
             if(!state.config.hudRpmGaugeHidden){const key=RL.keys(state,'hud');RL.placed(state,RL.rect(state.config,at,'hud'),'hud',at).forEach(e=>RL.nodes(state,e,'hud',key).forEach(({id,key:k,painter})=>{if(cache)cache.navigation('redline.'+id,k,painter,state,e.r);else blitScaled(cv,painter.draw(state),e.r);}));}
-        }else drawWithParts(face,Object.assign({},state,{config:ownTuned(state.config)}),cv,at,'hud');
+        }else{
+            // The tuned copy keeps the render cache: the controller adds it as a hidden (non-enumerable)
+            // property, which Object.assign does not copy. Without it the default design was painted straight
+            // onto the cache's surface and never cleared, so its alert bar / circle stayed behind (1.2.27-1.2.37).
+            const own=Object.assign({},state,{config:ownTuned(state.config)});
+            if(cache)Object.defineProperty(own,'renderCache',{value:cache,enumerable:false});
+            drawWithParts(face,own,cv,at,'hud');
+        }
     }
     if(D.navAllowed(state.config,state.mode)&&state.navigation&&state.navigation.visible){
         const hasTurn=state.navigation.maneuverVisible!==false;
