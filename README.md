@@ -1,6 +1,6 @@
 # iDrive 7 Jam Apps
 
-**Cluster Redline 1.2.22**: cluster released while guidance shows on the HUD (Waze included), tuned HUD layout defaults, outside temperature fix (1.2.8: Redline layouts element by element, Korean time for the clock). **iDrive Circuit 1.0.0** and **Storage 1.0.1** are also available.
+**Cluster Redline 1.2.23**: cluster released while guidance shows on the HUD (Waze included), tuned HUD layout defaults, outside temperature fix (1.2.8: Redline layouts element by element, Korean time for the clock). **iDrive Circuit 1.0.0** and **Storage 1.0.1** are also available.
 
 [한국어](README.ko.md)
 
@@ -11,7 +11,7 @@
 | Use Storage | [Storage](apps/storage/README.md) | [저장공간](apps/storage/README.ko.md) |
 | Use Circuit | [Circuit](apps/idrive_circuit/README.md) | [회로 퍼즐](apps/idrive_circuit/README.ko.md) |
 
-Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and choose Korean or English. Redline requires **`cluster-render` 0.4.0+**. Update existing installs in Installed and check **v1.2.22** in the app. Stop and disable auto-start in an unused language edition if both are installed.
+Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and choose Korean or English. Redline requires **`cluster-render` 0.4.0+**. Update existing installs in Installed and check **v1.2.23** in the app. Stop and disable auto-start in an unused language edition if both are installed.
 
 | HUD circle | HUD bar |
 |---|---|

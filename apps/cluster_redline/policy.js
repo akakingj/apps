@@ -18,7 +18,7 @@ const PROFILES = {
 };
 // Zero RPM settings mean the selected profile's defaults, rather than engine-off.
 const FRAME_RATE = 20;
-const DEFAULTS = { appEnabled: true, autoStart: true, engineProfile: 'petrol', displayMode: 'sport', powerUnit: 'PS', torqueUnit: 'Nm', shiftRpm: 0, comfortShiftRpm: 0, frameRate: FRAME_RATE, displayTarget: 'map', widgetScale: 80 };
+const DEFAULTS = { appEnabled: true, autoStart: true, engineProfile: 'petrol', displayMode: 'sport', powerUnit: 'PS', torqueUnit: 'Nm', shiftRpm: 0, comfortShiftRpm: 0, clusterYieldGuidance: 'off', frameRate: FRAME_RATE, displayTarget: 'map', widgetScale: 80 };
 Object.assign(DEFAULTS, { sportClusterOutput: 'redline', sportHudOutput: 'stock', allClusterOutput: 'stock', allHudOutput: 'stock',
     clusterOffsetX: 0, clusterOffsetY: 0, clusterWidthScale: 80, clusterHeightScale: 80,
     hudOffsetX: 0, hudOffsetY: -100, hudWidthScale: 75, hudHeightScale: 75,

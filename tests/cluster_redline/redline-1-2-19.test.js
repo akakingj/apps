@@ -8,6 +8,8 @@ const {SettingsPage}=require(root+'/settings-ui'),spec=require(root+'/kit/app-sp
 
 // Setting: kept outside app.json, off by default, three choices in the Navigation tab.
 assert(!spec.settings.some(s=>s.key==='clusterYieldGuidance'));
+// The background app reads its settings by the DEFAULTS keys: the yield setting must be one of them (1.2.22 missed it).
+assert.strictEqual(require(root+'/policy').DEFAULTS.clusterYieldGuidance,'off');
 assert.strictEqual(settings({}).clusterYieldGuidance,'off');assert.strictEqual(settings({clusterYieldGuidance:'phone'}).clusterYieldGuidance,'phone');assert.strictEqual(settings({clusterYieldGuidance:'x'}).clusterYieldGuidance,'off');
 const page=(values)=>new SettingsPage({schema:spec.settings,get:k=>values[k],set:(k,v)=>{values[k]=v;},setMany(c){Object.assign(values,c);}},null,'1.2.19');
 {const v={};spec.settings.forEach(s=>{v[s.key]=s.default;});const p=page(v);p.selectTab(3);const at=p.keys().indexOf('clusterYieldGuidance');assert(at>=0&&at<p.keys().indexOf('layout'));

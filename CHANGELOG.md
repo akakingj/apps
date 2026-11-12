@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.23
+
+- **Cluster yield now reaches the background app**: the setting was saved and shown in Settings, but the background app reads its settings by a fixed key list that did not include it, so it always ran as Off (the check line showed HUD O yet "not now"). With guidance on the HUD the cluster is now released.
+
 ### 1.2.22
 
 - Analog needle readouts three more steps closer to the centre (six in all). Released as a new version so the Store offers the update.
