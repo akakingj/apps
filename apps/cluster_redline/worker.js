@@ -71,6 +71,7 @@ function start(ctx) {
         }
         maneuvers.projectionSample(provider,field,value,mono());protectGuidance();
     }
+    let lastYieldAt = -Infinity;
     let config = settings(),collection=demand(config,null), lastStatus = -Infinity, stopped = false, timer;
     let guidanceSub, lastGuidancePoll = -Infinity, guidancePending = false, navigationRevision = 0, nativeStatus = null;
     let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub, fesSub, programSub;
@@ -103,11 +104,11 @@ function start(ctx) {
                     // with no usable value): keep the last notified value while the interface is available.
                     const notifyOnly=!f.getter||!!(source.subscribe&&f.notifier),kept=notifyOnly?Object.assign({},source,{ttlMs:6*3600000}):source;
                     const entry={source,kept,notifyOnly,sub:null,pending:false,lastPoll:-Infinity,epoch:0,revision:0,available:false,wanted:false};entries.push(entry);
-                    handlers[source.field]=value=>{if(!stopped){entry.revision++;if(entry.wanted||notifyOnly){entry.lastPoll=mono();auxInfo.sample(kept,value,entry.lastPoll);}}};
+                    handlers[source.field]=value=>{if(!stopped){entry.revision++;entry.received=(entry.received||0)+1;entry.lastAt=mono();if(entry.wanted||notifyOnly){entry.lastPoll=mono();auxInfo.sample(kept,value,entry.lastPoll);}}};
                 });
-                if(!entries.length)return;
-                signals.watch(iface,'1',handlers,log,{}).then(sub=>{entries.forEach(entry=>{entry.sub=sub;auxSubs.push(entry);});keep(sub);}).catch(()=>{});
-            }catch(e){}
+                if(!entries.length){reportError('optional auxiliary '+iface,'no readable field in the installed interface config');return;}
+                signals.watch(iface,'1',handlers,log,{}).then(sub=>{entries.forEach(entry=>{entry.sub=sub;auxSubs.push(entry);});keep(sub);if(sub.error)reportError('optional auxiliary '+iface,sub.error);}).catch((e)=>reportError('optional auxiliary '+iface,e));
+            }catch(e){reportError('optional auxiliary '+iface,e&&e.message||e);}
         });
         // Re-read live getters; only the optional HUD view reader uses read-only query methods.
         signals.watch(CDS, '1', {
@@ -309,8 +310,16 @@ function start(ctx) {
             const maneuverState=!commonManeuver.visible&&hudEvent?Object.assign({},hudEvent,{provider:commonManeuver.provider}):commonManeuver;
             const laneData=lanes.read(at,laneKey);
             const visible=collection.parts.direction&&maneuverState.visible||collection.parts.text&&maneuverState.visible&&!!maneuverState.description||collection.parts.lanes&&!!laneData;
-            const phoneGuiding=Object.keys(PROJECTED).some((provider)=>maneuvers.phoneActive(provider,at));
-            controller.guidanceYield=config.clusterYieldGuidance==='any'?phoneGuiding||!!navigationState.active:config.clusterYieldGuidance==='phone'&&phoneGuiding;
+            // Phone guidance (Waze and other CarPlay / Android Auto apps): any of the projection manager's
+            // guidance flags, or the guidance channel naming the phone as the guiding provider. Some apps set
+            // only the metadata flag, so either is enough. Held 8 s so a gap between reads does not flicker.
+            const projected=maneuvers.projectedStatus(at);
+            const phoneNow=Object.keys(projected).some((p)=>projected[p].available&&(projected[p].active===true||projected[p].metadataAvailable===true))
+                ||Object.prototype.hasOwnProperty.call(PROJECTED,maneuvers.provider)&&maneuvers.fresh(maneuvers.providerAt,at);
+            const yieldNow=config.clusterYieldGuidance==='any'?phoneNow||!!navigationState.active:config.clusterYieldGuidance==='phone'&&phoneNow;
+            if(yieldNow)lastYieldAt=at;
+            controller.guidanceYield=config.clusterYieldGuidance!=='off'&&(yieldNow||at-lastYieldAt<8000);
+            controller.guidanceYieldDetail={phone:phoneNow,provider:maneuvers.provider||'',projected};
             controller.navigation=Object.assign({},maneuverState,{visible:!!visible,maneuverVisible:!!maneuverState.visible,lanes:laneData});
             // No decoded arrow means non-contending RPM, not disabled HUD.
             // The native renderer still yields to real stock content/popups.
@@ -325,9 +334,9 @@ function start(ctx) {
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
-                    outputs: state.outputs, navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
+                    outputs: state.outputs, clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
-                    auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
+                    auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
                     collection:{fields:Array.from(collection.fields),metrics:Array.from(collection.aux),subscriptions:collectors.status()},
                     navigationInputs: {fields:navigationFields.filter(field=>collection.fields.has(guidance.INTERFACE+'.'+field)),available:navigationAvailable,pending:guidancePending,reads:navigationFields.reduce((out,field)=>{if(collection.fields.has(guidance.INTERFACE+'.'+field))out[field]=navigationReadState[field];return out;},{}),
                         agesMs:navigationFields.reduce((out,field)=>{if(collection.fields.has(guidance.INTERFACE+'.'+field))out[field]=navigationSeenAt[field]===undefined?null:Math.max(0,at-navigationSeenAt[field]);return out;},{})}, nativeStatus: nativeStatus,

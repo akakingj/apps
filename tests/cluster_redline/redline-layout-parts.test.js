@@ -110,7 +110,7 @@ assert(mp.layoutActions.every(a=>a.x+a.w<=1600&&a.y+a.h<=520),'editor buttons fi
  const inside=(r,f)=>r.x>=f.x-1&&r.y>=f.y-1&&r.x+r.w<=f.x+f.w+1&&r.y+r.h<=f.y+f.h+1;
  for(const d of ['hud','cluster'])for(const st of RL.STYLES)for(const ex of [{},{[d+'RpmGaugeWidthScale']:200,[d+'RpmGaugeOffsetX']:900,[d+'RpmGaugeOffsetY']:900},{[d+'RpmGaugeOffsetX']:-900,[d+'RpmGaugeOffsetY']:-900},{[d+'RlGearWidthScale']:200,[d+'RlGearOffsetX']:700,[d+'RlMarkHidden']:false,[d+'RlMarkOffsetY']:-700}]){
   const c=settings(Object.assign({[d+'Design']:'rl-'+st,[d+'AuxConfig']:AUX},ex)),f=d==='hud'?placement(c,'hud',HUDP):{x:0,y:0,w:1088,h:480},l=RL.rect(c,f,d);
-  RL.placed({config:c,rpm:0,gear:'--',aux:{}},l,d,f).forEach(e=>assert(inside(e.r,f),[d,st,JSON.stringify(ex),e.id,JSON.stringify(e.r)].join(' ')));}
+  RL.placed({config:c,rpm:0,gear:'--',aux:{}},l,d,f).forEach(e=>assert(inside(e.r,RL.room(f,d)),[d,st,JSON.stringify(ex),e.id,JSON.stringify(e.r)].join(' ')));}
  const own=settings({clusterDesign:'rl-hexagon'}),a1=CL.draw({config:Object.assign({},own,{clusterDesign:'own',clusterAlertStyle:'bar'}),rpm:4000,gear:'D3',aux:{}});
  const page2=new SettingsPage({schema:spec.settings,get:k=>({clusterDesign:'rl-hexagon'})[k]!==undefined?'rl-hexagon':pv[k],set(){},setMany(){}},null,'1.2.18');
  let calls=[];page2.preview=function(cv,c,x,y,w,d){calls.push(c[d+'Design']);};page2.selectTab(2);page2.activate(page2.keys().indexOf('design'));page2.draw(new Canvas(1600,520),null,null);

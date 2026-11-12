@@ -16,7 +16,7 @@ function demand(cfg,mode){
  if(gear){add(V,'statusGearboxDrive');add(V,'DataPowerTrain2');add('de.bmw.infotainment.misc.MDrive','dataDisplayGearbox');}
  SOURCES.forEach(s=>{if(Object.keys(s.members).some(k=>aux.has(k==='oilFallback'?'oil':k==='gLat'||k==='gLong'?'gforce':k)))add(s.iface,s.field);});
  // Cluster yields to route guidance: watch the guidance state while the cluster face is shown.
- const yieldNav=enabled&&cfg.clusterYieldGuidance==='any'&&faces.includes('cluster');
+ const yieldNav=enabled&&cfg.clusterYieldGuidance!=='off'&&faces.includes('cluster');
  if(yieldNav&&!navAny){add(G,'guidanceState');add(G,'guidingProvider');}
  if(navAny){add(G,'guidanceState');add(G,'guidingProvider');Object.keys(PROJECTED).forEach(p=>['projectedGuidanceActive','projectedGuidanceMetadataAvailable'].forEach(f=>add(PROJECTED[p].iface,f)));}
  if(turns){add(G,'conclusiveDart');add('de.bmw.infotainment.navigation.guiding.GuidanceEventList');add('de.bmw.infotainment.navigation.guiding.GuidanceRenderedContent');}

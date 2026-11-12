@@ -79,9 +79,12 @@ class Outputs {
             out.requiresRpm=!pv&&rpm&&D.faceRpmNeeded(local,name);out.preview=pv;
             out.profile = cfg.engineProfile; out.gear = this.gear; out.gearMode = this.gearMode;
             out.navigation = name === 'hud' && navAllowed(local,this.policy.mode) ? navigation : null;
-            const blocked=name==='hud' && this.hudBlocked;
+            // Navigation setting: the cluster gives way to route guidance (Waze over CarPlay / Android Auto, or any).
+            const yielded=name==='cluster'&&!pv&&cfg.clusterYieldGuidance!=='off'&&!!this.guidanceYield;
+            const blocked=name==='hud' && this.hudBlocked || yielded;
             states[name] = out.tick(now, Object.assign({}, local, { displayMode: pv||local['all'+(name==='hud'?'Hud':'Cluster')+'Output']==='redline'||nav?'all':'sport', displayTarget: name === 'hud' ? 'hud' : 'map', appEnabled: cfg.appEnabled && selected === 'redline' && !blocked }));
             if (selected === 'stock' && cfg.appEnabled) states[name].reason = 'stock';
+            else if(yielded && cfg.appEnabled)states[name].reason='cluster_yield';
             else if(blocked && cfg.appEnabled)states[name].reason=this.hudBlockReason || 'hud_safety';
         });
         const active = states.cluster.requested ? states.cluster : states.hud.requested ? states.hud :

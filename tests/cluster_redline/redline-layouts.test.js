@@ -30,7 +30,7 @@ for(const st of RL.STYLES){
 assert.strictEqual(new Set(Object.values(images).map(b=>b.toString('base64'))).size,RL.STYLES.length,'every layout distinct');
 // Position / size moves and scales the layout through the RPM gauge part.
 const moved=settings({hudDesign:'rl-standard',hudRpmGaugeOffsetX:40,hudRpmGaugeOffsetY:20,hudRpmGaugeWidthScale:150}),r0=RL.rect(settings({hudDesign:'rl-standard'}),placement(settings({}),'hud',face)),r1=RL.rect(moved,placement(moved,'hud',face));
-{const f=placement(moved,'hud',face),u=RL.extent(moved,'hud'),k=r1.w/RL.IW;assert(r1.w>r0.w&&r1.x!==r0.x,'larger and moved');assert(r1.y+u.y1*k<=f.y+f.h+1&&r1.x+u.x1*k<=f.x+f.w+1,'but kept inside the HUD window');}
+{const f=placement(moved,'hud',face),u=RL.extent(moved,'hud'),k=r1.w/RL.IW;assert(r1.w>r0.w&&r1.x!==r0.x,'larger and moved');assert(r1.y+u.y1*k<=480+1&&r1.x+u.x1*k<=800+1,'but kept on the HUD picture');}
 assert.deepStrictEqual(D.partsFor('hud',settings({hudDesign:'rl-arc'})).map(p=>p.key),['RpmGauge','RlGear','RlMode','RlAlert','RlGauge','RlReadA','RlReadB','RlMark'],'Whole layout, then each element (default readouts: two) and the M mark');
 // Navigation and lanes stay alongside a layout.
 const nav={visible:true,maneuverVisible:true,kind:'intersection',maneuver:'RIGHT',distanceText:'300 m',description:'강남대로',lanes:{visible:true,lanes:[{directions:['STRAIGHT_ON'],other:[],highlighted:true}]}};

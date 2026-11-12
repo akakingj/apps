@@ -1,4 +1,4 @@
-# Cluster Redline 1.2.19 user guide
+# Cluster Redline 1.2.20 user guide
 
 [한국어](CLUSTER-REDLINE.ko.md) · [Installation](INSTALL.md) · [All screenshots](../screenshots/README.md) · [Changelog](../CHANGELOG.md)
 
@@ -136,6 +136,10 @@ The custom settings UI no longer refreshes the unused generic HMI settings page.
 - **Shift alert:** Sport unchanged; Comfort/Eco and other modes use 90 % of the shift RPM with 50/80/100 % green/yellow/red.
 - **Position / size:** Save / load (three slots) and two-press reset; the selected part is drawn while adjusting even when hidden or without guidance (expires two minutes after the last edit, clears on Back).
 - **Outside temperature:** diagnostics in the status file. Stock HUD music/phone popups still take priority (renderer policy).
+
+## 1.2.20 changes
+
+- Cluster yield to navigation now releases the cluster (1.2.19 did not apply it); Waze's metadata flag counts; a live check line on the Navigation tab. Redline layouts start lower and move anywhere on the HUD picture. Outside temperature check line on the HUD / cluster tabs.
 
 ## 1.2.19 changes
 

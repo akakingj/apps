@@ -63,9 +63,12 @@ function extent(cfg,d){
 // Where the whole layout goes: each layout fitted to the visible area (the HUD's 600x180 window, or the
 // cluster area) at 100 %, sized by Whole layout's Size and moved by its X / Y, and kept inside the area:
 // its size is capped and its position clamped so the drawn extent never leaves it.
-// The HUD's visible face is larger than what the windscreen shows clearly: keep Redline layouts inside the
-// area the default design uses (the top 12 % and the outer edges stay empty, as in the default design).
-function safe(face,d){if(!face||d==='cluster')return face;const x=Math.round(face.w*0.04),t=Math.round(face.h*0.12),b=Math.round(face.h*0.05);return {x:face.x+x,y:face.y+t,w:face.w-2*x,h:face.h-t-b};}
+// The HUD's visible face is larger than what the windscreen shows clearly: a Redline layout is sized and placed
+// at first inside the area the default design uses (the top 15 % and the outer edges stay empty). Whole layout
+// and element X / Y may then move it anywhere on the HUD picture (as the default design's parts can), so a car
+// whose HUD shows a lower band can bring it down.
+function safe(face,d){if(!face||d==='cluster')return face;const x=Math.round(face.w*0.04),t=Math.round(face.h*0.15),b=Math.round(face.h*0.05);return {x:face.x+x,y:face.y+t,w:face.w-2*x,h:face.h-t-b};}
+function room(face,d){return d==='cluster'||!face||!face.tw?face:{x:0,y:0,w:face.tw,h:face.th};}
 function rect(cfg,face0,d){
  const face=safe(face0,d);
  const p=(d||'hud')+'RpmGauge',u=extent(cfg,d),uw=u.x1-u.x0,uh=u.y1-u.y0,cl=d==='cluster';
@@ -73,7 +76,7 @@ function rect(cfg,face0,d){
  const k=Math.min(cap,base*fit*(cfg[p+'WidthScale']||100)/100),w=Math.round(IW*k),h=Math.round(heightOf(style(cfg,d))*k);
  const ox=(cfg[p+'OffsetX']||0)*face0.w/(cl?1088:800),oy=(cfg[p+'OffsetY']||0)*face0.h/(cl?480:240);
  const ex=face.x+(face.w-uw*k)/2+ox,ey=face.y+(face.h-uh*k)/2+oy;
- const e=m/4,cx=Math.max(face.x+e,Math.min(face.x+face.w-e-uw*k,ex)),cy=Math.max(face.y+e,Math.min(face.y+face.h-e-uh*k,ey));
+ const a=room(face0,d)||face,e=m/4,cx=Math.max(a.x+e,Math.min(a.x+a.w-e-uw*k,ex)),cy=Math.max(a.y+e,Math.min(a.y+a.h-e-uh*k,ey));
  return {x:Math.round(cx-u.x0*k),y:Math.round(cy-u.y0*k),w,h};
 }
 // Elements of each layout that move, size and hide on their own (Position / size), in drawing order.
@@ -146,8 +149,9 @@ function clampTo(r,face){if(!face)return r;const w=Math.min(r.w,face.w),h=Math.m
  return {x:Math.max(face.x,Math.min(face.x+face.w-W,r.x)),y:Math.max(face.y,Math.min(face.y+face.h-H,r.y)),w:W,h:H};}
 // face: the visible area; a moved or enlarged element is kept inside it.
 function placed(state,layout,d,face0){
- const cfg=state.config,p=d||'hud',face=safe(face0,d||'hud');
- return elements(cfg,d).filter(e=>!cfg[p+e.key+'Hidden']).map(e=>{const b=bounds(state,e.id,d);return b&&Object.assign({b,r:clampTo(partRect(cfg,layout,b,e.key,d),face)},e);}).filter(Boolean);
+ const cfg=state.config,p=d||'hud',face=room(face0,d||'hud'),band=safe(face0,d||'hud'),wholeMoved=!!(cfg[p+'RpmGaugeOffsetX']||cfg[p+'RpmGaugeOffsetY']);
+ // Unmoved, an element (the M mark included) stays in the default band; moved, anywhere on the HUD picture.
+ return elements(cfg,d).filter(e=>!cfg[p+e.key+'Hidden']).map(e=>{const b=bounds(state,e.id,d);return b&&Object.assign({b,r:clampTo(partRect(cfg,layout,b,e.key,d),wholeMoved||cfg[p+e.key+'OffsetX']||cfg[p+e.key+'OffsetY']?face:band)},e);}).filter(Boolean);
 }
 function key(state,d){const f=frame(state,0,d);return JSON.stringify([f.opts.style,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode]);}
-module.exports={safe,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,elements,bounds,partRect,partPainter,placed};
+module.exports={safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,elements,bounds,partRect,partPainter,placed};

@@ -13,20 +13,22 @@ const page=(values)=>new SettingsPage({schema:spec.settings,get:k=>values[k],set
 {const v={};spec.settings.forEach(s=>{v[s.key]=s.default;});const p=page(v);p.selectTab(3);const at=p.keys().indexOf('clusterYieldGuidance');assert(at>=0&&at<p.keys().indexOf('layout'));
  p.activate(at);assert.strictEqual(p.open,'clusterYieldGuidance');p.choose(1);assert.strictEqual(v.clusterYieldGuidance,'phone');assert.strictEqual(p.config().clusterYieldGuidance,'phone');}
 
-// Controller: with guidance running the cluster output is released; the HUD is not affected.
-class Client extends EventEmitter{constructor(){super();this.ready=true;this.targets='map:1088x480,panel:1920x720,hud:800x480';this.images=[];this.drops=[];}image(o){this.images.push(o);return this.images.length;}drop(r){this.drops.push(r);}pixels(){}set(){}close(){}}
-const painter={W:1088,H:480,draw:()=>({d:Buffer.alloc(4)}),difference:()=>({rects:[],pixels:Buffer.alloc(0)})};
-const run=(raw,yieldNow)=>{const c=new Controller(new Client(),painter,painter);c.policy.modeSample(1,0);c.policy.rpmSample(4000,1000);c.guidanceYield=yieldNow;return c.tick(1000,raw);};
-assert.notStrictEqual(run({clusterYieldGuidance:'phone'},false).reason,'cluster_yield');
-assert.strictEqual(run({clusterYieldGuidance:'phone'},true).reason,'cluster_yield');assert.strictEqual(run({clusterYieldGuidance:'phone'},true).show,false);
-assert.notStrictEqual(run({clusterYieldGuidance:'off'},true).reason,'cluster_yield','off: the cluster stays');
-assert.notStrictEqual(run({clusterYieldGuidance:'any',displayTarget:'hud'},true).reason,'cluster_yield','the HUD is not affected');
+// Outputs: with guidance running the cluster output is released; the HUD is not affected.
+const {Outputs}=require(root+'/outputs');
+class Client extends EventEmitter{constructor(){super();this.ready=true;this.targets='map:1088x480,hud:800x480';this.n=0;}image(){return ++this.n;}pixels(){}showWhenSent(){}set(){}drop(){}close(){}}
+const pt={W:1088,H:480,draw:()=>({d:Buffer.alloc(64)}),difference:()=>({rects:[],pixels:Buffer.alloc(0)})},ph=Object.assign({},pt,{W:800,H:353});
+const run=(raw,yieldNow)=>{const o=new Outputs(new Client(),pt,ph);o.policy.modeSample(1,0);o.policy.rpmSample(5000,1000);o.guidanceYield=yieldNow;return o.tick(1000,Object.assign({sportClusterOutput:'redline',sportHudOutput:'redline'},raw)).outputs;};
+assert.notStrictEqual(run({clusterYieldGuidance:'phone'},false).cluster.reason,'cluster_yield');
+{const s=run({clusterYieldGuidance:'phone'},true);assert.strictEqual(s.cluster.reason,'cluster_yield');assert(!s.cluster.requested,'cluster layer released');assert.notStrictEqual(s.hud.reason,'cluster_yield','HUD unaffected');}
+assert.notStrictEqual(run({clusterYieldGuidance:'off'},true).cluster.reason,'cluster_yield','off: the cluster stays');
 // 'any' reads the route guidance state even with HUD navigation off.
 {const f=demand(settings({clusterYieldGuidance:'any',hudNavigationEnabled:false,sportClusterOutput:'redline',allClusterOutput:'redline'}),null).fields;assert(f.has('de.bmw.infotainment.navigation.guiding.Guidance.guidanceState'));}
 
 // Every Redline layout stays inside the area the default HUD design uses, at any size or position.
+// Moved by the user, it stays on the HUD picture (800 x 480) and can go lower than the default band.
 for(const st of RL.STYLES)for(const extra of [{},{hudRpmGaugeWidthScale:200},{hudRpmGaugeOffsetY:900},{hudRpmGaugeOffsetY:-900,hudRpmGaugeOffsetX:-900}]){
- const cfg=settings(Object.assign({hudDesign:'rl-'+st},extra)),face=placement(cfg,'hud',HUDP),sa=RL.safe(face,'hud'),lay=RL.rect(cfg,face,'hud');
+ const cfg=settings(Object.assign({hudDesign:'rl-'+st},extra)),face=placement(cfg,'hud',HUDP),moved=!!(extra.hudRpmGaugeOffsetY),sa=moved?{x:0,y:0,w:800,h:480}:RL.safe(face,'hud'),lay=RL.rect(cfg,face,'hud');
+ if(extra.hudRpmGaugeOffsetY===900)assert(lay.y>RL.rect(settings({hudDesign:'rl-'+st}),face,'hud').y+20,st+' moves well below the default band');
  RL.placed({config:cfg,rpm:0,gear:'--',aux:{}},lay,'hud',face).forEach(e=>assert(e.r.x>=sa.x-1&&e.r.y>=sa.y-1&&e.r.x+e.r.w<=sa.x+sa.w+1&&e.r.y+e.r.h<=sa.y+sa.h+1,st+' '+e.id+' '+JSON.stringify(extra)));}
 
 // Default design: All selects every part; Size scales them as one picture (same factor, gaps scaled too).

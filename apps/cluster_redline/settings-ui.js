@@ -134,8 +134,26 @@ class SettingsPage{
    if(key==='autoStart'){cv.text(RENDERER_NOTICE,100,y+72,24,'#ff9e36');cv.text(cfg.sportHudOutput==='redline'||cfg.allHudOutput==='redline'?HUD_WARNING:MAP_WARNING,100,y+101,23,'#ff9e36');}
    cv.line(84,y+h-1,1536,y+h-1,0.6,'#292d34');y+=h;
   });
-  if(this.tab===1||this.tab===2)cv.text('All modes Redline also applies in Sport.',84,492,23,'#91a1b6');
+  if(this.tab===1||this.tab===2){cv.text('All modes Redline also applies in Sport.',84,492,23,'#91a1b6');const o=this.outsideStatus(cfg);if(o)cv.text(o,84,462,22,'#ffad45',{literal:true});}
+  if(this.tab===3){const y=this.yieldStatus(cfg);if(y)cv.text(y,84,462,22,'#ffad45',{literal:true});}
   if(this.tab===3){cv.text(HUD_WARNING,84,390,25,'#91a1b6');cv.text(tr('Yield: while phone (Waze) or chosen route guidance runs, the cluster RPM display steps aside for the stock map.'),84,426,25,'#91a1b6');}
+ }
+ // Live check lines (from the background app's status) so a car without the value can be told apart.
+ outsideStatus(cfg){
+  const items=D.auxConfig(cfg[this.display()+'AuxConfig']).items;if(!items.includes('outside'))return '';
+  const live=this.liveState&&this.liveState.auxiliary;if(!live)return tr('Outside temperature')+': '+tr('waiting for the background app');
+  const v=live.values&&live.values.outside,src=(live.sources||[]).find(e=>e.field==='ExteriorTemperature'),d=live.diagnostics&&live.diagnostics.outside;
+  if(typeof v==='number')return tr('Outside temperature')+': '+v.toFixed(1)+' °C · '+tr('received')+' '+(src?src.received:0);
+  if(!src)return tr('Outside temperature')+': '+tr('signal not installed for this app (reinstall from the Store)');
+  if(src.error)return tr('Outside temperature')+': '+tr('subscription error')+' · '+src.error;
+  if(!src.available)return tr('Outside temperature')+': '+tr('car interface not available yet');
+  if(!src.received)return tr('Outside temperature')+': '+tr('subscribed, no value from the car yet');
+  return tr('Outside temperature')+': '+tr('received')+' '+src.received+' · '+tr('raw')+' '+(d?String(d.raw):'?')+' ('+(d?d.result:'?')+')';
+ }
+ yieldStatus(cfg){
+  if(cfg.clusterYieldGuidance==='off')return '';const y=this.liveState&&this.liveState.clusterYield;if(!y)return tr('Yield')+': '+tr('waiting for the background app');
+  const p=y.projected||{},cp=p.CAR_PLAY||{},aa=p.ANDROID_AUTO||{},f=x=>x===true?'O':x===false?'X':'-';
+  return tr('Yield')+': '+tr(y.active?'cluster released':'not now')+' · CarPlay '+f(cp.available)+'/'+f(cp.active)+'/'+f(cp.metadataAvailable)+' · AA '+f(aa.available)+'/'+f(aa.active)+'/'+f(aa.metadataAvailable)+(y.provider?' · '+y.provider:'');
  }
  backButton(cv,targets){this.button(cv,targets,'Back',1210,448,326,64,()=>this.back(),false,'back');}
  drawChoices(cv,cfg,targets){
@@ -299,7 +317,7 @@ class SettingsPage{
  selectAllParts(){const parts=this.layoutParts().filter(p=>!p.uniform),all=parts.every(p=>this.layoutSelected.has(p.key));
   this.layoutSelected=new Set(all?[parts[0].key]:parts.map(p=>p.key));this.layoutPart=Math.max(0,this.layoutParts().findIndex(p=>this.layoutSelected.has(p.key)));
   const refresh=this.previewRefresh();if(refresh.layoutPreview!==undefined)this.settings.set('layoutPreview',refresh.layoutPreview);this.changed();}
- rlRect(cfg,p){const display=this.display(),face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display);if(p.key==='RpmGauge')return layout;const e=RL.elements(cfg,display).find(v=>v.key===p.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display);return b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),RL.safe(face,display)):layout;}
+ rlRect(cfg,p){const display=this.display(),face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display);if(p.key==='RpmGauge')return layout;const shown=RL.placed({config:cfg,rpm:0,gear:'--',aux:{}},layout,display,face).find(v=>v.key===p.key);if(shown)return shown.r;const e=RL.elements(cfg,display).find(v=>v.key===p.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display);return b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),RL.room(face,display)):layout;}
  drawLayout(cv,cfg,targets){
   const local=[],nav=this.tab===3,display=this.display(),parts=this.layoutParts();this.layoutPart=Math.min(this.layoutPart,parts.length-1);
   // Five columns, or six when a layout has many elements (two rows with Save / load in the last cell).
@@ -319,7 +337,7 @@ class SettingsPage{
   });
   let width,height;
   if(nav){const rect=D.navRect(cfg,selected.key);width=rect.w;height=rect.h;}
-  else if(RL.active(cfg,display)){const face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display),e=RL.elements(cfg,display).find(v=>v.key===selected.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display),r=b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),RL.safe(face,display)):layout;width=r.w;height=r.h;}
+  else if(RL.active(cfg,display)){const face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display),e=RL.elements(cfg,display).find(v=>v.key===selected.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display),r=b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),RL.room(face,display)):layout;width=r.w;height=r.h;}
   else{const painter=display==='hud'?HUD:CLUSTER,b=measurePart(painter,{config:cfg,rpm:0,gear:this.liveState&&this.liveState.gear||'--'},display,selected.key,cv)||{w:0,h:0},r=placement(cfg,display==='hud'?'hud':cfg.displayTarget==='panel'?'panel':'map',painter);width=Math.round(b.w*cfg[prefix+'WidthScale']/100*r.w/painter.W);height=Math.round(b.h*cfg[prefix+'HeightScale']/100*r.h/painter.H);}
   cv.text(group.length?group.length+' '+t('selected')+' · '+tr(selected.label):t('Select items to adjust'),84,456,21,'#b8c5d4',{literal:true});
   cv.text(group.length?'X '+cfg[prefix+'OffsetX']+' · Y '+cfg[prefix+'OffsetY']+' · '+width+' × '+height+' px':'',84,500,21,'#ffad45',{literal:true});

@@ -8,7 +8,7 @@ let t=v=>String(v),getLanguage=()=>'en';
 try{({t,getLanguage}=require('./kit/i18n'));}catch(e){/* host tests load sources without the kit */}
 const KO={
  'Clock':'시계','Gauges only':'게이지 전용','Clock time':'시계 시간','UTC+9 (Korea)':'UTC+9 (한국)','Head unit time':'헤드유닛 시간',
- 'Save / load':'저장 / 불러오기','All':'전체','Yield: while phone (Waze) or chosen route guidance runs, the cluster RPM display steps aside for the stock map.':'양보: 폰 내비(웨이즈) 또는 선택한 길안내가 진행 중이면 클러스터 RPM 표시를 끄고 순정 지도를 보여줍니다.','Save / load positions':'위치 저장 / 불러오기','Reset to defaults':'기본값으로 초기화',
+ 'Save / load':'저장 / 불러오기','All':'전체','waiting for the background app':'백그라운드 앱 대기 중','received':'수신','signal not installed for this app (reinstall from the Store)':'이 앱에 신호가 설치되지 않음 (스토어에서 다시 설치)','subscription error':'구독 오류','car interface not available yet':'차량 인터페이스 아직 없음','subscribed, no value from the car yet':'구독됨, 차에서 값이 아직 안 옴','raw':'원시값','Yield':'양보','cluster released':'클러스터 양보 중','not now':'대기','Yield: while phone (Waze) or chosen route guidance runs, the cluster RPM display steps aside for the stock map.':'양보: 폰 내비(웨이즈) 또는 선택한 길안내가 진행 중이면 클러스터 RPM 표시를 끄고 순정 지도를 보여줍니다.','Save / load positions':'위치 저장 / 불러오기','Reset to defaults':'기본값으로 초기화',
  'Press again to reset':'한 번 더 누르면 초기화','Press again to reset to defaults':'한 번 더 누르면 기본값으로 초기화',
  'Slot':'슬롯','Saved':'저장됨','Empty':'비어 있음','Save':'저장','Load':'불러오기',
  'Saved to slot':'저장 완료 · 슬롯','Loaded slot':'불러오기 완료 · 슬롯','Slot is empty':'빈 슬롯입니다',

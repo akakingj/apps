@@ -118,11 +118,6 @@ class Controller {
         if (d.show && (!painter || cfg.displayTarget === 'unknown' || String(this.client.targets || '').split(',').indexOf(geometry) < 0)) {
             d.show = false; d.reason = 'target_unavailable';
         }
-        // Navigation setting: the cluster gives way while route guidance (Waze over CarPlay / Android Auto,
-        // or any guidance) is running, so the stock cluster map stays visible. The HUD is not affected.
-        if (d.show && !hud && !this.preview && cfg.clusterYieldGuidance && cfg.clusterYieldGuidance !== 'off' && this.guidanceYield) {
-            d.show = false; d.reason = 'cluster_yield';
-        }
         if (!d.show) {
             if (this.ref && ['rpm_unknown', 'mode_unknown', 'rpm_invalid'].indexOf(d.reason) >= 0) { this.recovering = true; this.retryAfter = now + 2000; }
             this.recoverySince = null;

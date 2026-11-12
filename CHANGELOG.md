@@ -13,6 +13,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.20
+
+- **Cluster yield to navigation actually applied**: 1.2.19 passed the yield to the wrong object, so the cluster never released. The cluster output is now released by the output manager (status "Route guidance active · cluster released"), and phone guidance counts when CarPlay / Android Auto reports either guidance flag (some apps such as Waze set only the metadata flag) or the guidance channel names the phone as guiding provider; held 8 s against flicker. The Navigation tab shows a live line: released or not, and CarPlay / Android Auto available / guidance / metadata.
+- **Redline layouts start lower and can move down**: placed at first in the band the default design uses with the top 15 % left free (no element, the M mark included, above it); Whole layout and element X / Y may then move anywhere on the HUD picture, so Down always moves them (the taller layouts filled the band and could not move at all).
+- **Outside temperature check line** on the HUD / cluster tabs when Outside temperature is chosen: the live value, or why there is none (signal not installed for this app, interface unavailable, subscription error, subscribed but nothing from the car yet, or the raw value received). Errors loading the interface are now reported in the status file.
+
 ### 1.2.19
 
 - **Cluster yields to navigation** (Navigation tab, new row "Cluster · yield to navigation"): Off / Phone navigation (Waze and other CarPlay / Android Auto guidance) / Any route guidance (BMW + phone). While that guidance runs the cluster RPM display steps aside for the stock map (status "Route guidance active · cluster released"); the HUD is not affected. Kept outside app.json.
