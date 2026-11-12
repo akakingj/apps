@@ -287,7 +287,46 @@ function drawLuxury(cv,f,h){
  [[96,250,'left'],[992,250,'right'],[96,350,'left'],[992,350,'right']].forEach((p,i)=>{const it=f.readouts[i];if(!it||!want(f,'read'+'ABCD'[i]))return;
   cv.text(it.label,p[0],p[1],24,lxc(LX.gold,220),{align:p[2],font:'bold'});cv.text(it.value,p[0],p[1]+50,46,lxc(LX.bright),{align:p[2],font:'bold'});});
 }
-const DRAW={shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury};
+// Sport HUD: four yellow and three red pips, a long slanted segment bar 0..max with the scale under it,
+// the gear big inside a stepped frame, the rpm big under it, the drive mode at the foot, readouts left/right.
+const SH={x0:80,x1:1000,y:128,hgt:18,slant:10,seg:40};
+function drawSportHud(cv,f,h){
+ const d=f.d,max=f.max,cx=544,rpm=isNum(d.rpm)?clamp(d.rpm,0,max):0,q=cue(f),ko=language()==='ko';
+ const W=[236,236,236],Y=[255,214,0],R=[255,40,30],X=v=>SH.x0+(SH.x1-SH.x0)*clamp(v,0,max)/max;
+ const zone=v=>v>=f.redline?R:v>=f.cue.from?Y:W;
+ if(want(f,'gauge')){
+  const n=SH.seg,step=max/n,gap=4,top=SH.y-SH.hgt;
+  for(let i=0;i<n;i++){const v0=i*step,v1=(i+1)*step,x0=X(v0)+gap/2,x1=X(v1)-gap/2,on=rpm>v0+step*0.5||(rpm>v0&&i===0&&rpm>50),c=zone(v0+step/2);
+   const hot=on&&f.cue.shift&&f.blink?R:c;
+   cv.quad([[x0,SH.y],[x1,SH.y],[x1+SH.slant,top],[x0+SH.slant,top]],on?rgbA(hot,255):rgbA(c,60));}
+  cv.line(SH.x0-4,SH.y+4,SH.x1+SH.slant,SH.y+4,2,[200,200,200,200]);
+  for(let v=0;v<=max+1;v+=1000){const x=X(v);cv.line(x,SH.y+4,x,SH.y+16,2,[220,220,220,230]);
+   cv.text(String(v/1000),x,SH.y+50,32,v>=f.redline?rgbA(R,255):[230,230,230,255],{align:'center',font:'bold'});}
+  cv.text(ko?'RPM ×1000':'RPM ×1000',SH.x1+SH.slant,SH.y+92,20,[200,200,200,230],{align:'right',font:'bold',literal:true});
+ }
+ if(want(f,'alert')){
+  const n=7,lit=q.flash?n:Math.floor(q.p*n+1e-6);
+  for(let i=0;i<n;i++){const x=cx+(i-3)*38,y=38,on=i<lit&&(!q.flash||q.on),c=q.flash?R:i<4?Y:R;
+   cv.circle(x,y,10,on?rgbA(c,255):rgbA(c,55));}
+ }
+ if(want(f,'gear')){
+  const lc=[220,220,220,200];
+  [1,-1].forEach(s=>{const X2=x=>cx+s*x;cv.polyline([[X2(250),300],[X2(160),300],[X2(130),226],[X2(80),226]],2,lc);});
+  cv.text(h.gearText(d),cx,300,112,[240,240,240,255],{align:'center',font:'bold'});
+ }
+ if(want(f,'rpm')){
+  const t=rpmText(d),c=f.cue.shift&&f.blink?rgbA(R,255):[240,240,240,255];
+  cv.text(t,cx+20,422,108,c,{align:'right',font:'bold'});cv.text('rpm',cx+34,422,32,[220,220,220,230],{align:'left',font:'bold',literal:true});
+ }
+ if(want(f,'mode')){const m=String(f.drive||''),th=sdTheme(m),word=/SPORT/.test(m)?(ko?'스포츠':'SPORT'):/ECO/.test(m)?(ko?'에코 프로':'ECO PRO'):m?(ko?'컴포트':'COMFORT'):'';
+  if(word){cv.text(word,cx,470,30,rgbA(th.main,255),{align:'center',font:'bold',literal:true});
+   cv.line(cx-170,460,cx-100,460,2,[200,200,200,170]);cv.line(cx+100,460,cx+170,460,2,[200,200,200,170]);}}
+ // readouts: two on each side beside the gear and rpm, with a thin divider on the inner side
+ [[80,'left',150],[1008,'right',938]].forEach(([x,al,dx],side)=>{[0,1].forEach(r=>{const i=side+2*r,it=f.readouts[i];if(!it||!want(f,'read'+'ABCD'[i]))return;const y=262+r*110;
+  cv.line(side?dx-100:dx+100,y-34,side?dx-100:dx+100,y+20,2,[200,200,200,150]);
+  cv.text(it.label,x,y-10,24,[190,190,190,230],{align:al,font:'bold'});cv.text(it.value,x,y+38,44,[240,240,240,255],{align:al,font:'bold'});});});
+}
+const DRAW={shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury,sporthud:drawSportHud};
 // Each layout draws in one pass (no separate background layer); the bg layer request draws nothing.
 function drawX(cv,f,layer,h){if(layer==='bg')return;DRAW[f.opts.style](h.scaled(cv,S,0,0),f,h);}
 module.exports={STYLES:Object.keys(DRAW),IH,drawX};

@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.36
+
+- **New layout: Sport HUD** (HUD only, not offered on the cluster): four yellow and three red pips as the rpm alert; a long slanted segment bar from 0 to the top revs, white then yellow towards the shift point and red at the redline, with the scale and RPM ×1000 under it; the gear big inside a stepped frame; the rpm big under it; the drive mode at the foot in the drive-mode colour (Sport red, Comfort blue, Eco sky blue); up to four readouts left and right.
+
 ### 1.2.35
 
 - **New layout: Luxury arc** (made for the HUD, offered on the cluster too): a wide shallow gold arc across the top, finely ticked, lit up to the rpm with a glowing marker and an amber redline section; the rpm in big gold digits; the gear in a gold pill between fading rules; the drive mode spelt out; seven gold pips as the rpm alert (red, flashing, at the shift point); up to four readouts left and right; gold ribbons at the lower corners.
