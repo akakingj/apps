@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.26
+
+- Cluster yield choices: Do not yield / Yield during Waze guidance · all modes / Yield during Waze guidance · except Sport (in Sport and Sport+ the cluster RPM display stays while guiding).
+
 ### 1.2.25
 
 - Cluster yield setting has two choices: Do not yield / Yield while guidance (Waze) shows on the HUD. The former "Any route guidance" reads as on.

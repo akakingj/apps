@@ -60,7 +60,7 @@ function settings(raw) {
     out.comfortShiftRpm = [2000, 2250, 2500, 2750, 3000, 3250, 3500, 4000, 4500, 5000].indexOf(raw.comfortShiftRpm) >= 0 ? raw.comfortShiftRpm : 0;
     // Cluster yields while route guidance (Waze included) shows on the HUD (kept outside app.json): off / on ('phone';
     // the earlier third choice 'any' reads as on).
-    out.clusterYieldGuidance = raw.clusterYieldGuidance === 'phone' || raw.clusterYieldGuidance === 'any' ? 'phone' : 'off';
+    out.clusterYieldGuidance = raw.clusterYieldGuidance === 'nosport' ? 'nosport' : raw.clusterYieldGuidance === 'phone' || raw.clusterYieldGuidance === 'any' ? 'phone' : 'off';
     ['redlineRpm', 'maxRpm', 'torqueScale', 'powerScale'].forEach((key) => { out[key] = profile[key]; });
     // Fixed request ceiling. Retired saved 12/30/60 fps choices never override it.
     if (Object.prototype.hasOwnProperty.call(raw, 'displayTarget')) out.displayTarget = ['map', 'panel', 'hud'].indexOf(raw.displayTarget) >= 0 ? raw.displayTarget : 'unknown';

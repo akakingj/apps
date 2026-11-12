@@ -13,7 +13,7 @@ const gear = require('./gear');
 const guidance = require('./guidance');
 const {NativeNavigation} = require('./native-navigation');
 const {AuxInfo,SOURCES}=require('./aux-info');
-const {navAllowed,auxConfig,rpmOutput,clockText}=require('./display-config');
+const {navAllowed,auxConfig,rpmOutput,clockText,sportMode}=require('./display-config');
 const {BatteryVoltage}=require('./battery-voltage');
 const {PROJECTED} = require('./projection-config');
 const {HudGuidance,INTERFACE:HUD_GUIDANCE,INSTANCE:HUD_INSTANCE,METHODS:HUD_METHODS}=require('./hud-guidance');
@@ -323,8 +323,10 @@ function start(ctx) {
                 ||Object.prototype.hasOwnProperty.call(PROJECTED,maneuvers.provider)&&maneuvers.fresh(maneuvers.providerAt,at);
             // As asked: whenever route guidance shows (or would show) on the HUD, the cluster is released too.
             const hudGuiding=!!(commonManeuver.active||maneuverState.visible||controller.navigation&&controller.navigation.visible);
-            const yieldNow=config.clusterYieldGuidance==='any'?hudGuiding||phoneNow||!!navigationState.active:config.clusterYieldGuidance==='phone'&&(hudGuiding||phoneNow);
+            // 'nosport': yield in every mode but Sport (the RPM display stays in Sport while guiding).
+            const yieldNow=(config.clusterYieldGuidance==='phone'||config.clusterYieldGuidance==='nosport'&&!sportMode(controller.policy.mode))&&(hudGuiding||phoneNow);
             if(yieldNow)lastYieldAt=at;
+            if(config.clusterYieldGuidance==='nosport'&&sportMode(controller.policy.mode))lastYieldAt=-Infinity;
             controller.guidanceYield=config.clusterYieldGuidance!=='off'&&(yieldNow||at-lastYieldAt<8000);
             controller.guidanceYieldDetail={hud:hudGuiding,phone:phoneNow,provider:maneuvers.provider||'',projected};
             controller.navigation=Object.assign({},maneuverState,{visible:!!visible,maneuverVisible:!!maneuverState.visible,lanes:laneData});
