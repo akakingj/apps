@@ -8,21 +8,21 @@ const LABELS={boost:'Boost',torque:'Torque',power:'Power*',gforce:'G-force',outs
 const PARTS=['RpmGauge','Gear','Alert','AuxLeft','AuxRight','RpmValue','Mark','MarkTop','MarkBottom'];
 const PART_LABELS=['RPM gauge','Gear','RPM alert','Auxiliary left','Auxiliary right','RPM number','M mark','Upper M mark','Lower M mark'];
 const LEGACY_PARTS=['Aux'];
-// The Redline app layouts' elements (redline-hud.js), HUD only. Kept in the saved settings like hudDesign,
+// The Redline app layouts' elements (redline-hud.js), on the HUD and the cluster. Kept in the saved settings like hudDesign,
 // outside app.json, so the Store's settings templates stay valid.
 const RL_PARTS=['RlGear','RlMode','RlAlert','RlRpm','RlGauge','RlRead','RlReadA','RlReadB','RlReadC','RlReadD'];
 const NAV_PARTS=[{key:'Direction',label:'Direction',prefix:'hudNav',scale:'navUniformScale',w:240,h:112},{key:'Text',label:'Text',prefix:'hudText',scale:'hudTextScale',w:240,h:48},{key:'Lanes',label:'Lane guidance',prefix:'hudLanes',scale:'hudLanesScale',w:240,h:72}];
-const defaults={displaySettingsRevision:4,clusterAlertStyle:'circle',navDisplayMode:'all',navColor:'blue',navUniformScale:70,hudTextOffsetX:180,hudTextOffsetY:10,hudTextScale:65,hudLanesOffsetX:210,hudLanesOffsetY:115,hudLanesScale:70,hudAuxTextOffsetY:10,clockZone:'auto',layoutPreview:'',hudDesign:'own'};
+const defaults={displaySettingsRevision:4,clusterAlertStyle:'circle',navDisplayMode:'all',navColor:'blue',navUniformScale:70,hudTextOffsetX:180,hudTextOffsetY:10,hudTextScale:65,hudLanesOffsetX:210,hudLanesOffsetY:115,hudLanesScale:70,hudAuxTextOffsetY:10,clockZone:'auto',layoutPreview:'',hudDesign:'own',clusterDesign:'own'};
 NAV_PARTS.forEach(p=>{defaults[p.prefix+'Hidden']=false;});
 ['hud','cluster'].forEach(d=>{
  defaults[d+'AuxConfig']=JSON.stringify({mode:'gauges',items:['boost','torque']});
  PARTS.concat(LEGACY_PARTS).forEach(p=>{defaults[d+p+'OffsetX']=0;defaults[d+p+'OffsetY']=d==='cluster'&&/^Aux(Left|Right)$/.test(p)?50:0;defaults[d+p+'WidthScale']=100;defaults[d+p+'HeightScale']=100;defaults[d+p+'Hidden']=false;});
  ['Mark','MarkTop','MarkBottom'].forEach(p=>{defaults[d+p+'Hidden']=false;defaults[d+p+'LineHidden']=false;});
 });
-RL_PARTS.forEach(p=>{defaults['hud'+p+'OffsetX']=0;defaults['hud'+p+'OffsetY']=0;defaults['hud'+p+'WidthScale']=100;defaults['hud'+p+'HeightScale']=100;defaults['hud'+p+'Hidden']=false;});
+['hud','cluster'].forEach(d=>RL_PARTS.forEach(p=>{defaults[d+p+'OffsetX']=0;defaults[d+p+'OffsetY']=0;defaults[d+p+'WidthScale']=100;defaults[d+p+'HeightScale']=100;defaults[d+p+'Hidden']=false;}));
 function partsFor(display,cfg){
  // A Redline app layout: the RPM gauge part moves and sizes it whole, then each of its elements on its own.
- if(display==='hud'&&cfg.hudDesign&&cfg.hudDesign!=='own'){const RL=require('./redline-hud');const order=['RlGear','RlMode','RlAlert','RlRpm','RlGauge','RlRead','RlReadA','RlReadB','RlReadC','RlReadD'];return [{key:'RpmGauge',label:'Whole layout'}].concat(RL.elements(cfg).sort((x,y)=>order.indexOf(x.key)-order.indexOf(y.key)).map(e=>({key:e.key,label:RL.LABELS[e.key],uniform:true})));}
+ if(cfg[display+'Design']&&cfg[display+'Design']!=='own'){const RL=require('./redline-hud');const order=['RlGear','RlMode','RlAlert','RlRpm','RlGauge','RlRead','RlReadA','RlReadB','RlReadC','RlReadD'];return [{key:'RpmGauge',label:'Whole layout'}].concat(RL.elements(cfg,display).sort((x,y)=>order.indexOf(x.key)-order.indexOf(y.key)).map(e=>({key:e.key,label:RL.LABELS[e.key],uniform:true})));}
  const keys=display==='hud'?['RpmGauge','Gear'].concat(cfg.hudAlertStyle==='circle'?[]:['Alert'],['AuxLeft','AuxRight','RpmValue','Mark']):['RpmGauge','Gear','Alert','AuxLeft','AuxRight','RpmValue','MarkTop','MarkBottom'];
  return keys.map(key=>({key,label:display==='hud'&&key==='Gear'&&cfg.hudAlertStyle==='circle'?'Gear + circle alert':PART_LABELS[PARTS.indexOf(key)]}));
 }
@@ -46,7 +46,7 @@ function normalize(raw,out){
   ['Mark','MarkTop','MarkBottom'].forEach(p=>['Hidden','LineHidden'].forEach(s=>{out[d+p+s]=raw[d+p+s]===true;}));
  });
  // Redline layout elements size uniformly (text can't stretch): height follows width.
- RL_PARTS.forEach(p=>{const k='hud'+p;out[k+'Hidden']=raw[k+'Hidden']===true;['OffsetX','OffsetY'].forEach(s=>{const v=raw[k+s];if(typeof v==='number'&&isFinite(v))out[k+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});const v=raw[k+'WidthScale'];if(typeof v==='number'&&isFinite(v))out[k+'WidthScale']=Math.max(20,Math.min(200,Math.round(v/5)*5));out[k+'HeightScale']=out[k+'WidthScale'];});
+ ['hud','cluster'].forEach(d=>RL_PARTS.forEach(p=>{const k=d+p;out[k+'Hidden']=raw[k+'Hidden']===true;['OffsetX','OffsetY'].forEach(s=>{const v=raw[k+s];if(typeof v==='number'&&isFinite(v))out[k+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});const v=raw[k+'WidthScale'];if(typeof v==='number'&&isFinite(v))out[k+'WidthScale']=Math.max(20,Math.min(200,Math.round(v/5)*5));out[k+'HeightScale']=out[k+'WidthScale'];}));
  ['hudText','hudLanes'].forEach(prefix=>['OffsetX','OffsetY','Scale'].forEach(s=>{const k=prefix+s,v=raw[k];if(typeof v==='number'&&isFinite(v))out[k]=s==='Scale'?Math.max(20,Math.min(200,Math.round(v/5)*5)):Math.max(-1000,Math.min(1000,Math.round(v)));}));
  NAV_PARTS.forEach(p=>{out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
  if(typeof raw.hudAuxTextOffsetY==='number'&&isFinite(raw.hudAuxTextOffsetY))out.hudAuxTextOffsetY=Math.max(-1000,Math.min(1000,raw.hudAuxTextOffsetY));
@@ -56,6 +56,7 @@ function normalize(raw,out){
  // usually UTC); the English version keeps the head unit's time.
  out.clockZone=['auto','utc9'].includes(raw.clockZone)?raw.clockZone:require('./strings').language()==='ko'?'utc9':'auto';
  out.hudDesign=HUD_DESIGNS.includes(raw.hudDesign)?raw.hudDesign:'own';
+ out.clusterDesign=HUD_DESIGNS.includes(raw.clusterDesign)?raw.clusterDesign:'own';
  out.layoutPreview=typeof raw.layoutPreview==='string'&&/^(hud|cluster|nav):[A-Za-z]{1,20}@[0-9]{1,15}$/.test(raw.layoutPreview)?raw.layoutPreview:'';
  return out;
 }
@@ -70,6 +71,6 @@ function layoutPreview(cfg,now){const m=/^(hud|cluster|nav):([A-Za-z]+)@([0-9]+)
 function clockText(cfg,date){const d=date||new Date(),t=cfg.clockZone==='utc9'?new Date(d.getTime()+9*3600000):d,h=cfg.clockZone==='utc9'?t.getUTCHours():t.getHours(),m=cfg.clockZone==='utc9'?t.getUTCMinutes():t.getMinutes();return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
 function navRect(cfg,key){const p=NAV_PARTS.find(p=>p.key===key),s=cfg[p.scale]/100,w=Math.round(p.w*s),h=Math.round(p.h*s);return {x:Math.round((800-w)/2+cfg[p.prefix+'OffsetX']),y:Math.round(240+cfg[p.prefix+'OffsetY']),w,h};}
 function visibleMetrics(cfg,display){const a=auxConfig(cfg[display+'AuxConfig']);return a.mode==='off'?[]:metricSlots(a.items).filter(s=>!cfg[display+(s.side?'AuxRight':'AuxLeft')+'Hidden']).map(s=>s.id);}
-function faceVisible(cfg,d){if(d==='hud'&&cfg.hudDesign&&cfg.hudDesign!=='own')return !cfg.hudRpmGaugeHidden&&partsFor(d,cfg).some(p=>p.key!=='RpmGauge'&&!cfg[d+p.key+'Hidden']);return partsFor(d,cfg).some(p=>!cfg[d+p.key+'Hidden'])||(d==='hud'?!cfg.hudMarkLineHidden:!cfg.clusterMarkTopLineHidden||!cfg.clusterMarkBottomLineHidden);}
+function faceVisible(cfg,d){if(cfg[d+'Design']&&cfg[d+'Design']!=='own')return !cfg[d+'RpmGaugeHidden']&&partsFor(d,cfg).some(p=>p.key!=='RpmGauge'&&!cfg[d+p.key+'Hidden']);return partsFor(d,cfg).some(p=>!cfg[d+p.key+'Hidden'])||(d==='hud'?!cfg.hudMarkLineHidden:!cfg.clusterMarkTopLineHidden||!cfg.clusterMarkBottomLineHidden);}
 function faceRpmNeeded(cfg,d){return !cfg[d+'RpmGaugeHidden']||!cfg[d+'RpmValueHidden']||!cfg[d+'AlertHidden']&&(d!=='hud'||cfg.hudAlertStyle!=='circle'||!cfg.hudGearHidden)||visibleMetrics(cfg,d).includes('power');}
 module.exports={METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};

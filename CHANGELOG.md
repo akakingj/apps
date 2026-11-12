@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.11
+
+- **Redline app layouts on the cluster**: Cluster display settings → Design now offers the nine Redline app layouts (Standard, Minimal, Split wings, 80s digital dash, VFD glow, Vector arcade, Arc, Ramp, Dial) beside Top alert bar and Circle beside gear. A layout replaces the cluster face: 800x260 at 100 %, centred in the cluster area, with the cluster's own auxiliary items. Position / size works as on the HUD: Whole layout, then each element moves, sizes and hides on its own and is saved, loaded and reset with the cluster's other parts. The HUD and the cluster choose their designs separately (stored outside `app.json` like the HUD design).
+
 ### 1.2.10
 
 - The two shift alert rows in the Basic settings are named for the modes they apply to: **Shift alert RPM · Sport** and **Shift alert RPM · Comfort / Eco**, whose automatic choice reads *Automatic (90 % of Sport)*. Behaviour is unchanged.

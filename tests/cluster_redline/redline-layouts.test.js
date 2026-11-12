@@ -43,6 +43,7 @@ page.selectTab(1);page.activate(page.keys().indexOf('design'));draw();page.choos
 page.choose(6);assert.strictEqual(values.hudDesign,'rl-arc');assert(/F80/.test(page.value(page.item(),page.config())));
 page.activate(page.keys().indexOf('layout'));assert.deepStrictEqual(page.layoutParts().map(p=>p.key),['RpmGauge','RlGear','RlMode','RlAlert','RlGauge','RlReadA','RlReadB']);draw();page.back();
 page.activate(page.keys().indexOf('design'));page.choose(1);assert.strictEqual(values.hudDesign,'own');assert.strictEqual(values.hudAlertStyle,'circle');
-page.selectTab(2);page.activate(page.keys().indexOf('design'));assert.strictEqual(page.open,'design');page.choose(2);assert.notStrictEqual(page.open,'rlDesign','cluster has no Redline layouts');
+page.selectTab(2);page.activate(page.keys().indexOf('design'));assert.strictEqual(page.open,'design');page.choose(2);assert.strictEqual(page.open,'rlDesign','the cluster offers the Redline layouts too');draw();page.choose(7);assert.strictEqual(values.clusterDesign,'rl-ramp');assert.strictEqual(values.hudDesign,'own','HUD and cluster designs are separate');
+page.activate(page.keys().indexOf('design'));page.choose(0);assert.strictEqual(values.clusterDesign,'own');assert.strictEqual(values.clusterAlertStyle,'bar');
 if(getLanguage()==='ko')assert.deepStrictEqual(english,[],'untranslated labels');
-console.log('PASS: nine Redline app HUD layouts drawn 1:1 at HUD size with live rpm/gear/shift, aux readouts, navigation alongside, Position / size, settings picker');
+console.log('PASS: nine Redline app layouts (HUD, and cluster picker) drawn 1:1 at HUD size with live rpm/gear/shift, aux readouts, navigation alongside, Position / size, settings picker');

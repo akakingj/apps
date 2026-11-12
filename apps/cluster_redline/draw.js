@@ -5,7 +5,7 @@ const rpmColors = require('./rpm-colors');
 const {part}=require('./component-canvas');
 const {drawAux}=require('./aux-draw');
 const {alertState}=require('./hud-draw');
-const fonts=require('./kit/fonts');
+const fonts=require('./kit/fonts'),RL=require('./redline-hud');
 const W = 1088, H = 480;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const C = { track: '#1b212b', text: '#f4f7fb', red: '#ff2a2a' };
@@ -25,7 +25,17 @@ function frame(cv, cfg, y, lower) {
 function shade(c,x0,x1,top,bottom,slant,t0,t1,col){if(x1<=x0)return;const h=bottom-top,a=slant*(1-t0),b=slant*(1-t1);c.quad([[x0+a,top+h*t0],[x1+a,top+h*t0],[x1+b,top+h*t1],[x0+b,top+h*t1]],col);}
 function lit(c,x0,x1,top,bottom,slant){shade(c,x0,x1,top,bottom,slant,0,0.45,'#ffffff3a');shade(c,x0,x1,top,bottom,slant,0.06,0.2,'#ffffff3c');shade(c,x0,x1,top,bottom,slant,0.68,1,'#00000066');}
 function recess(c,x0,x1,top,bottom,slant){shade(c,x0,x1,top,bottom,slant,0,0.32,'#00000070');shade(c,x0,x1,top,bottom,slant,0.85,1,'#ffffff14');}
+// A Redline app layout chosen for the cluster replaces the cluster face: each element painted at its
+// final size, placed by Whole layout (the RPM gauge part) and its own move, size and hide.
+function drawRedline(state,target){
+    const cfg=state.config,layout=RL.rect(cfg,{x:0,y:0,w:W,h:H},'cluster');
+    if(target){if(!cfg.clusterRpmGaugeHidden)RL.paint(target,state,layout.w/RL.IW,layout.x,layout.y,0,'cluster');return target;}
+    const cache=state.renderCache,cv=cache?(cache.begin(W,H),cache.surface):new Canvas(W,H);if(!cache)cv.clear([0,0,0,0]);
+    if(!cfg.clusterRpmGaugeHidden){const key=RL.key(state,'cluster');RL.placed(state,layout,'cluster').forEach(e=>{const painter=RL.partPainter(state,e.id,e.b,e.r,'cluster');if(cache)cache.navigation('redline.'+e.id,key,painter,state,e.r);else{const {blitScaled}=require('./component-canvas');blitScaled(cv,painter.draw(state),e.r);}});}
+    return cache?cache.finish():cv;
+}
 function draw(state,target) {
+    if(RL.active(state.config,'cluster'))return drawRedline(state,target);
     if(!target&&state.renderCache){state.renderCache.begin(W,H);state.renderCache.face(module.exports,state,{x:0,y:0,w:W,h:H},'cluster');return state.renderCache.finish();}
     const cv=target||new Canvas(W,H),cfg=state.config,rpm=state.rpm;
     if(!target)cv.clear([0,0,0,0]);

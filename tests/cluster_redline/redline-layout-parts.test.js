@@ -53,4 +53,17 @@ page.saveSlot(1);assert.strictEqual(JSON.parse(values.hudLayoutSlot1).values.hud
 page.resetLayout();page.resetLayout();assert.strictEqual(values.hudRlGearOffsetX,0);assert.strictEqual(values.hudRlGearHidden,false,'reset to defaults');
 page.loadSlot(1);assert.strictEqual(values.hudRlGearOffsetX,10);assert.strictEqual(values.hudRlGearWidthScale,105);assert.strictEqual(values.hudRlGearHidden,true,'loaded back');
 assert(!spec.settings.some(s=>/^hudRl/.test(s.key)),'kept outside app.json: the Store settings templates stay valid');
-console.log('PASS: Redline layouts split into elements matching the original image; each moves, sizes uniformly and hides; Whole layout still moves all; Position / size lists them and saves, loads and resets them');
+// 4. The cluster: its own design, readouts and element settings; drawn element by element in the cluster area.
+const CL=require(root+'/draw');
+const cl=settings({clusterDesign:'rl-arc',clusterAuxConfig:AUX,hudDesign:'own'}),clState=Object.assign(stateOf(cl),{mode:'SPORT'});
+assert(RL.active(cl,'cluster')&&!RL.active(cl,'hud'),'cluster and HUD designs are separate');
+assert.deepStrictEqual(D.partsFor('cluster',cl).map(p=>p.key),['RpmGauge','RlGear','RlMode','RlAlert','RlGauge','RlReadA','RlReadB','RlReadC','RlReadD']);
+const area={x:0,y:0,w:1088,h:480},lay=RL.rect(cl,area,'cluster');assert.deepStrictEqual([lay.w,lay.h],[800,260],'800x260 at 100 %');assert.strictEqual(lay.x,144);
+const img=CL.draw(clState);assert.strictEqual(img.w,1088);
+let lit=0;for(let i=3;i<img.d.length;i+=4)if(img.d[i])lit++;assert(lit>20000,'cluster layout drawn ('+lit+' px)');
+const clMoved=settings(Object.assign({},cl,{clusterRlGearOffsetX:100,clusterRlReadDHidden:true}));
+const p0=RL.placed(clState,lay,'cluster'),p1=RL.placed(Object.assign({},clState,{config:clMoved}),RL.rect(clMoved,area,'cluster'),'cluster');
+assert.strictEqual(p1.find(e=>e.id==='gear').r.x-p0.find(e=>e.id==='gear').r.x,200,'cluster offsets in image units (x2 on the cluster)');
+assert(!p1.find(e=>e.id==='readD'),'hidden on the cluster');
+assert.strictEqual(RL.placed(stateOf(settings(Object.assign({},base,{clusterRlGearOffsetX:100}))),layout).find(e=>e.id==='gear').r.x,before.find(e=>e.id==='gear').r.x,'cluster settings leave the HUD alone');
+console.log('PASS: Redline layouts split into elements matching the original image; each moves, sizes uniformly and hides; Whole layout still moves all; Position / size lists them and saves, loads and resets them; the same on the cluster with its own settings');

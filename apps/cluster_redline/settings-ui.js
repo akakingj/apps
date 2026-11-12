@@ -11,14 +11,14 @@ const RENDERER_NOTICE='Install Cluster renderer (cluster-render) from MGU Store 
 const MAP_WARNING='Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
 const HUD_WARNING='HUD navigation shows received turn guidance; unavailable data preserves stock guidance.';
 // Keys saved, loaded and reset by the position/size presets of each tab.
-const RL_KEYS=Object.keys(DEFAULTS).filter(k=>/^hudRl/.test(k)),defaultOf=(schema,k)=>{const d=schema.find(s=>s.key===k);return d&&d.default!==undefined?d.default:DEFAULTS[k];};
+const RL_KEYS=Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k)),defaultOf=(schema,k)=>{const d=schema.find(s=>s.key===k);return d&&d.default!==undefined?d.default:DEFAULTS[k];};
 const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlRead|RlReadA|RlReadB|RlReadC|RlReadD)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
 const NAV_KEYS=['hudNavOffsetX','hudNavOffsetY','navUniformScale','hudNavWidthScale','hudNavHeightScale','hudTextOffsetX','hudTextOffsetY','hudTextScale','hudLanesOffsetX','hudLanesOffsetY','hudLanesScale','hudNavHidden','hudTextHidden','hudLanesHidden'];
 function layoutKeys(tab,schema){
  const name=tab===3?'nav':tab===2?'cluster':'hud',known=new Set(schema.map(s=>s.key));
  const keys=name==='nav'?NAV_KEYS:Object.keys(DEFAULTS).filter(k=>{const m=FACE_KEY.exec(k);return m&&m[1]===name;}).concat([name+'OffsetX',name+'OffsetY',name+'WidthScale',name+'HeightScale'],name==='hud'?['hudAuxTextOffsetY']:[]);
  // Redline layout elements are kept outside the schema (like hudDesign).
- return keys.filter((k,i,a)=>(known.has(k)||/^hudRl/.test(k))&&a.indexOf(k)===i);
+ return keys.filter((k,i,a)=>(known.has(k)||/^(hud|cluster)Rl/.test(k))&&a.indexOf(k)===i);
 }
 // Comfort / Eco shift alert RPM: kept outside app.json (like clockZone) so the Store templates stay valid.
 // The two shift alert rows are named for the modes they apply to (Shift alert RPM keeps its app.json key).
@@ -40,7 +40,7 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','comfortShiftRpm'].concat(RL_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm'].concat(RL_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return GROUPS[this.tab];}
  item(){const key=this.keys()[this.focus];if(key==='comfortShiftRpm')return COMFORT_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
@@ -57,12 +57,12 @@ class SettingsPage{
  }
  move(delta){
   if(!this.open)this.focus=(this.focus+delta+this.keys().length)%this.keys().length;
-  else{const n=this.open==='layout'||this.open==='layoutPresets'?this.layoutActions.length:this.open==='auxMode'?2:this.open==='design'?(this.display()==='hud'?3:2):this.open==='rlDesign'?RL.STYLES.length:this.open==='auxSelect'?D.METRICS.length+1+(this.draft&&this.draft.items.includes('clock')?1:0):options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
+  else{const n=this.open==='layout'||this.open==='layoutPresets'?this.layoutActions.length:this.open==='auxMode'?2:this.open==='design'?3:this.open==='rlDesign'?RL.STYLES.length:this.open==='auxSelect'?D.METRICS.length+1+(this.draft&&this.draft.items.includes('clock')?1:0):options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
   this.changed();
  }
  value(item,cfg){
   if(item.key==='aux'){const a=D.auxConfig(cfg[this.display()+'AuxConfig']);return t(a.mode==='values'?'Text':'Gauges')+' · '+a.items.map(k=>tr(D.LABELS[k])).join(' / ');}
-  if(item.key==='design'){if(this.display()==='hud'&&RL.active(cfg))return tr('Redline HUD')+' · '+tr(RL.NAMES[RL.style(cfg)]);return t(cfg[this.display()+'AlertStyle']==='circle'?'Circle beside gear':'Top alert bar');}
+  if(item.key==='design'){const d=this.display();if(RL.active(cfg,d))return tr('Redline app layouts')+' · '+tr(RL.NAMES[RL.style(cfg,d)]);return t(cfg[this.display()+'AlertStyle']==='circle'?'Circle beside gear':'Top alert bar');}
   if(item.key==='layout')return t('Adjust');
   if(item.key==='appEnabled')return t(cfg.appEnabled?'Running':'Stopped');
   if(item.key==='shiftRpm'&&!this.settings.get(item.key))return cfg.shiftRpm+' rpm';
@@ -85,9 +85,9 @@ class SettingsPage{
   if(this.open==='auxMode'){this.draft={mode:index===1?'values':'gauges',items:[]};this.open='auxSelect';this.choice=0;this.changed();return;}
   if(this.open==='auxSelect'){if(index===D.METRICS.length)this.commitAux();else if(index===D.METRICS.length+1)this.toggleClockZone();else this.toggleMetric(D.METRICS[index]);return;}
   if(this.open==='design'){
-   if(index===2&&this.display()==='hud'){this.open='rlDesign';this.choice=Math.max(0,RL.STYLES.indexOf(RL.style(this.config())));this.changed();return;}
-   const values={[this.display()+'AlertStyle']:index===1?'circle':'bar'};if(this.display()==='hud')values.hudDesign='own';this.setValues(values);this.open=null;this.changed();return;}
-  if(this.open==='rlDesign'){const st=RL.STYLES[index];if(st){this.settings.set('hudDesign','rl-'+st);this.open=null;this.changed();}return;}
+   if(index===2){this.open='rlDesign';this.choice=Math.max(0,RL.STYLES.indexOf(RL.style(this.config(),this.display())));this.changed();return;}
+   const values={[this.display()+'AlertStyle']:index===1?'circle':'bar'};values[this.display()+'Design']='own';this.setValues(values);this.open=null;this.changed();return;}
+  if(this.open==='rlDesign'){const st=RL.STYLES[index];if(st){this.settings.set(this.display()+'Design','rl-'+st);this.open=null;this.changed();}return;}
   const list=options(this.item(),this.config());if(!list[index])return;
   this.settings.set(this.item().key,list[index][0]);if(this.item().key==='navDisplayMode')this.settings.set('hudNavigationEnabled',true);this.open=null;this.changed();
  }
@@ -167,16 +167,16 @@ class SettingsPage{
   const display=this.display();['Top alert bar','Circle beside gear'].forEach((label,i)=>{
    const x=84+i*740;this.button(cv,targets,label,x,106,712,64,()=>this.choose(i),this.choice===i,'design'+i);
    const preview=Object.assign({},cfg);preview[display+'AlertStyle']=i?'circle':'bar';this.preview(cv,preview,x+10,182,display==='cluster'?590:690,display);
-  });if(display==='hud')this.button(cv,targets,tr('Redline app layouts')+(RL.active(cfg)?' · '+tr(RL.NAMES[RL.style(cfg)]):''),84,448,1100,64,()=>this.choose(2),RL.active(cfg),'design2');
+  });this.button(cv,targets,tr('Redline app layouts')+(RL.active(cfg,display)?' · '+tr(RL.NAMES[RL.style(cfg,display)]):''),84,448,1100,64,()=>this.choose(2),RL.active(cfg,display),'design2');
   this.backButton(cv,targets);
  }
  // The Redline app's nine HUD layouts with live previews (sample: 6300 rpm, 3rd gear).
  drawRedlineDesigns(cv,cfg,targets){
   cv.text(tr('Redline app layouts'),100,126,32,'#ef4050',{literal:true});
-  const current=RL.style(cfg),sample=Object.assign({},cfg),state={config:sample,rpm:6300,gear:'M3',shift:false,flash:false,mode:'SPORT',torqueNm:380,powerPS:260,aux:{boost:1.1,oil:96,outside:18,clock:'23:00'}};
+  const d=this.display(),current=RL.style(cfg,d),sample=Object.assign({},cfg),state={config:sample,rpm:6300,gear:'M3',shift:false,flash:false,mode:'SPORT',torqueNm:380,powerPS:260,aux:{boost:1.1,oil:96,outside:18,clock:'23:00'}};
   RL.STYLES.forEach((st,i)=>{const x=84+(i%3)*490,y=140+Math.floor(i/3)*100,on=st===current;
    this.button(cv,targets,'',x,y,464,94,()=>this.choose(i),on,'rl-'+st);
-   sample.hudDesign='rl-'+st;RL.paint(cv,state,0.56,x+8,y+10);
+   sample[d+'Design']='rl-'+st;RL.paint(cv,state,0.56,x+8,y+10,0,d);
    cv.text(tr(RL.NAMES[st]),x+456,y+86,20,on?'#ffffff':'#b8c5d4',{align:'right',literal:true});
   });
   cv.text(tr('Layout from the Redline app (appsKOR, MIT). Navigation, lanes and auxiliary items stay as set.'),84,470,20,'#a8b6c8',{literal:true});
@@ -260,7 +260,7 @@ class SettingsPage{
   });
   let width,height;
   if(nav){const rect=D.navRect(cfg,selected.key);width=rect.w;height=rect.h;}
-  else if(display==='hud'&&RL.active(cfg)){const layout=RL.rect(cfg,placement(cfg,'hud',HUD)),e=RL.elements(cfg).find(v=>v.key===selected.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id),r=b?RL.partRect(cfg,layout,b,e.key):layout;width=r.w;height=r.h;}
+  else if(RL.active(cfg,display)){const layout=display==='hud'?RL.rect(cfg,placement(cfg,'hud',HUD)):RL.rect(cfg,{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},'cluster'),e=RL.elements(cfg,display).find(v=>v.key===selected.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display),r=b?RL.partRect(cfg,layout,b,e.key,display):layout;width=r.w;height=r.h;}
   else{const painter=display==='hud'?HUD:CLUSTER,b=measurePart(painter,{config:cfg,rpm:0,gear:this.liveState&&this.liveState.gear||'--'},display,selected.key,cv)||{w:0,h:0},r=placement(cfg,display==='hud'?'hud':cfg.displayTarget==='panel'?'panel':'map',painter);width=Math.round(b.w*cfg[prefix+'WidthScale']/100*r.w/painter.W);height=Math.round(b.h*cfg[prefix+'HeightScale']/100*r.h/painter.H);}
   cv.text(group.length?group.length+' '+t('selected')+' · '+tr(selected.label):t('Select items to adjust'),84,456,21,'#b8c5d4',{literal:true});
   cv.text(group.length?'X '+cfg[prefix+'OffsetX']+' · Y '+cfg[prefix+'OffsetY']+' · '+width+' × '+height+' px':'',84,500,21,'#ffad45',{literal:true});
