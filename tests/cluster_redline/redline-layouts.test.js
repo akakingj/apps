@@ -16,10 +16,10 @@ for(const st of RL.STYLES){
  const hf=placement(cfg,'hud',face),r=RL.rect(cfg,hf,'hud'),sa=RL.safe(hf,'hud');
  if(RL.heightOf(st)===RL.IH)assert.deepStrictEqual([r.w,r.h],[400,RL.IH],'400 × 130 at the default HUD size');
  else assert(r.w<=400&&r.w>=340&&Math.abs(r.h/r.w-RL.heightOf(st)/400)<0.01,st+': a taller layout keeps its shape, shrunk only to stay in the HUD');
- {const u=RL.extent(cfg,'hud'),k=r.w/RL.IW;assert(r.x+u.x0*k>=sa.x-1&&r.y+u.y0*k>=sa.y-1&&r.x+u.x1*k<=sa.x+sa.w+1&&r.y+u.y1*k<=sa.y+sa.h+1,st+' stays inside the area the default design uses');}
+ {const u=RL.extent(cfg,'hud'),k=r.w/RL.IW;const down=((RL.HUD_BASE[st]||{}).y||0)*hf.h/240;assert(r.x+u.x0*k>=sa.x-1&&r.y+u.y0*k>=sa.y-1&&r.x+u.x1*k<=sa.x+sa.w+1&&r.y+u.y1*k<=sa.y+sa.h+down+1,st+' starts in the default design area, lowered by its tuned default');}
  const direct=HUD.draw(state),cached=HUD.draw(Object.assign({},state,{renderCache:HUD.createCache()}));
  assert(alpha(direct,r.x,r.y,r.x+r.w,r.y+r.h)>800,st+' draws its layout');
- assert.strictEqual(alpha(direct,0,0,800,480),alpha(direct,r.x,r.y,r.x+r.w,r.y+r.h),st+' draws nothing outside its rectangle (no RPM face)');
+ if(!((RL.HUD_BASE[st]||{}).read))assert.strictEqual(alpha(direct,0,0,800,480),alpha(direct,r.x,r.y,r.x+r.w,r.y+r.h),st+' draws nothing outside its rectangle (no RPM face)');
  {let diff=0;for(let i=3;i<direct.d.length;i+=4)if((direct.d[i]>0)!==(cached.d[i]>0)||Math.abs(direct.d[i]-cached.d[i])>8)diff++;assert(diff<=direct.w*direct.h*0.001,st+': cached and direct paths agree ('+diff+' px)');}
  assert(!Buffer.from(direct.d).equals(Buffer.from(own.d)));images[st]=Buffer.from(direct.d);
  // rpm, gear and the shift flash change the picture and its cache key

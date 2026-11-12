@@ -13,6 +13,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.21
+
+- **Cluster yield follows the HUD**: with "When guidance shows on the HUD", the cluster RPM display is released whenever route guidance shows (or would show) on the HUD, Waze included, as well as on the phone guidance flags. The Navigation tab check line shows HUD O / X.
+- **HUD defaults per layout, tuned on the car**: Whole layout lower by Down presses (Standard, 80s digital, VFD glow, G80 ramp 1; E60 dial, analog needle, G-force rings, mode ribbon 2; F80 arc, M shift lights, hexagon 3; data logger unchanged); readouts larger by default (M shift lights and hexagon 200 %, analog needle, G-force rings and mode ribbon 150 %), hexagon RPM number 150 %. Enlarged readouts spread from their group centre so they do not overlap; hexagon readouts 1 and 3 sit higher. These are the new 0 / 100 % (Reset returns to them).
+- **Outside temperature**: subscribed whenever the installed interface config has the field, whatever its getter / notifier entries are called (1.2.20 skipped it when they were named otherwise, which showed "signal not installed"). The check line now says whether the interface config is missing, the field is missing, or what the config holds.
+
 ### 1.2.20
 
 - **Cluster yield to navigation actually applied**: 1.2.19 passed the yield to the wrong object, so the cluster never released. The cluster output is now released by the output manager (status "Route guidance active · cluster released"), and phone guidance counts when CarPlay / Android Auto reports either guidance flag (some apps such as Waze set only the metadata flag) or the guidance channel names the phone as guiding provider; held 8 s against flicker. The Navigation tab shows a live line: released or not, and CarPlay / Android Auto available / guidance / metadata.

@@ -23,7 +23,7 @@ function layoutKeys(tab,schema){
 // Comfort / Eco shift alert RPM: kept outside app.json (like clockZone) so the Store templates stay valid.
 // The two shift alert rows are named for the modes they apply to (Shift alert RPM keeps its app.json key).
 const ROW_LABELS={shiftRpm:'Shift alert RPM · Sport',comfortShiftRpm:'Shift alert RPM · Comfort / Eco'};
-const YIELD_ITEM={key:'clusterYieldGuidance',label:'Cluster · yield to navigation',type:'choice',options:[['off',tr('Off · keep the cluster display')],['phone',tr('Phone navigation (Waze · CarPlay / Android Auto)')],['any',tr('Any route guidance (BMW + phone)')]]};
+const YIELD_ITEM={key:'clusterYieldGuidance',label:'Cluster · yield to navigation',type:'choice',options:[['off',tr('Off · keep the cluster display')],['phone',tr('When guidance shows on the HUD (Waze · phone)')],['any',tr('Any route guidance (BMW + phone)')]]};
 const COMFORT_ITEM={key:'comfortShiftRpm',label:'Shift alert RPM · Comfort / Eco',type:'choice',options:[[0,tr('Automatic (90 % of Sport)')]].concat([2000,2250,2500,2750,3000,3250,3500,4000,4500,5000].map(v=>[v,v+' rpm']))};
 function options(item,cfg){
  if(!item)return [];
@@ -144,7 +144,9 @@ class SettingsPage{
   const live=this.liveState&&this.liveState.auxiliary;if(!live)return tr('Outside temperature')+': '+tr('waiting for the background app');
   const v=live.values&&live.values.outside,src=(live.sources||[]).find(e=>e.field==='ExteriorTemperature'),d=live.diagnostics&&live.diagnostics.outside;
   if(typeof v==='number')return tr('Outside temperature')+': '+v.toFixed(1)+' °C · '+tr('received')+' '+(src?src.received:0);
-  if(!src)return tr('Outside temperature')+': '+tr('signal not installed for this app (reinstall from the Store)');
+  const su=live.setup&&live.setup.ExteriorTemperature;
+  if(!src){if(!su)return tr('Outside temperature')+': '+tr('signal not installed for this app (reinstall from the Store)');
+   return tr('Outside temperature')+': '+(su.state==='no_config'?tr('no interface config installed'):su.state==='field_missing'?tr('field missing in the installed config'):tr('not readable'))+' · '+(su.error||su.fieldKeys.concat(su.configFields).join(','));}
   if(src.error)return tr('Outside temperature')+': '+tr('subscription error')+' · '+src.error;
   if(!src.available)return tr('Outside temperature')+': '+tr('car interface not available yet');
   if(!src.received)return tr('Outside temperature')+': '+tr('subscribed, no value from the car yet');
@@ -153,7 +155,7 @@ class SettingsPage{
  yieldStatus(cfg){
   if(cfg.clusterYieldGuidance==='off')return '';const y=this.liveState&&this.liveState.clusterYield;if(!y)return tr('Yield')+': '+tr('waiting for the background app');
   const p=y.projected||{},cp=p.CAR_PLAY||{},aa=p.ANDROID_AUTO||{},f=x=>x===true?'O':x===false?'X':'-';
-  return tr('Yield')+': '+tr(y.active?'cluster released':'not now')+' · CarPlay '+f(cp.available)+'/'+f(cp.active)+'/'+f(cp.metadataAvailable)+' · AA '+f(aa.available)+'/'+f(aa.active)+'/'+f(aa.metadataAvailable)+(y.provider?' · '+y.provider:'');
+  return tr('Yield')+': '+tr(y.active?'cluster released':'not now')+' · HUD '+f(y.hud)+' · CarPlay '+f(cp.available)+'/'+f(cp.active)+'/'+f(cp.metadataAvailable)+' · AA '+f(aa.available)+'/'+f(aa.active)+'/'+f(aa.metadataAvailable)+(y.provider?' · '+y.provider:'');
  }
  backButton(cv,targets){this.button(cv,targets,'Back',1210,448,326,64,()=>this.back(),false,'back');}
  drawChoices(cv,cfg,targets){

@@ -37,7 +37,7 @@ function start(ctx) {
     const collectors=new DemandSignals(ctx.signals),log = ctx.log, signals = collectors.signals;
     const client = new ClusterRender('cluster-redline'), controller = new Outputs(client, painter, hudPainter);
     const gearbox = new gear.GearState(), navigation = new guidance.GuidanceState(), maneuvers = new NativeNavigation();
-    const auxInfo=new AuxInfo(),auxSubs=[],batteryVoltage=new BatteryVoltage(signals,log,mono);
+    const auxSetup={},auxInfo=new AuxInfo(),auxSubs=[],batteryVoltage=new BatteryVoltage(signals,log,mono);
     const projectionSubs={},projectionFields={},projectionPending={},projectionLastPoll={},projectionEpoch={},projectionEvents={};
     const navigationFields = [], lastNavigationValues = {}, navigationEventRevisions = {}, navigationSeenAt = {}, navigationReadState = {};
     function refreshProjection(provider){
@@ -98,7 +98,12 @@ function start(ctx) {
             try{
                 const cfg=signals.loadConfig(iface),handlers={},entries=[];
                 auxGroups[iface].forEach(source=>{
-                    const f=cfg.fields&&cfg.fields[source.field];if(!f||!f.getter&&!f.notifier)return;
+                    const f=cfg.fields&&cfg.fields[source.field];
+                    // Why a field is or is not read, for the settings check line and the status file.
+                    auxSetup[source.field]={iface:iface.split('.').pop(),state:!cfg.fields?'no_fields':!f?'field_missing':'ok',fieldKeys:f&&typeof f==='object'?Object.keys(f).slice(0,6):[],configFields:cfg.fields?Object.keys(cfg.fields).slice(0,6):[]};
+                    // A subscribed source (the exterior temperature) is set up whenever the installed config has the
+                    // field, whatever its getter / notifier entries are named, as the eDrive app subscribes blindly.
+                    if(!f||!source.subscribe&&!f.getter&&!f.notifier){if(f)auxSetup[source.field].state='no_access';return;}
                     // A notifier-only field cannot be polled, and the exterior temperature is read from its
                     // notifications whenever the car sends them, as the eDrive app does (some cars' getter answers
                     // with no usable value): keep the last notified value while the interface is available.
@@ -108,7 +113,7 @@ function start(ctx) {
                 });
                 if(!entries.length){reportError('optional auxiliary '+iface,'no readable field in the installed interface config');return;}
                 signals.watch(iface,'1',handlers,log,{}).then(sub=>{entries.forEach(entry=>{entry.sub=sub;auxSubs.push(entry);});keep(sub);if(sub.error)reportError('optional auxiliary '+iface,sub.error);}).catch((e)=>reportError('optional auxiliary '+iface,e));
-            }catch(e){reportError('optional auxiliary '+iface,e&&e.message||e);}
+            }catch(e){auxGroups[iface].forEach(source=>{auxSetup[source.field]={iface:iface.split('.').pop(),state:'no_config',error:String(e&&e.message||e).slice(0,120)};});reportError('optional auxiliary '+iface,e&&e.message||e);}
         });
         // Re-read live getters; only the optional HUD view reader uses read-only query methods.
         signals.watch(CDS, '1', {
@@ -316,10 +321,12 @@ function start(ctx) {
             const projected=maneuvers.projectedStatus(at);
             const phoneNow=Object.keys(projected).some((p)=>projected[p].available&&(projected[p].active===true||projected[p].metadataAvailable===true))
                 ||Object.prototype.hasOwnProperty.call(PROJECTED,maneuvers.provider)&&maneuvers.fresh(maneuvers.providerAt,at);
-            const yieldNow=config.clusterYieldGuidance==='any'?phoneNow||!!navigationState.active:config.clusterYieldGuidance==='phone'&&phoneNow;
+            // As asked: whenever route guidance shows (or would show) on the HUD, the cluster is released too.
+            const hudGuiding=!!(commonManeuver.active||maneuverState.visible||controller.navigation&&controller.navigation.visible);
+            const yieldNow=config.clusterYieldGuidance==='any'?hudGuiding||phoneNow||!!navigationState.active:config.clusterYieldGuidance==='phone'&&(hudGuiding||phoneNow);
             if(yieldNow)lastYieldAt=at;
             controller.guidanceYield=config.clusterYieldGuidance!=='off'&&(yieldNow||at-lastYieldAt<8000);
-            controller.guidanceYieldDetail={phone:phoneNow,provider:maneuvers.provider||'',projected};
+            controller.guidanceYieldDetail={hud:hudGuiding,phone:phoneNow,provider:maneuvers.provider||'',projected};
             controller.navigation=Object.assign({},maneuverState,{visible:!!visible,maneuverVisible:!!maneuverState.visible,lanes:laneData});
             // No decoded arrow means non-contending RPM, not disabled HUD.
             // The native renderer still yields to real stock content/popups.
@@ -336,7 +343,7 @@ function start(ctx) {
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
                     outputs: state.outputs, clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
-                    auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
+                    auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,setup:auxSetup,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
                     collection:{fields:Array.from(collection.fields),metrics:Array.from(collection.aux),subscriptions:collectors.status()},
                     navigationInputs: {fields:navigationFields.filter(field=>collection.fields.has(guidance.INTERFACE+'.'+field)),available:navigationAvailable,pending:guidancePending,reads:navigationFields.reduce((out,field)=>{if(collection.fields.has(guidance.INTERFACE+'.'+field))out[field]=navigationReadState[field];return out;},{}),
                         agesMs:navigationFields.reduce((out,field)=>{if(collection.fields.has(guidance.INTERFACE+'.'+field))out[field]=navigationSeenAt[field]===undefined?null:Math.max(0,at-navigationSeenAt[field]);return out;},{})}, nativeStatus: nativeStatus,

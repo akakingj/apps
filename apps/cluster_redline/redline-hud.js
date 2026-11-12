@@ -69,12 +69,19 @@ function extent(cfg,d){
 // whose HUD shows a lower band can bring it down.
 function safe(face,d){if(!face||d==='cluster')return face;const x=Math.round(face.w*0.04),t=Math.round(face.h*0.15),b=Math.round(face.h*0.05);return {x:face.x+x,y:face.y+t,w:face.w-2*x,h:face.h-t-b};}
 function room(face,d){return d==='cluster'||!face||!face.tw?face:{x:0,y:0,w:face.tw,h:face.th};}
+// HUD defaults per layout, tuned on the car (1.2.21): Whole layout this many Down presses (10 each) lower,
+// and the readouts (and Hexagon's RPM number) this much larger. Added to what Position / size stores, so
+// stored 0 / 100 % is this default and Reset brings it back.
+const HUD_BASE={standard:{y:10},digital:{y:10},vfd:{y:10},arc:{y:30},ramp:{y:10},dial:{y:20},
+ shift:{y:30,read:200},logger:{},needle:{y:20,read:150},rings:{y:20,read:150},ribbon:{y:20,read:150},hexagon:{y:30,read:200,rpm:150,lift:{RlReadA:-14,RlReadC:-14}}};
+function hudBase(cfg,d){return d==='cluster'?{}:HUD_BASE[style(cfg,d)]||{};}
+function baseScale(cfg,d,key){const b=hudBase(cfg,d);return (/^RlRead/.test(key)?b.read:key==='RlRpm'?b.rpm:0)||100;}
 function rect(cfg,face0,d){
  const face=safe(face0,d);
  const p=(d||'hud')+'RpmGauge',u=extent(cfg,d),uw=u.x1-u.x0,uh=u.y1-u.y0,cl=d==='cluster';
  const base=cl?face0.w/1088*2:face0.w/600,m=cl?8:0,fit=Math.min(1,(face.w-m)/(uw*base),(face.h-m)/(uh*base)),cap=Math.min((face.w-m/2)/uw,(face.h-m/2)/uh);
  const k=Math.min(cap,base*fit*(cfg[p+'WidthScale']||100)/100),w=Math.round(IW*k),h=Math.round(heightOf(style(cfg,d))*k);
- const ox=(cfg[p+'OffsetX']||0)*face0.w/(cl?1088:800),oy=(cfg[p+'OffsetY']||0)*face0.h/(cl?480:240);
+ const ox=(cfg[p+'OffsetX']||0)*face0.w/(cl?1088:800),oy=((cfg[p+'OffsetY']||0)+(hudBase(cfg,d).y||0))*face0.h/(cl?480:240);
  const ex=face.x+(face.w-uw*k)/2+ox,ey=face.y+(face.h-uh*k)/2+oy;
  const a=room(face0,d)||face,e=m/4,cx=Math.max(a.x+e,Math.min(a.x+a.w-e-uw*k,ex)),cy=Math.max(a.y+e,Math.min(a.y+a.h-e-uh*k,ey));
  return {x:Math.round(cx-u.x0*k),y:Math.round(cy-u.y0*k),w,h};
@@ -135,8 +142,8 @@ function bounds(state,id,d){
 }
 // Where an element lands on the HUD: the whole layout's place (rect), then the element's own move and
 // size (in the image's units, sized uniformly round its centre).
-function partRect(cfg,layout,b,key,d){
- const p=(d||'hud')+key,k=layout.w/IW,s=(cfg[p+'WidthScale']||100)/100,ox=cfg[p+'OffsetX']||0,oy=cfg[p+'OffsetY']||0;
+function partRect(cfg,layout,b,key,d,spread){
+ const p=(d||'hud')+key,k=layout.w/IW,s=(cfg[p+'WidthScale']||100)/100*baseScale(cfg,d||'hud',key)/100,ox=(cfg[p+'OffsetX']||0)+(spread?spread.x:0),oy=(cfg[p+'OffsetY']||0)+(spread?spread.y:0);
  return {x:Math.round(layout.x+(b.x+b.w*(1-s)/2+ox)*k),y:Math.round(layout.y+(b.y+b.h*(1-s)/2+oy)*k),w:Math.max(1,Math.round(b.w*s*k)),h:Math.max(1,Math.round(b.h*s*k))};
 }
 // One element painted at its own size (no resampling): {W, H, draw(state) -> Canvas}.
@@ -149,9 +156,15 @@ function clampTo(r,face){if(!face)return r;const w=Math.min(r.w,face.w),h=Math.m
  return {x:Math.max(face.x,Math.min(face.x+face.w-W,r.x)),y:Math.max(face.y,Math.min(face.y+face.h-H,r.y)),w:W,h:H};}
 // face: the visible area; a moved or enlarged element is kept inside it.
 function placed(state,layout,d,face0){
- const cfg=state.config,p=d||'hud',face=room(face0,d||'hud'),band=safe(face0,d||'hud'),wholeMoved=!!(cfg[p+'RpmGaugeOffsetX']||cfg[p+'RpmGaugeOffsetY']);
+ const cfg=state.config,p=d||'hud',face=room(face0,d||'hud'),band=safe(face0,d||'hud'),wholeMoved=!!(cfg[p+'RpmGaugeOffsetX']||cfg[p+'RpmGaugeOffsetY']||hudBase(cfg,p).y);
  // Unmoved, an element (the M mark included) stays in the default band; moved, anywhere on the HUD picture.
- return elements(cfg,d).filter(e=>!cfg[p+e.key+'Hidden']).map(e=>{const b=bounds(state,e.id,d);return b&&Object.assign({b,r:clampTo(partRect(cfg,layout,b,e.key,d),wholeMoved||cfg[p+e.key+'OffsetX']||cfg[p+e.key+'OffsetY']?face:band)},e);}).filter(Boolean);
+ const list=elements(cfg,d).filter(e=>!cfg[p+e.key+'Hidden']).map(e=>({e,b:bounds(state,e.id,d)})).filter(v=>v.b);
+ // Readouts enlarged by the layout's default grow apart from their group centre, so they do not overlap.
+ const reads=list.filter(v=>/^RlRead/.test(v.e.key)),f=reads.length>1?baseScale(cfg,p,'RlRead')/100:1;
+ const C=reads.length?{x:reads.reduce((a,v)=>a+v.b.x+v.b.w/2,0)/reads.length,y:reads.reduce((a,v)=>a+v.b.y+v.b.h/2,0)/reads.length}:null;
+ const lift=hudBase(cfg,p).lift||{};
+ return list.map(({e,b})=>{const spread=f!==1&&/^RlRead/.test(e.key)?{x:(b.x+b.w/2-C.x)*(f-1),y:(b.y+b.h/2-C.y)*(f-1)+(lift[e.key]||0)}:lift[e.key]?{x:0,y:lift[e.key]}:null;
+  return Object.assign({b,r:clampTo(partRect(cfg,layout,b,e.key,d,spread),wholeMoved||cfg[p+e.key+'OffsetX']||cfg[p+e.key+'OffsetY']?face:band)},e);});
 }
 function key(state,d){const f=frame(state,0,d);return JSON.stringify([f.opts.style,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode]);}
-module.exports={safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,elements,bounds,partRect,partPainter,placed};
+module.exports={HUD_BASE,safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,elements,bounds,partRect,partPainter,placed};

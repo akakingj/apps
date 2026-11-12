@@ -25,7 +25,7 @@ RL.STYLES.forEach(st=>{
  const ih=RL.heightOf(st),at={x:200,y:100,w:400,h:ih};assert.strictEqual(ih,['shift','logger','needle','rings','ribbon','hexagon'].includes(st)?176:130);
  const a=new Canvas(800,480);a.clear([0,0,0,0]);blitScaled(a,RL.drawSized(state,400,ih),at);const b=compose(state,at);
  let worst=0;for(let i=0;i<a.d.length;i++)worst=Math.max(worst,Math.abs(a.d[i]-b.d[i]));
- assert(worst<=48,st+': default positions match the original image (worst channel difference '+worst+')');
+ const tuned=RL.HUD_BASE[st]&&(RL.HUD_BASE[st].read||RL.HUD_BASE[st].rpm);if(!tuned)assert(worst<=48,st+': default positions match the original image (worst channel difference '+worst+')');
  const off=settings({hudDesign:'rl-'+st,hudAuxConfig:JSON.stringify({mode:'off',items:['boost']})});
  assert(!RL.elements(off).some(e=>/^read/.test(e.id)),st+': no readout elements without readouts');
 });
