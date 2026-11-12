@@ -7,8 +7,9 @@
 // The drawing modules need the kit; they load on first use so host tests can load the settings UI without it.
 let drawing=null;const kit=()=>drawing||(drawing={DRAW:require('./rl-hud-draw'),Canvas:require('./kit/canvas').Canvas});
 const {shiftSpec}=require('./shift-alert'),{auxConfig}=require('./display-config'),{gauges}=require('./units'),{language}=require('./strings');
-// The Redline app's nine, then Cluster Redline's own six (rl-hud-x.js, a taller 400x176 image).
-const STYLES=['standard','minimal','wings','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon'],TALL=['shift','logger','needle','rings','ribbon','hexagon'];
+// The Redline app's layouts (Minimal and Split wings not offered: Standard with parts hidden covers them),
+// then Cluster Redline's own six (rl-hud-x.js, a taller 400x176 image).
+const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon'],TALL=['shift','logger','needle','rings','ribbon','hexagon'];
 const NAMES={standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon'};
 const IW=400,IH=130,heightOf=st=>TALL.includes(st)?176:IH,isNum=x=>typeof x==='number'&&isFinite(x);
 function style(cfg,d){const m=/^rl-([a-z]+)$/.exec(cfg&&cfg[(d||'hud')+'Design']||'');return m&&STYLES.includes(m[1])?m[1]:null;}

@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.17
+
+- Minimal and Split wings are no longer offered: Standard with elements hidden in Position / size covers them. The picker holds thirteen layouts; a display set to either falls back to the Cluster Redline design.
+
 ### 1.2.16
 
 - The M mark's default place is set per layout where it has room, so it no longer covers a light or a readout when added (bottom left on Standard, 80s digital dash, VFD glow, Vector arcade and Dial; top left on Split wings, Arc and Ramp; beside the gear on M shift lights; top centre on Analog needle; top right elsewhere). A mark already moved keeps its offset from the new place.
