@@ -90,7 +90,152 @@ function drawHexagon(cv,f,h){
  box.forEach((b,i)=>{if(!want(f,'read'+'ABCD'[i])||!f.readouts[i])return;const [x,y,s]=b;cv.polyline([[x,y],[x+190*s,y],[x+220*s,y+30],[x+220*s,y+90],[x+30*s,y+90],[x,y+60],[x,y]],3,'#2a2f37');
   readout(cv,f.readouts[i],x+20*s,y+35,22,44,s>0?'left':'right');});
 }
-const DRAW={shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon};
+// Sport dial: a big round tachometer with a red glow in the middle (0 at bottom left round to the end at
+// the right, numbers from the redline in yellow, a yellow needle), the rpm in big digits inside it, the gear
+// in a box under it and the drive mode below; side panels hold up to four readouts in boxes, with a
+// segmented bar under each when the readouts are gauges.
+const SD={cx:544,cy:228,R:204,a0:-130,a1:112,yellow:'#ffd21f',glow:'#ff2a1a',panel:'#0d1014',box:'#15191f',edge:'#2b313a'};
+function sdBox(cv,it,x,y,w,hh,right){
+ // no box background: a red accent on the outer side, then the label and value
+ cv.fillRect(right?x+w-4:x,y+10,4,hh-20,'#b3241a');
+ if(!it)return;
+ const ko=language()==='ko',bar=it.gauge&&it.frac!==null;
+ cv.text(it.label,x+24,y+38,26,C.soft,{font:'bold'});
+ const unitless=/[°%:]/.test(it.value)||!it.unit,vy=bar?y+96:y+hh-34;
+ cv.text(it.value,x+w-(unitless?24:70),vy,bar?50:58,it.tone==='hot'?'#ff5a3a':it.tone==='cold'?'#5ab0ff':C.text,{align:'right',font:'bold'});
+ if(!unitless)cv.text(it.unit,x+w-24,vy,22,C.dim,{align:'right',font:'bold'});
+ if(bar){const bx=x+24,bw=w-48,by=y+hh-46,n=16,seg=bw/n,lit=Math.round(it.frac*n);
+  for(let i=0;i<n;i++)cv.fillRect(bx+i*seg+1,by,seg-3,12,i<lit?SD.yellow:'#2a2f37');
+  const fmt=v=>Math.abs(v)>=10?String(Math.round(v)):String(Math.round(v*10)/10);
+  cv.text(fmt(it.lo)+(it.unit&&it.unit!=='%'?' '+it.unit:''),bx,by+34,17,C.dim,{font:'bold'});cv.text(fmt(it.hi)+(it.unit&&it.unit!=='%'?' '+it.unit:''),bx+bw,by+34,17,C.dim,{align:'right',font:'bold'});}
+ void ko;
+}
+function drawSportDial(cv,f,h){
+ const d=f.d,max=f.max,{cx,cy,R}=SD,A=v=>SD.a0+(SD.a1-SD.a0)*clamp(v,0,max)/max,pt=(a,r)=>[cx+r*Math.sin(a*Math.PI/180),cy-r*Math.cos(a*Math.PI/180)];
+ const rpm=isNum(d.rpm)?clamp(d.rpm,0,max):0,q=cue(f),atShift=f.cue.shift,ko=language()==='ko';
+ if(want(f,'gauge')&&f.sel!=='live'){
+  // red neon trims framing the side wings (the readouts stand on the black inside them)
+  [[1],[-1]].forEach(([sg])=>{const X=x=>sg>0?x:1088-x,trim=[[X(318),20],[X(52),20],[X(16),56],[X(16),424],[X(52),460],[X(318),460]];
+   [[12,[255,40,24,30]],[6,[255,40,24,70]],[2.2,[255,70,50,255]]].forEach(([w,c])=>cv.polyline(trim,w,c));
+   [[X(300),20],[X(330),60]].forEach(()=>{});cv.line(X(318),20,X(338),46,2,[255,70,50,200]);cv.line(X(318),460,X(338),434,2,[255,70,50,200]);});
+  // the dial: a dark housing, a metal bezel lit from the top left, the red glow strongest at the rim
+  cv.circle(cx+5,cy+8,R+26,[0,0,0,150]);cv.circle(cx,cy,R+22,'#060708');
+  for(let a=0;a<360;a+=5){const L=0.5+0.5*Math.cos((a+2.5+45)*Math.PI/180);cv.arc(cx,cy,R+6,R+20,a,a+5.4,[0,1,2].map(k=>Math.round([38,40,46][k]+([214,220,228][k]-[38,40,46][k])*L)).concat([255]));}
+  cv.arc(cx,cy,R+2,R+6,0,360,'#ff4a2a');
+  cv.circle(cx,cy,R+2,'#120404');
+  for(let k=0;k<10;k++){const r=R-k*9,a=0.85*Math.pow(1-k/10,1.6);cv.arc(cx,cy,r-9.6,r,0,360,[255,40+k*3,20,Math.round(a*255)]);}
+  for(let v=0;v<=max+1;v+=250){const major=v%1000===0,a=A(v),p=pt(a,R-6),q2=pt(a,major?R-30:R-16);cv.line(p[0]+1.5,p[1]+2,q2[0]+1.5,q2[1]+2,major?5:2.5,[0,0,0,140]);cv.line(p[0],p[1],q2[0],q2[1],major?5:2.5,v>=f.redline?SD.yellow:'#f6f7f9');}
+  for(let k=0;k*1000<=max;k++){const a=A(k*1000),l=pt(a,R-58),col=k*1000>=f.redline?SD.yellow:'#f6f7f9';cv.text(String(k),l[0]+2,l[1]+17,46,[0,0,0,170],{align:'center',font:'bold'});cv.text(String(k),l[0],l[1]+15,46,col,{align:'center',font:'bold'});}
+  // the inner disc: dark, a little lighter at the top, ringed in grey with a lit upper edge
+  const ri=R-92;cv.circle(cx,cy,ri+6,'#2b2e33');for(let a=0;a<360;a+=10){const L=0.5+0.5*Math.cos((a+5)*Math.PI/180);cv.arc(cx,cy,ri+2,ri+6,a,a+10.5,[0,1,2].map(k=>Math.round([30,32,36][k]+([180,186,194][k]-[30,32,36][k])*L)).concat([255]));}
+  cv.circle(cx,cy,ri+2,'#08090b');for(let k=0;k<4;k++)cv.arc(cx,cy,0,ri-k*ri/4,-70,70,[255,255,255,9]);
+ }
+ if(want(f,'gauge')&&f.sel!=='face'){
+  // the needle: glow, shadow, then a tapered yellow blade from the inner disc to the ticks
+  const a=A(rpm),u=[Math.sin(a*Math.PI/180),-Math.cos(a*Math.PI/180)],n=[-u[1],u[0]],L0=R-90,L1=R-6;
+  const blade=(ox,oy,w,c)=>cv.quad([[cx+ox+u[0]*L0+n[0]*w,cy+oy+u[1]*L0+n[1]*w],[cx+ox+u[0]*L1+n[0]*w*0.35,cy+oy+u[1]*L1+n[1]*w*0.35],[cx+ox+u[0]*L1-n[0]*w*0.35,cy+oy+u[1]*L1-n[1]*w*0.35],[cx+ox+u[0]*L0-n[0]*w,cy+oy+u[1]*L0-n[1]*w]],c);
+  blade(0,0,11,[255,190,40,50]);blade(4,6,4,[0,0,0,120]);blade(0,0,4.5,atShift&&f.blink?'#ff3b24':SD.yellow);
+  cv.line(cx+u[0]*L0,cy+u[1]*L0,cx+u[0]*L1,cy+u[1]*L1,1.2,[255,248,210,220]);
+ }
+ if(want(f,'alert')&&rpm>50){
+  // the rpm alert: the dial's rim lit red up to the rpm, brighter towards the shift point, flashing at it
+  const col=q.flash?(q.on?'#ff2a1a':null):[255,42,26,Math.round(255*(0.35+0.65*q.p))];
+  if(col)cv.arc(cx,cy,R+4,R+14,SD.a0,A(rpm),col);
+ }
+ if(want(f,'rpm')){
+  cv.text(ko?'엔진 회전수':'ENGINE RPM',cx,cy-82,24,'#f2f4f7',{align:'center',font:'bold',literal:true});cv.text('×1,000 rpm',cx,cy-58,16,C.dim,{align:'center',font:'bold',literal:true});
+  cv.text('rpm',cx,cy+66,22,C.dim,{align:'center',font:'bold',literal:true});
+  cv.text(rpmText(d),cx,cy+40,104,atShift?(f.blink?'#ff3b24':C.text):C.text,{align:'center',font:'bold'});
+ }
+ if(want(f,'gear')){
+  const g=[[cx-66,cy+92],[cx+66,cy+92],[cx+86,cy+182],[cx-86,cy+182]];
+  cv.quad(g,'#0b0d10');cv.polyline(g.concat([g[0]]),2.5,SD.edge);cv.line(g[1][0],g[1][1],g[2][0],g[2][1],3,SD.yellow);cv.line(g[0][0],g[0][1],g[3][0],g[3][1],3,SD.yellow);
+  cv.text(ko?'기어':'GEAR',cx,cy+118,21,'#f2f4f7',{align:'center',font:'bold',literal:true});
+  cv.text(h.gearText(d),cx,cy+176,70,atShift&&f.blink?'#ff3b24':C.text,{align:'center',font:h.gearFont(f.opts)});
+  if(f.mode)cv.text(f.mode,cx+50,cy+140,24,SD.yellow,{font:'bold'});
+ }
+ if(want(f,'mode')){const m=String(f.drive||''),word=/SPORT/.test(m)?(/PLUS/.test(m)?(ko?'스포츠+':'SPORT+'):(ko?'스포츠':'SPORT')):/ECO/.test(m)?(ko?'에코 프로':'ECO PRO'):m?(ko?'컴포트':'COMFORT'):'';
+  if(word){cv.text(word,cx,cy+218,34,SD.yellow,{align:'center',font:'bold',literal:true});cv.text(ko?'주행 모드':'DRIVE MODE',cx,cy+240,16,C.dim,{align:'center',font:'bold',literal:true});}}
+ // readouts: A top left, B top right, C bottom left, D bottom right
+ [[26,60,0],[790,60,1],[26,256,0],[790,256,1]].forEach((p,i)=>{if(want(f,'read'+'ABCD'[i])&&f.readouts[i])sdBox(cv,f.readouts[i],p[0],p[1],272,170,p[2]);});
+}
+// Classic dial: a cream dial in a knurled chrome bezel on black (0 at lower left round to the end at
+// lower right, a red band from the redline, a bronze needle on a chrome hub), "x1000 rpm" under the top
+// numbers, a small temperature dial in a green window at the bottom (oil, C 50 - H 150 °C, red past 130),
+// and up to four readouts in panels left and right.
+const CL={cx:544,cy:230,R:184,a0:-128,a1:128,cream:'#efe6cf',ink:'#26231e',bronze:'#c88a4c',green:'#12312a',green2:'#0b211c',gold:'#b89a5e',red:'#c4241c',chrome:'#c9cdd2'};
+function clPanel(cv,it,x,y,w,hh){
+ // no box: label and value straight on the black
+ 
+ if(!it)return;
+ cv.text(it.label,x+24,y+42,24,[0,0,0,200],{font:'bold'});cv.text(it.label,x+22,y+40,24,'#d8c99e',{font:'bold'});
+ const unitless=/[°%:]/.test(it.value)||!it.unit;
+ cv.text(it.value,x+w-(unitless?22:66)+2,y+hh-28,54,[0,0,0,200],{align:'right',font:'bold'});
+ cv.text(it.value,x+w-(unitless?22:66),y+hh-30,54,it.tone==='hot'?'#ff6a4a':it.tone==='cold'?'#7fc4ff':'#f3ead2',{align:'right',font:'bold'});
+ if(!unitless)cv.text(it.unit,x+w-22,y+hh-30,21,'#cdbf98',{align:'right',font:'bold'});
+}
+// light from the top left: 1 facing it, 0 facing away (angle in degrees clockwise from 12)
+const lit=a=>0.5+0.5*Math.cos((a+45)*Math.PI/180);
+const mixc=(a,b,t)=>[0,1,2].map(k=>Math.round(a[k]+(b[k]-a[k])*t)).concat([255]);
+function drawClassic(cv,f,h){
+ const d=f.d,max=f.max,{cx,cy,R}=CL,A=v=>CL.a0+(CL.a1-CL.a0)*clamp(v,0,max)/max,pt=(a,r,x0,y0)=>[(x0||cx)+r*Math.sin(a*Math.PI/180),(y0||cy)-r*Math.cos(a*Math.PI/180)];
+ const rpm=isNum(d.rpm)?clamp(d.rpm,0,max):0,q=cue(f),ko=language()==='ko';
+ if(want(f,'gauge')&&f.sel!=='live'){
+  // quilted green leather: each diamond lit on its upper-left edges, shaded on the lower-right ones
+  // on black: the dial's shadow, then the knurled chrome bezel lit from the top left
+  for(let k=0;k<3;k++)cv.circle(cx+6,cy+10,R+40-k*5,[0,0,0,50]);
+  for(let a=0;a<360;a+=5){const L=lit(a+2.5);cv.arc(cx,cy,R+6,R+30,a,a+5.4,mixc([58,62,68],[236,240,244],L));}
+  for(let k=0;k<120;k++){const a=k*3,L=lit(a),p=pt(a,R+9),q2=pt(a,R+27);cv.line(p[0],p[1],q2[0],q2[1],2,k%2?mixc([120,126,134],[255,255,255],L):mixc([30,33,37],[150,156,164],L));}
+  for(let a=0;a<360;a+=6){const L=lit(a+3);cv.arc(cx,cy,R+30,R+33,a,a+6.4,mixc([20,22,25],[200,205,210],L));cv.arc(cx,cy,R+1,R+6,a,a+6.4,mixc([110,70,34],[236,184,120],1-L));}
+  // the face: cream, lighter in the middle; a soft shadow under the bezel's top-left edge
+  cv.circle(cx,cy,R,[218,206,174,255]);for(let k=1;k<6;k++)cv.arc(cx,cy,0,R-k*R/6,0,360,[255,252,240,46]);
+  for(let k=0;k<3;k++)cv.arc(cx,cy,R-4-k*6,R,-150,60,[60,45,20,26]);
+  // red band from the redline, ticks every 250 rpm (longer every 1000), numbers with a faint emboss
+  cv.arc(cx,cy,R-30,R-18,A(f.redline),A(max),CL.red);
+  for(let v=0;v<=max+1;v+=250){const major=v%1000===0,mid=v%500===0,a=A(v),p=pt(a,R-14),q2=pt(a,major?R-40:mid?R-30:R-24);cv.line(p[0],p[1],q2[0],q2[1],major?5:2.2,v>=f.redline?CL.red:CL.ink);}
+  for(let k=0;k*1000<=max;k++){const a=A(k*1000),l=pt(a,R-72),col=k*1000>=f.redline?CL.red:CL.ink;cv.text(String(k),l[0]+1.5,l[1]+19.5,50,[255,255,255,120],{align:'center',font:'bold'});cv.text(String(k),l[0],l[1]+18,50,col,{align:'center',font:'bold'});}
+  cv.text('×1000 rpm',cx,cy-60,21,'#5a5348',{align:'center',font:'bold',literal:true});
+  // the glass: a faint highlight across the upper left
+  for(let k=0;k<5;k++)cv.arc(cx,cy,R-40-k*14,R-34-k*14,-75,5,[255,255,255,Math.round(26-k*4)]);
+ }
+ if(want(f,'gauge')&&f.sel!=='face'){
+  // the needle: its shadow, then a tapered bronze blade with a lit edge, on a domed chrome hub
+  const a=A(rpm),u=[Math.sin(a*Math.PI/180),-Math.cos(a*Math.PI/180)],n=[-u[1],u[0]],L1=R-24,L0=34;
+  const blade=(ox,oy,c,w)=>cv.quad([[cx+ox-u[0]*L0+n[0]*w*1.6,cy+oy-u[1]*L0+n[1]*w*1.6],[cx+ox+u[0]*L1+n[0]*w*0.3,cy+oy+u[1]*L1+n[1]*w*0.3],[cx+ox+u[0]*L1-n[0]*w*0.3,cy+oy+u[1]*L1-n[1]*w*0.3],[cx+ox-u[0]*L0-n[0]*w*1.6,cy+oy-u[1]*L0-n[1]*w*1.6]],c);
+  blade(5,7,[0,0,0,70],4);blade(0,0,f.cue.shift&&f.blink?CL.red:[176,112,54,255],4);
+  cv.line(cx-u[0]*L0+n[0]*2,cy-u[1]*L0+n[1]*2,cx+u[0]*L1,cy+u[1]*L1,1.4,[255,214,160,220]);
+  cv.circle(cx+3,cy+4,24,[0,0,0,70]);for(let k=0;k<8;k++)cv.circle(cx-k*0.9,cy-k*0.9,22-k*2.4,mixc([92,98,106],[250,252,255],k/7));
+ }
+
+ if(want(f,'alert')&&rpm>50&&rpm>=f.cue.from){
+  // the rpm alert: a domed lamp at the top of the dial, amber while counting in, red (flashing) at the shift
+  const on=q.flash?q.on:true,base=q.flash?[220,36,28]:[255,160,30];
+  const x=cx,y=cy-R+58;cv.circle(x,y,16,[60,48,30,255]);
+  if(on){for(let k=0;k<5;k++)cv.circle(x,y,30-k*4,[base[0],base[1],base[2],Math.round(18+k*10)]);cv.circle(x,y,12,mixc(base,[255,255,255],0.15));cv.circle(x-4,y-4,4,[255,255,255,170]);}
+ }
+ if(want(f,'temp')){
+  // the temperature window: a recessed green half-disc with a lit chrome rim, C..H, red past 130 °C
+  const tx=cx,ty=cy+R-36,tr=78,T=v=>-62+124*clamp((v-50)/100,0,1),oil=f.oil;
+  for(let a=-90;a<90;a+=6)cv.arc(tx,ty,tr,tr+6,a,a+6.4,mixc([70,74,80],[240,243,246],lit(a+3)));
+  cv.fillRect(tx-tr-6,ty,2*tr+12,6,[150,156,162,255]);
+  cv.arc(tx,ty,0,tr,-90,90,CL.green);for(let k=0;k<5;k++)cv.arc(tx,ty,tr-4-k*3,tr,-90,90,[0,0,0,Math.round(60-k*11)]);
+  for(let v=50;v<=150;v+=12.5){const a=T(v),p=pt(a,tr-8,tx,ty),q2=pt(a,tr-(v%50===0?22:15),tx,ty);cv.line(p[0],p[1],q2[0],q2[1],2.4,v>130?'#ff4a3a':'#e9e1c8');}
+  cv.text('C',tx-tr+18,ty-8,20,'#e9e1c8',{align:'center',font:'bold',literal:true});cv.text('H',tx+tr-18,ty-8,20,'#ff6a5a',{align:'center',font:'bold',literal:true});
+  cv.text(ko?'오일':'OIL',tx,ty-6,17,'#e9e1c8',{align:'center',font:'bold',literal:true});
+  const a=T(isNum(oil)?oil:50),e=pt(a,tr-10,tx,ty);cv.line(tx+2,ty+2,e[0]+2,e[1]+2,3.4,[0,0,0,90]);cv.line(tx,ty,e[0],e[1],3.4,isNum(oil)?'#d79a5a':'#6b6455');cv.circle(tx,ty,6,'#dfe3e7');
+ }
+ if(want(f,'gear')){
+  // gear: a recessed window under the hub (like a date window), the gearbox letter beside it
+  cv.fillRect(cx-34,cy+30,68,52,CL.green2);cv.line(cx-34,cy+31,cx+34,cy+31,3,[0,0,0,140]);cv.line(cx-33,cy+30,cx-33,cy+82,3,[0,0,0,110]);
+  cv.polyline([[cx-35,cy+29],[cx+35,cy+29],[cx+35,cy+83],[cx-35,cy+83],[cx-35,cy+29]],2,CL.bronze);
+  cv.text(h.gearText(d),cx,cy+76,46,f.cue.shift&&f.blink?'#ff5a4a':'#f3ead2',{align:'center',font:h.gearFont(f.opts)});
+  if(f.mode)cv.text(f.mode,cx+42,cy+76,20,CL.bronze,{font:'bold'});
+ }
+ if(want(f,'mode')){const m=String(f.drive||''),word=/SPORT/.test(m)?(ko?'스포츠':'SPORT'):/ECO/.test(m)?(ko?'에코 프로':'ECO PRO'):m?(ko?'컴포트':'COMFORT'):'';
+  if(word)cv.text(word,cx,cy-34,19,CL.bronze,{align:'center',font:'bold',literal:true});}
+ [[24,52],[764,52],[24,252],[764,252]].forEach((p,i)=>{if(want(f,'read'+'ABCD'[i])&&f.readouts[i])clPanel(cv,f.readouts[i],p[0],p[1],300,170);});
+}
+const DRAW={shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic};
 // Each layout draws in one pass (no separate background layer); the bg layer request draws nothing.
 function drawX(cv,f,layer,h){if(layer==='bg')return;DRAW[f.opts.style](h.scaled(cv,S,0,0),f,h);}
 module.exports={STYLES:Object.keys(DRAW),IH,drawX};

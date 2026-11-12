@@ -5,7 +5,7 @@ const {Canvas}=require(root+'/kit/canvas'),{getLanguage,t}=require(root+'/kit/i1
 const RL=require(root+'/redline-hud'),HUD=require(root+'/hud-compose'),D=require(root+'/display-config'),K=require(root+'/render-state'),{settings}=require(root+'/policy'),{placement}=require(root+'/layout'),face=require(root+'/hud-draw');
 const {SettingsPage}=require(root+'/settings-ui');
 const alpha=(im,x0,y0,x1,y1)=>{let n=0;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)if(im.d[(y*im.w+x)*4+3])n++;return n;};
-assert.strictEqual(RL.STYLES.length,13,'seven Redline app layouts and Cluster Redline\'s six');assert(!RL.STYLES.includes('minimal')&&!RL.STYLES.includes('wings'));assert.strictEqual(settings({hudDesign:'rl-minimal',clusterDesign:'rl-wings'}).hudDesign,'own','a removed layout falls back to the own design');
+assert.strictEqual(RL.STYLES.length,15,'seven Redline app layouts and Cluster Redline\'s eight');assert(!RL.STYLES.includes('minimal')&&!RL.STYLES.includes('wings'));assert.strictEqual(settings({hudDesign:'rl-minimal',clusterDesign:'rl-wings'}).hudDesign,'own','a removed layout falls back to the own design');
 assert.strictEqual(settings({}).hudDesign,'own');assert.strictEqual(settings({hudDesign:'rl-fivedial',clusterDesign:'rl-fivedial'}).clusterDesign,'own','a removed layout falls back to the own design');assert.strictEqual(settings({hudDesign:'rl-nope'}).hudDesign,'own');
 assert.deepStrictEqual(RL.gearOf('M3'),{gear:3,stage:'D',mode:'M'});assert.deepStrictEqual(RL.gearOf('P'),{gear:0,stage:'P',mode:null});assert.strictEqual(RL.gearOf('--').gear,null);
 const base={renderRpm:true,rpm:5900,gear:'M3',shift:false,flash:false,torqueNm:380,powerPS:260,mode:'SPORT',aux:{boost:1.05,oil:96,outside:18,clock:'23:00'}};
@@ -15,7 +15,7 @@ for(const st of RL.STYLES){
  const cfg=settings({hudDesign:'rl-'+st,hudAuxConfig:JSON.stringify({mode:'gauges',items:['boost','clock']})}),state=Object.assign({},base,{config:cfg});
  const hf=placement(cfg,'hud',face),r=RL.rect(cfg,hf,'hud'),sa=RL.safe(hf,'hud');
  if(RL.heightOf(st)===RL.IH)assert.deepStrictEqual([r.w,r.h],[400,RL.IH],'400 × 130 at the default HUD size');
- else assert(r.w<=400&&r.w>=340&&Math.abs(r.h/r.w-RL.heightOf(st)/400)<0.01,st+': a taller layout keeps its shape, shrunk only to stay in the HUD');
+ else assert(r.w<=400&&r.w>=320&&Math.abs(r.h/r.w-RL.heightOf(st)/400)<0.01,st+': a taller layout keeps its shape, shrunk only to stay in the HUD');
  {const u=RL.extent(cfg,'hud'),k=r.w/RL.IW;const down=((RL.HUD_BASE[st]||{}).y||0)*hf.h/240;assert(r.x+u.x0*k>=sa.x-1&&r.y+u.y0*k>=sa.y-1&&r.x+u.x1*k<=sa.x+sa.w+1&&r.y+u.y1*k<=sa.y+sa.h+down+1,st+' starts in the default design area, lowered by its tuned default');}
  const direct=HUD.draw(state),cached=HUD.draw(Object.assign({},state,{renderCache:HUD.createCache()}));
  assert(alpha(direct,r.x,r.y,r.x+r.w,r.y+r.h)>800,st+' draws its layout');

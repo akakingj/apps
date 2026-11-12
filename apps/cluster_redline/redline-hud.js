@@ -9,8 +9,8 @@ let drawing=null;const kit=()=>drawing||(drawing={DRAW:require('./rl-hud-draw'),
 const {shiftSpec}=require('./shift-alert'),{auxConfig}=require('./display-config'),{gauges}=require('./units'),{language}=require('./strings');
 // The Redline app's layouts (Minimal and Split wings not offered: Standard with parts hidden covers them),
 // then Cluster Redline's own six (rl-hud-x.js, a taller 400x176 image).
-const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon'],TALL=['shift','logger','needle','rings','ribbon','hexagon'];
-const NAMES={standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon'};
+const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon','sportdial','classic'],TALL=['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic'];
+const NAMES={standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon',sportdial:'Sport dial',classic:'Classic dial'};
 const IW=400,IH=130,heightOf=st=>TALL.includes(st)?176:IH,isNum=x=>typeof x==='number'&&isFinite(x);
 function style(cfg,d){const m=/^rl-([a-z]+)$/.exec(cfg&&cfg[(d||'hud')+'Design']||'');return m&&STYLES.includes(m[1])?m[1]:null;}
 function active(cfg,d){return !!style(cfg,d);}
@@ -37,7 +37,9 @@ function readouts(state,d){
   else if(id==='batteryCharge')value=isNum(v.batteryCharge)?Math.round(v.batteryCharge)+'%':'--';
   else if(id==='batteryVoltage')value=isNum(v.batteryVoltage)?v.batteryVoltage.toFixed(1):'--';
   else if(id==='economy')value=isNum(v.economy)?v.economy.toFixed(1):'--';
-  return {label:label(id),value,tone};
+  // a gauge's fraction and ends, for layouts that draw bars in gauge mode (Sport dial)
+  let frac=null,lo=null,hi=null,unit='';try{const m=require('./aux-draw').metric(state,id);unit=m.unit||'';if(isNum(m.value)&&isNum(m.maximum)&&m.maximum>(m.minimum||0)){lo=m.minimum||0;hi=m.maximum;frac=Math.max(0,Math.min(1,(m.value-lo)/(hi-lo)));}}catch(e){}
+  return {id,label:label(id),value,tone,gauge:a.mode==='gauges',frac,lo,hi,unit};
  });
 }
 // Redline's frame from Cluster Redline's render state. Lights count over the 1500 rpm before the shift
@@ -46,7 +48,7 @@ function frame(state,now,d){
  const cfg=state.config,rpm=isNum(state.rpm)?state.rpm:null,spec=shiftSpec(cfg,state.mode),g=gearOf(state.gear);
  const limiter=rpm!==null&&rpm>=cfg.maxRpm-50,flash=!!state.shift||limiter,blink=flash?state.flash!==false:true;
  return {d:{rpm,gear:g.gear,stage:g.stage},shift:spec.shift,redline:cfg.redlineRpm,max:cfg.maxRpm,blink,
-  cue:{from:spec.shift-1500,at:spec.shift,shift:!!state.shift,limiter},drive:state.mode||null,g:{lat:(state.aux||{}).gLat,long:(state.aux||{}).gLong,total:(state.aux||{}).gforce},down:0,peak:0,chip:null,shake:null,readouts:readouts(state,d),mode:g.mode,
+  cue:{from:spec.shift-1500,at:spec.shift,shift:!!state.shift,limiter},drive:state.mode||null,oil:(state.aux||{}).oil,g:{lat:(state.aux||{}).gLat,long:(state.aux||{}).gLong,total:(state.aux||{}).gforce},down:0,peak:0,chip:null,shake:null,readouts:readouts(state,d),mode:g.mode,
   opts:{style:style(cfg,d)||'standard',palette:'colour',gear:true,rpm:true,bar:true,lights:true,gt3:true,dim:true,lightStyle:'gt3',clearLabels:false}};
 }
 function paint(target,state,k,ox,oy,now,d){const {DRAW}=kit();DRAW.drawLayer(DRAW.scaled(target,k,ox||0,oy||0),frame(state,now,d));}
@@ -95,10 +97,12 @@ const ELEMENTS={
  arc:['alert','gauge','gear','mode','readD','readA','readB','readC','mark'],ramp:['alert','gauge','gear','mode','rpm','readA','readB','readC','readD','mark'],dial:['gauge','readB','readC','readD','gear','mode','readA','mark'],
  shift:['alert','gear','mode','rpm','read','mark'],logger:['gauge','gear','mode','rpm','readA','readB','readC','readD','mark'],needle:['gauge','gear','mode','readA','readB','readC','readD','mark'],
  rings:['gmeter','gauge','gear','mode','rpm','read','mark'],ribbon:['gauge','gear','mode','readA','readB','readC','readD','mark'],
- hexagon:['gauge','alert','gear','mode','rpm','readA','readB','readC','readD','mark']};
-const PART={gear:'RlGear',mode:'RlMode',alert:'RlAlert',rpm:'RlRpm',gauge:'RlGauge',read:'RlRead',readA:'RlReadA',readB:'RlReadB',readC:'RlReadC',readD:'RlReadD',gmeter:'RlGMeter',mark:'RlMark'};
+ hexagon:['gauge','alert','gear','mode','rpm','readA','readB','readC','readD','mark'],
+ sportdial:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],
+ classic:['gauge','alert','temp','gear','mode','readA','readB','readC','readD','mark']};
+const PART={gear:'RlGear',mode:'RlMode',alert:'RlAlert',rpm:'RlRpm',gauge:'RlGauge',read:'RlRead',readA:'RlReadA',readB:'RlReadB',readC:'RlReadC',readD:'RlReadD',gmeter:'RlGMeter',temp:'RlTemp',mark:'RlMark'};
 const PART_NAMES=Object.keys(PART).map(k=>PART[k]);
-const LABELS={RlGear:'Gear',RlMode:'Drive mode',RlAlert:'RPM alert',RlRpm:'RPM number',RlGauge:'RPM gauge',RlRead:'Readouts',RlReadA:'Readout 1',RlReadB:'Readout 2',RlReadC:'Readout 3',RlReadD:'Readout 4',RlGMeter:'G-force meter',RlMark:'M mark'};
+const LABELS={RlTemp:'Temperature gauge',RlGear:'Gear',RlMode:'Drive mode',RlAlert:'RPM alert',RlRpm:'RPM number',RlGauge:'RPM gauge',RlRead:'Readouts',RlReadA:'Readout 1',RlReadB:'Readout 2',RlReadC:'Readout 3',RlReadD:'Readout 4',RlGMeter:'G-force meter',RlMark:'M mark'};
 function readoutCount(cfg,d){const a=auxConfig(cfg[(d||'hud')+'AuxConfig']);return a.mode==='off'?0:Math.min(4,a.items.length);}
 // The elements the chosen layout draws with the chosen readouts: [{id, key}].
 function elements(cfg,d){
@@ -148,9 +152,17 @@ function partRect(cfg,layout,b,key,d,spread){
  return {x:Math.round(layout.x+(b.x+b.w*(1-s)/2+ox)*k),y:Math.round(layout.y+(b.y+b.h*(1-s)/2+oy)*k),w:Math.max(1,Math.round(b.w*s*k)),h:Math.max(1,Math.round(b.h*s*k))};
 }
 // One element painted at its own size (no resampling): {W, H, draw(state) -> Canvas}.
-function partPainter(state,id,b,r,d){
+// The heavy dials (Sport dial, Classic dial): their RPM gauge is two cached pictures, the still face (redrawn
+// only when its look changes) and the live needle over it, so a new rpm does not repaint the whole dial.
+const SPLIT=['sportdial','classic'];
+function nodes(state,e,d,key){
+ if(e.id!=='gauge'||!SPLIT.includes(style(state.config,d)))return [{id:e.id,key,painter:partPainter(state,e.id,e.b,e.r,d)}];
+ const f=frame(state,0,d),still=JSON.stringify([f.opts.style,'face',f.redline,f.max,require('./strings').language()]);
+ return [{id:'gauge.face',key:still,painter:partPainter(state,'gauge',e.b,e.r,d,'face')},{id:'gauge',key,painter:partPainter(state,'gauge',e.b,e.r,d,'live')}];
+}
+function partPainter(state,id,b,r,d,sel){
  if(id==='mark')return {W:r.w,H:r.h,draw:()=>{const {Canvas}=kit(),cv=new Canvas(r.w,r.h);cv.clear([0,0,0,0]);require('./m-mark').drawMark(cv,r.w/2,0,r.w,r.h);return cv;}};
- return {W:r.w,H:r.h,draw:v=>{const {Canvas,DRAW}=kit(),cv=new Canvas(r.w,r.h),k=r.w/b.w;cv.clear([0,0,0,0]);const f=frame(v,0,d);f.only=id;DRAW.drawLayer(DRAW.scaled(cv,k,-b.x*k,-b.y*k),f);return cv;}};
+ return {W:r.w,H:r.h,draw:v=>{const {Canvas,DRAW}=kit(),cv=new Canvas(r.w,r.h),k=r.w/b.w;cv.clear([0,0,0,0]);const f=frame(v,0,d);f.only=id;f.sel=sel;DRAW.drawLayer(DRAW.scaled(cv,k,-b.x*k,-b.y*k),f);return cv;}};
 }
 // The visible elements with their places: [{id, key, b, r}].
 function clampTo(r,face){if(!face)return r;const w=Math.min(r.w,face.w),h=Math.min(r.h,face.h),s=Math.min(w/r.w,h/r.h),W=Math.max(1,Math.round(r.w*s)),H=Math.max(1,Math.round(r.h*s));
@@ -168,4 +180,4 @@ function placed(state,layout,d,face0){
   return Object.assign({b,r:clampTo(partRect(cfg,layout,b,e.key,d,spread),wholeMoved||cfg[p+e.key+'OffsetX']||cfg[p+e.key+'OffsetY']?face:band)},e);});
 }
 function key(state,d){const f=frame(state,0,d);return JSON.stringify([f.opts.style,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode]);}
-module.exports={HUD_BASE,safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,elements,bounds,partRect,partPainter,placed};
+module.exports={HUD_BASE,safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,elements,bounds,partRect,partPainter,nodes,placed};

@@ -6,6 +6,7 @@ function demand(cfg,mode){
  const faces=['hud','cluster'].filter(d=>enabled&&D.faceVisible(cfg,d)&&(mode===null?cfg['all'+(d==='hud'?'Hud':'Cluster')+'Output']==='redline'||cfg['sport'+(d==='hud'?'Hud':'Cluster')+'Output']==='redline':D.rpmOutput(cfg,d==='hud'?'Hud':'Cluster',mode)));
  faces.forEach(d=>D.visibleMetrics(cfg,d).forEach(k=>aux.add(k)));
  // The G-force + RPM rings layout's G meter reads the G-force whatever the readouts are.
+ faces.forEach(d=>{if(cfg[d+'Design']==='rl-classic'&&!cfg[d+'RpmGaugeHidden']&&!cfg[d+'RlTempHidden'])aux.add('oil');});
  faces.forEach(d=>{if(cfg[d+'Design']==='rl-rings'&&!cfg[d+'RpmGaugeHidden']&&!cfg[d+'RlGMeterHidden'])aux.add('gforce');});
  const rpm=faces.some(d=>D.faceRpmNeeded(cfg,d))||aux.has('batteryVoltage'),torque=aux.has('torque')||aux.has('power'),gear=faces.some(d=>!cfg[d+'GearHidden']);
  const navAny=enabled&&(nav.direction||nav.text||nav.lanes),turns=enabled&&(nav.direction||nav.text);

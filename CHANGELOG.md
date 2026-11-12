@@ -13,6 +13,13 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.32
+
+- **New layout: Sport dial** (HUD and cluster): a big round tachometer in a lit metal bezel with a red glow strongest at the rim, a dark inner disc, red neon trims framing the side wings, numbers from the redline in yellow and a yellow needle; the rpm in big digits inside, the gear in a box under it, the drive mode below; up to four readouts left and right, each with a segmented bar when the readouts are gauges. RPM alert: the dial's rim lights red up to the rpm, flashing at the shift point.
+- **New layout: Classic dial**: a cream dial in a knurled chrome bezel on black, lit from the top left (shaded bezel, face and needle shadows, domed hub, glass highlight); red band from the redline, a bronze needle, the gear in a window under the hub, an oil temperature dial (C 50 - H 150 °C) in a green window at the bottom (new element: Temperature gauge), up to four readouts left and right; RPM alert lamp at the top.
+- Readouts on both stand without a box background.
+- Both dials keep their still face in its own cached picture, so only the needle repaints with the rpm.
+
 ### 1.2.31
 
 - **Ramp (G80 M3/M4) redrawn after the G80/G82 cluster**: a cream band climbing from 0 and bending round at 2000 rpm, solid up to the rpm with a red end mark and only its top line past it, notched every 1000 rpm, yellow / red dashes in the redline zone; square digits for the 0-8 scale, the gear and the rpm (with a line and "rpm"); readouts under 6 and 8.
