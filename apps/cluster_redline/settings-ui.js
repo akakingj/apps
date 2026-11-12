@@ -6,7 +6,7 @@ const {settings:effective,PROFILES,DEFAULTS}=require('./policy');
 const D=require('./display-config'),RL=require('./redline-hud'),HUD=require('./hud-draw'),CLUSTER=require('./draw'),NAV=require('./nav-draw');
 const {measurePart}=require('./component-canvas'),{placement}=require('./layout'),NAV_TEXT=require('./nav-text');
 const W=1600,H=520,TABS=['Basic settings','HUD display setting','CLUSTER display setting','NAV display setting'];
-const GROUPS=[['autoStart','appEnabled','engineProfile','powerUnit','torqueUnit','shiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout'],['sportClusterOutput','allClusterOutput','aux','design','layout'],['navDisplayMode','navColor','layout']];
+const GROUPS=[['autoStart','appEnabled','engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout'],['sportClusterOutput','allClusterOutput','aux','design','layout'],['navDisplayMode','navColor','layout']];
 const RENDERER_NOTICE='Install Cluster renderer (cluster-render) from MGU Store first.';
 const MAP_WARNING='Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
 const HUD_WARNING='HUD navigation shows received turn guidance; unavailable data preserves stock guidance.';
@@ -20,6 +20,8 @@ function layoutKeys(tab,schema){
  // Redline layout elements are kept outside the schema (like hudDesign).
  return keys.filter((k,i,a)=>(known.has(k)||/^hudRl/.test(k))&&a.indexOf(k)===i);
 }
+// Comfort / Eco shift alert RPM: kept outside app.json (like clockZone) so the Store templates stay valid.
+const COMFORT_ITEM={key:'comfortShiftRpm',label:'Comfort / Eco shift alert RPM',type:'choice',options:[[0,tr('Automatic (90 % of shift alert RPM)')]].concat([2000,2250,2500,2750,3000,3250,3500,4000,4500,5000].map(v=>[v,v+' rpm']))};
 function options(item,cfg){
  if(!item)return [];
  if(item.type==='bool')return [[false,'Off'],[true,'On']];
@@ -36,10 +38,10 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign'].concat(RL_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','comfortShiftRpm'].concat(RL_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return GROUPS[this.tab];}
- item(){const key=this.keys()[this.focus];if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
+ item(){const key=this.keys()[this.focus];if(key==='comfortShiftRpm')return COMFORT_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
  selectTab(i){this.tab=Math.max(0,Math.min(3,i|0));this.focus=0;this.open=null;this.draft=null;this.choice=0;this.changed();}
  // The settings screen left without Back (Home, another app, screen off): end Position / size so its
  // preview never stays on the HUD or cluster.
@@ -62,6 +64,7 @@ class SettingsPage{
   if(item.key==='layout')return t('Adjust');
   if(item.key==='appEnabled')return t(cfg.appEnabled?'Running':'Stopped');
   if(item.key==='shiftRpm'&&!this.settings.get(item.key))return cfg.shiftRpm+' rpm';
+  if(item.key==='comfortShiftRpm')return cfg.comfortShiftRpm?cfg.comfortShiftRpm+' rpm':tr('Automatic')+' · '+Math.round(cfg.shiftRpm*0.9/100)*100+' rpm';
   const selected=options(item,cfg).find(o=>o[0]===this.settings.get(item.key));return selected?t(selected[1]):t('Check required');
  }
  change(delta){if(this.open==='layoutPresets')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
@@ -114,16 +117,16 @@ class SettingsPage{
  drawRows(cv,cfg,targets,status){
   let y=100;
   this.keys().forEach((key,i)=>{
-   const item=['aux','design','layout'].includes(key)?{key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key]}:this.settings.schema.find(s=>s.key===key);
-   const h=this.tab===0?(key==='autoStart'?112:58):68;
-   if(i===this.focus){cv.gradientRect(78,y,1460,h-1,[[0,'#30131a'],[1,'#090b0e']]);cv.fillRect(78,y+8,4,42,'#f32b40');}
+   const item=key==='comfortShiftRpm'?COMFORT_ITEM:['aux','design','layout'].includes(key)?{key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key]}:this.settings.schema.find(s=>s.key===key);
+   const h=this.tab===0?(key==='autoStart'?108:50):68,ty=h===50?35:39;
+   if(i===this.focus){cv.gradientRect(78,y,1460,h-1,[[0,'#30131a'],[1,'#090b0e']]);cv.fillRect(78,y+(h===50?6:8),4,h===50?37:42,'#f32b40');}
    const label=/^sport/.test(key)?'Sport mode RPM display':/^all/.test(key)?'All modes RPM display':item.label;
-   cv.text(label,100,y+39,32,'#f3f5f7');
+   cv.text(tr(label),100,y+ty,32,'#f3f5f7');
    if(key==='appEnabled'){
-    [[true,'Start app'],[false,'Stop app']].forEach((v,n)=>this.button(cv,targets,v[1],990+n*278,y+3,260,50,()=>{this.settings.set(key,v[0]);this.changed();},cfg.appEnabled===v[0],'operation-'+v[0]));
+    [[true,'Start app'],[false,'Stop app']].forEach((v,n)=>this.button(cv,targets,v[1],990+n*278,y+3,260,h===50?44:50,()=>{this.settings.set(key,v[0]);this.changed();},cfg.appEnabled===v[0],'operation-'+v[0]));
    }else{
     let size=30,value=this.value(item,cfg);while(size>18&&cv.textWidth(value,size)>850)size--;
-    cv.text(value,1480,y+39,size,'#c1cddd',{align:'right'});targets.push({x:78,y,w:1460,h:h-1,act:()=>this.activate(i),label,id:key});
+    cv.text(value,1480,y+ty,size,'#c1cddd',{align:'right'});targets.push({x:78,y,w:1460,h:h-1,act:()=>this.activate(i),label,id:key});
    }
    if(key==='autoStart'){cv.text(RENDERER_NOTICE,100,y+72,24,'#ff9e36');cv.text(cfg.sportHudOutput==='redline'||cfg.allHudOutput==='redline'?HUD_WARNING:MAP_WARNING,100,y+101,23,'#ff9e36');}
    cv.line(84,y+h-1,1536,y+h-1,0.6,'#292d34');y+=h;
@@ -133,8 +136,8 @@ class SettingsPage{
  }
  backButton(cv,targets){this.button(cv,targets,'Back',1210,448,326,64,()=>this.back(),false,'back');}
  drawChoices(cv,cfg,targets){
-  const item=this.item(),list=options(item,cfg),start=Math.max(0,Math.min(list.length-4,this.choice-1));cv.text(item.label,100,126,32,'#ef4050');
-  list.slice(start,start+4).forEach((o,row)=>{const i=start+row,y=148+row*72;this.button(cv,targets,o[1],84,y,1452,68,()=>this.choose(i),this.choice===i,'choice'+i);});this.backButton(cv,targets);
+  const item=this.item(),list=options(item,cfg),start=Math.max(0,Math.min(list.length-4,this.choice-1));cv.text(tr(item.label),100,126,32,'#ef4050');
+  list.slice(start,start+4).forEach((o,row)=>{const i=start+row,y=148+row*72;this.button(cv,targets,tr(o[1]),84,y,1452,68,()=>this.choose(i),this.choice===i,'choice'+i);});this.backButton(cv,targets);
  }
  drawAuxMode(cv,cfg,targets){
   cv.text('Auxiliary information',100,126,32,'#ef4050');

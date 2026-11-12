@@ -1,6 +1,6 @@
 # iDrive 7 Jam Apps
 
-**Cluster Redline 1.2.8**: each element of a Redline app layout moves, sizes and hides on its own; Korean time for the clock. **iDrive Circuit 1.0.0** and **Storage 1.0.1** are also available.
+**Cluster Redline 1.2.9**: Comfort / Eco shift alert RPM in the Basic settings (1.2.8: Redline layouts element by element, Korean time for the clock). **iDrive Circuit 1.0.0** and **Storage 1.0.1** are also available.
 
 [한국어](README.ko.md)
 
@@ -11,7 +11,7 @@
 | Use Storage | [Storage](apps/storage/README.md) | [저장공간](apps/storage/README.ko.md) |
 | Use Circuit | [Circuit](apps/idrive_circuit/README.md) | [회로 퍼즐](apps/idrive_circuit/README.ko.md) |
 
-Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and choose Korean or English. Redline requires **`cluster-render` 0.4.0+**. Update existing installs in Installed and check **v1.2.8** in the app. Stop and disable auto-start in an unused language edition if both are installed.
+Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and choose Korean or English. Redline requires **`cluster-render` 0.4.0+**. Update existing installs in Installed and check **v1.2.9** in the app. Stop and disable auto-start in an unused language edition if both are installed.
 
 | HUD circle | HUD bar |
 |---|---|

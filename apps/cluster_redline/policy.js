@@ -18,7 +18,7 @@ const PROFILES = {
 };
 // Zero RPM settings mean the selected profile's defaults, rather than engine-off.
 const FRAME_RATE = 20;
-const DEFAULTS = { appEnabled: true, autoStart: true, engineProfile: 'petrol', displayMode: 'sport', powerUnit: 'PS', torqueUnit: 'Nm', shiftRpm: 0, frameRate: FRAME_RATE, displayTarget: 'map', widgetScale: 80 };
+const DEFAULTS = { appEnabled: true, autoStart: true, engineProfile: 'petrol', displayMode: 'sport', powerUnit: 'PS', torqueUnit: 'Nm', shiftRpm: 0, comfortShiftRpm: 0, frameRate: FRAME_RATE, displayTarget: 'map', widgetScale: 80 };
 Object.assign(DEFAULTS, { sportClusterOutput: 'redline', sportHudOutput: 'stock', allClusterOutput: 'stock', allHudOutput: 'stock',
     clusterOffsetX: 0, clusterOffsetY: 0, clusterWidthScale: 80, clusterHeightScale: 80,
     hudOffsetX: 0, hudOffsetY: -100, hudWidthScale: 75, hudHeightScale: 75,
@@ -56,6 +56,8 @@ function settings(raw) {
         const value = raw[key], range = profile.ranges[key];
         out[key] = typeof value === 'number' && isFinite(value) && value >= range[0] && value <= range[1] ? value : profile[key];
     });
+    // Comfort / Eco shift alert RPM (kept outside app.json): 0 = automatic, 90 % of the shift alert RPM.
+    out.comfortShiftRpm = [2000, 2250, 2500, 2750, 3000, 3250, 3500, 4000, 4500, 5000].indexOf(raw.comfortShiftRpm) >= 0 ? raw.comfortShiftRpm : 0;
     ['redlineRpm', 'maxRpm', 'torqueScale', 'powerScale'].forEach((key) => { out[key] = profile[key]; });
     // Fixed request ceiling. Retired saved 12/30/60 fps choices never override it.
     if (Object.prototype.hasOwnProperty.call(raw, 'displayTarget')) out.displayTarget = ['map', 'panel', 'hud'].indexOf(raw.displayTarget) >= 0 ? raw.displayTarget : 'unknown';

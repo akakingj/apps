@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.9
+
+- **Comfort / Eco shift alert RPM** (Basic settings, under Shift alert RPM): *Automatic* keeps today's comfort shift point, 90 % of the shift alert RPM (Petrol 5500 -> 5000, lights from 2500). A set RPM (2000 to 5000) becomes the shift point in every non-sport mode (Comfort, Comfort+, Eco Pro and the others): the alert turns red there, with lights from 50 % and yellow from 80 % of it. Sport modes keep the shift alert RPM. Like the HUD design, the setting is kept outside `app.json` so the Store's settings templates stay valid. The Basic tab's rows are slightly shorter so the seven rows fit.
+
 ### 1.2.8
 
 - **Redline app layouts, element by element**: with a Redline app layout chosen as the HUD design, Position / size lists *Whole layout* (as before) and then each element of that layout: gear, drive mode, RPM alert, RPM number, RPM gauge and the readouts (one group on Standard, 80s digital dash, VFD glow and Vector arcade; each readout on its own on Arc, Ramp and Dial, Ramp's line over the first readout going with it). Each moves, sizes (one Size control: text keeps its proportions) and hides on its own, and is saved, loaded and reset with the other parts. Each element is painted at its own final size, so moved and enlarged elements stay sharp; at default positions the layout looks as before. Layouts only offer the elements they draw (Vector arcade has no RPM number; Minimal and Split wings no readouts).
