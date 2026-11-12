@@ -11,8 +11,9 @@ assert(!spec.settings.some(s=>s.key==='clusterYieldGuidance'));
 // The background app reads its settings by the DEFAULTS keys: the yield setting must be one of them (1.2.22 missed it).
 assert.strictEqual(require(root+'/policy').DEFAULTS.clusterYieldGuidance,'off');
 assert.strictEqual(settings({}).clusterYieldGuidance,'off');assert.strictEqual(settings({clusterYieldGuidance:'phone'}).clusterYieldGuidance,'phone');assert.strictEqual(settings({clusterYieldGuidance:'x'}).clusterYieldGuidance,'off');
+assert.strictEqual(settings({clusterYieldGuidance:'any'}).clusterYieldGuidance,'phone','the retired third choice reads as on');
 const page=(values)=>new SettingsPage({schema:spec.settings,get:k=>values[k],set:(k,v)=>{values[k]=v;},setMany(c){Object.assign(values,c);}},null,'1.2.19');
-{const v={};spec.settings.forEach(s=>{v[s.key]=s.default;});const p=page(v);p.selectTab(3);const at=p.keys().indexOf('clusterYieldGuidance');assert(at>=0&&at<p.keys().indexOf('layout'));
+{const v={};spec.settings.forEach(s=>{v[s.key]=s.default;});const p=page(v);p.selectTab(3);const at=p.keys().indexOf('clusterYieldGuidance');assert(at>=0&&at<p.keys().indexOf('layout'));assert.strictEqual(require(root+'/settings-ui').SettingsPage&&p.keys().length,4);
  p.activate(at);assert.strictEqual(p.open,'clusterYieldGuidance');p.choose(1);assert.strictEqual(v.clusterYieldGuidance,'phone');assert.strictEqual(p.config().clusterYieldGuidance,'phone');}
 
 // Outputs: with guidance running the cluster output is released; the HUD is not affected.
@@ -24,7 +25,7 @@ assert.notStrictEqual(run({clusterYieldGuidance:'phone'},false).cluster.reason,'
 {const s=run({clusterYieldGuidance:'phone'},true);assert.strictEqual(s.cluster.reason,'cluster_yield');assert(!s.cluster.requested,'cluster layer released');assert.notStrictEqual(s.hud.reason,'cluster_yield','HUD unaffected');}
 assert.notStrictEqual(run({clusterYieldGuidance:'off'},true).cluster.reason,'cluster_yield','off: the cluster stays');
 // 'any' reads the route guidance state even with HUD navigation off.
-{const f=demand(settings({clusterYieldGuidance:'any',hudNavigationEnabled:false,sportClusterOutput:'redline',allClusterOutput:'redline'}),null).fields;assert(f.has('de.bmw.infotainment.navigation.guiding.Guidance.guidanceState'));}
+{const f=demand(settings({clusterYieldGuidance:'phone',hudNavigationEnabled:false,sportClusterOutput:'redline',allClusterOutput:'redline'}),null).fields;assert(f.has('de.bmw.infotainment.navigation.guiding.Guidance.guidanceState'));}
 
 // Every Redline layout stays inside the area the default HUD design uses, at any size or position.
 // Moved by the user, it stays on the HUD picture (800 x 480) and can go lower than the default band.

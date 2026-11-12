@@ -58,8 +58,9 @@ function settings(raw) {
     });
     // Comfort / Eco shift alert RPM (kept outside app.json): 0 = automatic, 90 % of the shift alert RPM.
     out.comfortShiftRpm = [2000, 2250, 2500, 2750, 3000, 3250, 3500, 4000, 4500, 5000].indexOf(raw.comfortShiftRpm) >= 0 ? raw.comfortShiftRpm : 0;
-    // Cluster yields to route guidance (kept outside app.json): off / phone (CarPlay, Android Auto: Waze) / any.
-    out.clusterYieldGuidance = ['off', 'phone', 'any'].indexOf(raw.clusterYieldGuidance) >= 0 ? raw.clusterYieldGuidance : 'off';
+    // Cluster yields while route guidance (Waze included) shows on the HUD (kept outside app.json): off / on ('phone';
+    // the earlier third choice 'any' reads as on).
+    out.clusterYieldGuidance = raw.clusterYieldGuidance === 'phone' || raw.clusterYieldGuidance === 'any' ? 'phone' : 'off';
     ['redlineRpm', 'maxRpm', 'torqueScale', 'powerScale'].forEach((key) => { out[key] = profile[key]; });
     // Fixed request ceiling. Retired saved 12/30/60 fps choices never override it.
     if (Object.prototype.hasOwnProperty.call(raw, 'displayTarget')) out.displayTarget = ['map', 'panel', 'hud'].indexOf(raw.displayTarget) >= 0 ? raw.displayTarget : 'unknown';

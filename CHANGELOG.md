@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.25
+
+- Cluster yield setting has two choices: Do not yield / Yield while guidance (Waze) shows on the HUD. The former "Any route guidance" reads as on.
+
 ### 1.2.24
 
 - HUD defaults: data logger three steps lower, G-force rings two steps lower, mode ribbon one step lower.
