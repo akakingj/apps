@@ -2,7 +2,7 @@
 
 ![BMW Coding Study Cafe](../screenshots/banner.png)
 
-**제작: jaimeen77** · [GitHub 다운로드 (jaimeen77-cmyk/apps)](https://github.com/jaimeen77-cmyk/apps) · [네이버 블로그 jaimeen77](https://blog.naver.com/jaimeen77) · [English](CLUSTER-REDLINE.md)
+**제작: 잼님** · [GitHub 다운로드 (jaimeen77-cmyk/apps)](https://github.com/jaimeen77-cmyk/apps) · [네이버 블로그 jaimeen77](https://blog.naver.com/jaimeen77) · [English](CLUSTER-REDLINE.md)
 
 계기판(클러스터)과 HUD에 RPM·기어·변속 알림·부가정보를 표시하고, 차에서 받은 길안내를 HUD에 함께 보여주는 iDrive 7용 앱입니다. 이 문서의 그림은 **실제 앱 화면 코드에 예시 데이터를 넣어 만든 미리보기**이며, 화면 속 수치는 차량 측정값이 아닙니다.
 
@@ -252,4 +252,4 @@ Redline 앱 레이아웃은 Redline 앱(appsKOR, MIT 라이선스)의 디자인�
 
 ---
 
-제작: **jaimeen77** · 다운로드: [github.com/jaimeen77-cmyk/apps](https://github.com/jaimeen77-cmyk/apps) · MGU Store 소스: `jaimeen77-cmyk/apps` (`main`) · [라이선스·원작 고지](../NOTICE.cluster-redline.md)
+제작: **잼님** · 다운로드: [github.com/jaimeen77-cmyk/apps](https://github.com/jaimeen77-cmyk/apps) · MGU Store 소스: `jaimeen77-cmyk/apps` (`main`) · [라이선스·원작 고지](../NOTICE.cluster-redline.md)

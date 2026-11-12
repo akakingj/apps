@@ -2,7 +2,7 @@
 
 ![BMW Coding Study Cafe](screenshots/banner.png)
 
-**제작: jaimeen77**
+**제작: 잼님**
 
 | | |
 |---|---|

@@ -1,6 +1,6 @@
 # 설치 안내 · MGU Store / iDrive 7
 
-> **최신 설치·메뉴별 사용법은 [계기판 레드라인 설치·사용 설명서](CLUSTER-REDLINE.ko.md)를 보세요.** 제작: jaimeen77 · [GitHub](https://github.com/jaimeen77-cmyk/apps) · [네이버 블로그](https://blog.naver.com/jaimeen77)
+> **최신 설치·메뉴별 사용법은 [계기판 레드라인 설치·사용 설명서](CLUSTER-REDLINE.ko.md)를 보세요.** 제작: 잼님 · [GitHub](https://github.com/jaimeen77-cmyk/apps) · [네이버 블로그](https://blog.naver.com/jaimeen77)
 
 [English](INSTALL.md) · [레드라인 사용 설명서](CLUSTER-REDLINE.ko.md) · [스크린샷](../screenshots/README.md)
 
