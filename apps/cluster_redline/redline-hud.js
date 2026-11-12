@@ -11,6 +11,8 @@ const {shiftSpec}=require('./shift-alert'),{auxConfig}=require('./display-config
 // then Cluster Redline's own six (rl-hud-x.js, a taller 400x176 image).
 const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon','sportdial','classic'],TALL=['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic'];
 const NAMES={standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon',sportdial:'Sport dial',classic:'Classic dial'};
+// Layouts made for the cluster only (too detailed for the HUD's glass): not offered on the HUD.
+const CLUSTER_ONLY=['sportdial','classic'],stylesFor=d=>d==='hud'?STYLES.filter(s=>!CLUSTER_ONLY.includes(s)):STYLES.slice();
 const IW=400,IH=130,heightOf=st=>TALL.includes(st)?176:IH,isNum=x=>typeof x==='number'&&isFinite(x);
 function style(cfg,d){const m=/^rl-([a-z]+)$/.exec(cfg&&cfg[(d||'hud')+'Design']||'');return m&&STYLES.includes(m[1])?m[1]:null;}
 function active(cfg,d){return !!style(cfg,d);}
@@ -180,4 +182,4 @@ function placed(state,layout,d,face0){
   return Object.assign({b,r:clampTo(partRect(cfg,layout,b,e.key,d,spread),wholeMoved||cfg[p+e.key+'OffsetX']||cfg[p+e.key+'OffsetY']?face:band)},e);});
 }
 function key(state,d){const f=frame(state,0,d);return JSON.stringify([f.opts.style,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode]);}
-module.exports={HUD_BASE,safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,elements,bounds,partRect,partPainter,nodes,placed};
+module.exports={CLUSTER_ONLY,stylesFor,HUD_BASE,safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,elements,bounds,partRect,partPainter,nodes,placed};

@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.33
+
+- Sport dial and Classic dial are cluster-only: the HUD picker offers the other 13 layouts, and a HUD set to one of them falls back to the default design.
+
 ### 1.2.32
 
 - **New layout: Sport dial** (HUD and cluster): a big round tachometer in a lit metal bezel with a red glow strongest at the rim, a dark inner disc, red neon trims framing the side wings, numbers from the redline in yellow and a yellow needle; the rpm in big digits inside, the gear in a box under it, the drive mode below; up to four readouts left and right, each with a segmented bar when the readouts are gauges. RPM alert: the dial's rim lights red up to the rpm, flashing at the shift point.

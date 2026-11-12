@@ -30,7 +30,7 @@ assert.notStrictEqual(run({clusterYieldGuidance:'off'},true).cluster.reason,'clu
 
 // Every Redline layout stays inside the area the default HUD design uses, at any size or position.
 // Moved by the user, it stays on the HUD picture (800 x 480) and can go lower than the default band.
-for(const st of RL.STYLES)for(const extra of [{},{hudRpmGaugeWidthScale:200},{hudRpmGaugeOffsetY:900},{hudRpmGaugeOffsetY:-900,hudRpmGaugeOffsetX:-900}]){
+for(const st of RL.stylesFor('hud'))for(const extra of [{},{hudRpmGaugeWidthScale:200},{hudRpmGaugeOffsetY:900},{hudRpmGaugeOffsetY:-900,hudRpmGaugeOffsetX:-900}]){
  const cfg=settings(Object.assign({hudDesign:'rl-'+st},extra)),face=placement(cfg,'hud',HUDP),moved=!!(extra.hudRpmGaugeOffsetY)||!!((RL.HUD_BASE[st]||{}).y||(RL.HUD_BASE[st]||{}).read),sa=moved?{x:0,y:0,w:800,h:480}:RL.safe(face,'hud'),lay=RL.rect(cfg,face,'hud');
  if(extra.hudRpmGaugeOffsetY===900)assert(lay.y>RL.rect(settings({hudDesign:'rl-'+st}),face,'hud').y+20,st+' moves well below the default band');
  RL.placed({config:cfg,rpm:0,gear:'--',aux:{}},lay,'hud',face).forEach(e=>assert(e.r.x>=sa.x-1&&e.r.y>=sa.y-1&&e.r.x+e.r.w<=sa.x+sa.w+1&&e.r.y+e.r.h<=sa.y+sa.h+1,st+' '+e.id+' '+JSON.stringify(extra)));}

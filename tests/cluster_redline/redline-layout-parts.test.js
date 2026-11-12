@@ -19,7 +19,7 @@ const expected={standard:['mode','gear','alert','gauge','read','mark'],minimal:[
  shift:['alert','gear','mode','rpm','read','mark'],logger:['gauge','gear','mode','rpm','readA','readB','readC','readD','mark'],needle:['gauge','gear','mode','readA','readB','readC','readD','mark'],
  rings:['gmeter','gauge','gear','mode','rpm','read','mark'],ribbon:['gauge','gear','mode','readA','readB','readC','readD','mark'],
  hexagon:['gauge','alert','gear','mode','rpm','readA','readB','readC','readD','mark'],sportdial:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],classic:['gauge','alert','temp','gear','mode','readA','readB','readC','readD','mark']};
-RL.STYLES.forEach(st=>{
+RL.stylesFor('hud').forEach(st=>{
  const cfg=settings({hudDesign:'rl-'+st,hudAuxConfig:AUX}),state=stateOf(cfg);
  assert.deepStrictEqual(RL.elements(cfg).map(e=>e.id),expected[st],st+' elements');
  const ih=RL.heightOf(st),at={x:200,y:100,w:400,h:ih};assert.strictEqual(ih,['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic'].includes(st)?176:130);
@@ -83,7 +83,7 @@ const ribbon=mode=>{const st=Object.assign(stateOf(settings({hudDesign:'rl-ribbo
  const n={};for(let i=0;i<cv.d.length;i+=4)if(cv.d[i+3]>200){const k=cv.d[i]>200&&cv.d[i+2]<80?'orange':cv.d[i+2]>200&&cv.d[i]<120?'blue':cv.d[i+1]>180&&cv.d[i]<120?'green':'';if(k)n[k]=(n[k]||0)+1;}return Object.keys(n).sort((x,y)=>n[y]-n[x])[0];};
 assert.strictEqual(ribbon('SPORT'),'orange');assert.strictEqual(ribbon('COMFORT'),'blue');assert.strictEqual(ribbon('ECO_PRO'),'green');
 // 6. M mark: on every layout, HUD and cluster; off until added (Add / Remove M mark), then a normal element.
-RL.STYLES.forEach(st=>assert(RL.elements(settings({hudDesign:'rl-'+st}),'hud').some(e=>e.id==='mark'),st+' offers the M mark'));
+RL.stylesFor('hud').forEach(st=>assert(RL.elements(settings({hudDesign:'rl-'+st}),'hud').some(e=>e.id==='mark'),st+' offers the M mark'));
 const plain=settings({clusterDesign:'rl-hexagon'});assert.strictEqual(plain.clusterRlMarkHidden,true,'off by default');assert.strictEqual(plain.hudRlMarkHidden,true);
 assert(!RL.placed(stateOf(plain),{x:0,y:0,w:800,h:352},'cluster').some(e=>e.id==='mark'));
 const withMark=settings({clusterDesign:'rl-hexagon',clusterRlMarkHidden:false}),m=RL.placed(stateOf(withMark),{x:0,y:0,w:800,h:352},'cluster').find(e=>e.id==='mark');
@@ -100,7 +100,7 @@ assert(mp.layoutActions.every(a=>a.x+a.w<=1600&&a.y+a.h<=520),'editor buttons fi
 // two own-design pictures stay themselves while a Redline layout is chosen.
 {const {placement}=require(root+'/layout'),HUDP=require(root+'/hud-draw'),pv={};spec.settings.forEach(x=>{pv[x.key]=x.default;});pv.hudAuxConfig=AUX;
  const pg=new SettingsPage({schema:spec.settings,get:k=>pv[k],set:(k,v)=>{pv[k]=v;},setMany(c){Object.assign(pv,c);}},null,'1.2.18');pg.selectTab(1);
- const pick=st=>{pg.activate(pg.keys().indexOf('design'));pg.choose(2);pg.choose(RL.STYLES.indexOf(st));};
+ const pick=st=>{pg.activate(pg.keys().indexOf('design'));pg.choose(2);pg.choose(RL.stylesFor('hud').indexOf(st));};
  pick('arc');pg.activate(pg.keys().indexOf('layout'));pg.selectLayoutPart(1,true);pg.adjust(0,1);pg.adjust(0,1);pg.back();assert.strictEqual(pv.hudRlGearOffsetX,20);
  pick('ramp');assert.strictEqual(pv.hudRlGearOffsetX,0,'another layout starts from its own (default) positions');pv.hudRlGearOffsetX=-30;
  pick('arc');assert.strictEqual(pv.hudRlGearOffsetX,20,'back on Arc: its positions again');pick('ramp');assert.strictEqual(pv.hudRlGearOffsetX,-30);
@@ -108,7 +108,7 @@ assert(mp.layoutActions.every(a=>a.x+a.w<=1600&&a.y+a.h<=520),'editor buttons fi
  pg.activate(pg.keys().indexOf('design'));assert.strictEqual(pg.choice,0,'own design focused');pick('arc');pg.activate(pg.keys().indexOf('design'));assert.strictEqual(pg.choice,2,'Redline layout focused');pg.back();
  assert(D.partsFor('hud',settings({hudDesign:'rl-arc'}))[0].uniform,'Whole layout: one Size control');
  const inside=(r,f)=>r.x>=f.x-1&&r.y>=f.y-1&&r.x+r.w<=f.x+f.w+1&&r.y+r.h<=f.y+f.h+1;
- for(const d of ['hud','cluster'])for(const st of RL.STYLES)for(const ex of [{},{[d+'RpmGaugeWidthScale']:200,[d+'RpmGaugeOffsetX']:900,[d+'RpmGaugeOffsetY']:900},{[d+'RpmGaugeOffsetX']:-900,[d+'RpmGaugeOffsetY']:-900},{[d+'RlGearWidthScale']:200,[d+'RlGearOffsetX']:700,[d+'RlMarkHidden']:false,[d+'RlMarkOffsetY']:-700}]){
+ for(const d of ['hud','cluster'])for(const st of RL.stylesFor(d))for(const ex of [{},{[d+'RpmGaugeWidthScale']:200,[d+'RpmGaugeOffsetX']:900,[d+'RpmGaugeOffsetY']:900},{[d+'RpmGaugeOffsetX']:-900,[d+'RpmGaugeOffsetY']:-900},{[d+'RlGearWidthScale']:200,[d+'RlGearOffsetX']:700,[d+'RlMarkHidden']:false,[d+'RlMarkOffsetY']:-700}]){
   const c=settings(Object.assign({[d+'Design']:'rl-'+st,[d+'AuxConfig']:AUX},ex)),f=d==='hud'?placement(c,'hud',HUDP):{x:0,y:0,w:1088,h:480},l=RL.rect(c,f,d);
   RL.placed({config:c,rpm:0,gear:'--',aux:{}},l,d,f).forEach(e=>assert(inside(e.r,RL.room(f,d)),[d,st,JSON.stringify(ex),e.id,JSON.stringify(e.r)].join(' ')));}
  const own=settings({clusterDesign:'rl-hexagon'}),a1=CL.draw({config:Object.assign({},own,{clusterDesign:'own',clusterAlertStyle:'bar'}),rpm:4000,gear:'D3',aux:{}});

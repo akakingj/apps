@@ -4,6 +4,8 @@ const METRICS=['boost','torque','power','gforce','outside','oil','batteryCharge'
 const GAUGE_ONLY=['clock'];
 // HUD designs: Cluster Redline's own face, or a Redline app layout (redline-hud.js).
 const HUD_DESIGNS=['own','rl-standard','rl-digital','rl-vfd','rl-vector','rl-arc','rl-ramp','rl-dial','rl-shift','rl-logger','rl-needle','rl-rings','rl-ribbon','rl-hexagon','rl-sportdial','rl-classic'];
+// The HUD offers every layout but the cluster-only ones.
+const HUD_ONLY_DESIGNS=HUD_DESIGNS.filter(d=>d!=='rl-sportdial'&&d!=='rl-classic');
 const LABELS={boost:'Boost',torque:'Torque',power:'Power*',gforce:'G-force',outside:'Outside temperature',oil:'Oil temperature',batteryCharge:'12 V battery charge',batteryVoltage:'Battery voltage',economy:'Average fuel economy',clock:'Clock'};
 const PARTS=['RpmGauge','Gear','Alert','AuxLeft','AuxRight','RpmValue','Mark','MarkTop','MarkBottom'];
 const PART_LABELS=['RPM gauge','Gear','RPM alert','Auxiliary left','Auxiliary right','RPM number','M mark','Upper M mark','Lower M mark'];
@@ -55,7 +57,7 @@ function normalize(raw,out){
  // Clock: Korean time (UTC+9) unless chosen otherwise in the Korean version (the head unit's own clock is
  // usually UTC); the English version keeps the head unit's time.
  out.clockZone=['auto','utc9'].includes(raw.clockZone)?raw.clockZone:require('./strings').language()==='ko'?'utc9':'auto';
- out.hudDesign=HUD_DESIGNS.includes(raw.hudDesign)?raw.hudDesign:'own';
+ out.hudDesign=HUD_ONLY_DESIGNS.includes(raw.hudDesign)?raw.hudDesign:'own';
  out.clusterDesign=HUD_DESIGNS.includes(raw.clusterDesign)?raw.clusterDesign:'own';
  out.layoutPreview=typeof raw.layoutPreview==='string'&&/^(hud|cluster|nav):[A-Za-z]{1,20}@[0-9]{1,15}$/.test(raw.layoutPreview)?raw.layoutPreview:'';
  return out;

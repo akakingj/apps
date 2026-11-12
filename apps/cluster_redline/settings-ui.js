@@ -58,7 +58,7 @@ class SettingsPage{
  }
  move(delta){
   if(!this.open)this.focus=(this.focus+delta+this.keys().length)%this.keys().length;
-  else{const n=this.open==='layout'||this.open==='layoutPresets'?this.layoutActions.length:this.open==='auxMode'?2:this.open==='design'?3:this.open==='rlDesign'?RL.STYLES.length:this.open==='auxSelect'?D.METRICS.length+1+(this.draft&&this.draft.items.includes('clock')?1:0):options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
+  else{const n=this.open==='layout'||this.open==='layoutPresets'?this.layoutActions.length:this.open==='auxMode'?2:this.open==='design'?3:this.open==='rlDesign'?RL.stylesFor(this.display()).length:this.open==='auxSelect'?D.METRICS.length+1+(this.draft&&this.draft.items.includes('clock')?1:0):options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
   this.changed();
  }
  value(item,cfg){
@@ -86,9 +86,9 @@ class SettingsPage{
   if(this.open==='auxMode'){this.draft={mode:index===1?'values':'gauges',items:[]};this.open='auxSelect';this.choice=0;this.changed();return;}
   if(this.open==='auxSelect'){if(index===D.METRICS.length)this.commitAux();else if(index===D.METRICS.length+1)this.toggleClockZone();else this.toggleMetric(D.METRICS[index]);return;}
   if(this.open==='design'){
-   if(index===2){this.open='rlDesign';this.choice=Math.max(0,RL.STYLES.indexOf(RL.style(this.config(),this.display())));this.changed();return;}
+   if(index===2){this.open='rlDesign';this.choice=Math.max(0,RL.stylesFor(this.display()).indexOf(RL.style(this.config(),this.display())));this.changed();return;}
    const values=this.designSwitch('own');values[this.display()+'AlertStyle']=index===1?'circle':'bar';this.setValues(values);this.open=null;this.changed();return;}
-  if(this.open==='rlDesign'){const st=RL.STYLES[index];if(st){this.setValues(this.designSwitch('rl-'+st));this.open=null;this.changed();}return;}
+  if(this.open==='rlDesign'){const st=RL.stylesFor(this.display())[index];if(st){this.setValues(this.designSwitch('rl-'+st));this.open=null;this.changed();}return;}
   const list=options(this.item(),this.config());if(!list[index])return;
   this.settings.set(this.item().key,list[index][0]);if(this.item().key==='navDisplayMode')this.settings.set('hudNavigationEnabled',true);this.open=null;this.changed();
  }
@@ -198,7 +198,7 @@ class SettingsPage{
   cv.text(tr('Redline app layouts'),100,126,32,'#ef4050',{literal:true});
   const d=this.display(),current=RL.style(cfg,d),sample=Object.assign({},cfg),state={config:sample,rpm:6300,gear:'M3',shift:false,flash:false,mode:'SPORT',torqueNm:380,powerPS:260,aux:{boost:1.1,oil:96,outside:18,clock:'23:00'}};
   // Four columns: the Redline app's nine, then Cluster Redline's five; each preview fitted to its cell.
-  RL.STYLES.forEach((st,i)=>{const x=84+(i%4)*366,y=138+Math.floor(i/4)*80,on=st===current,k=Math.min(200/RL.IW,52/RL.heightOf(st));
+  RL.stylesFor(this.display()).forEach((st,i)=>{const x=84+(i%4)*366,y=138+Math.floor(i/4)*80,on=st===current,k=Math.min(200/RL.IW,52/RL.heightOf(st));
    this.button(cv,targets,'',x,y,354,76,()=>this.choose(i),on,'rl-'+st);
    sample[d+'Design']='rl-'+st;RL.paint(cv,Object.assign({},state,{aux:Object.assign({gLat:0.3,gLong:-0.25,gforce:0.39},state.aux)}),k,x+8,y+4,0,d);
    cv.text(tr(RL.NAMES[st]),x+346,y+70,17,on?'#ffffff':'#b8c5d4',{align:'right',literal:true});
