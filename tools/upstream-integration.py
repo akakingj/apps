@@ -118,6 +118,17 @@ def _optional_guidance_source_v3(text):
                 else if(attrs[key]&&(!item.notifier||!item.notifier.id))attrs[key]=attrs[key].replace(/s/g,"");
             });
         }"""
+    # Upstream since issue #145 (2026-11-11) prunes fields, instances and optional interfaces itself in one
+    # loop and exits on `changed`; the Jam checks then run after it, before that exit.
+    generic_exit = '        if (!changed) process.exit(0);'
+    if original not in text and '// Jam optional guidance getter v1' not in text and '// Jam optional guidance instance v2' not in text \
+            and text.count(generic_exit) == 1 and 'const db = JSON.parse(fs.readFileSync(catalog, "utf8"))' in text:
+        generic = after.replace('        for (const i of Object.keys(opt)) if (!supportsOptional(i)) { missing[i] = opt[i]; delete m.proxies[i]; }',
+            '        for (const i of Object.keys(opt)) if (m.proxies[i] && !supportsOptional(i)) { missing[i] = opt[i]; delete m.proxies[i]; changed = true; }')
+        persistence = ('        // Jam optional guidance field persistence v3\n'
+                       '        fs.writeFileSync(mf, JSON.stringify(m, null, 1));\n'
+                       '        if (Object.keys(missing).length) changed = true;\n')
+        return text.replace(generic_exit, generic + '\n' + persistence + generic_exit, 1)
     if '// Jam optional guidance instance v2' in text:
         start=text.index('        // Jam optional guidance instance v2')
         end=text.index('        for (const i of Object.keys(opt)) if (!supportsOptional(i)) { missing[i] = opt[i]; delete m.proxies[i]; }',start)

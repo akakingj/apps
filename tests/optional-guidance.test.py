@@ -28,6 +28,8 @@ start = re.search(r'^optional_missing\(\) \{', patched, re.M).start()
 end = patched.index('\n}\n\n', start) + 3
 function = patched[start:end]
 NAV = 'de.bmw.infotainment.navigation.guiding.Guidance'
+# Upstream since issue #145 installs without a field that lacks the asked access instead of refusing the app.
+GENERIC = 'if (!changed) process.exit(0);' in original
 MDRIVE = 'de.bmw.infotainment.misc.MDrive'
 MANDATORY = 'de.bmw.infotainment.vehicle.CDS'
 manifest = {'proxies': {
@@ -86,7 +88,9 @@ with tempfile.TemporaryDirectory(prefix='redline-optional-guidance-') as temp:
             store_input.write_text(json.dumps({'manifest': requested, 'catalog': catalog, 'optional': optional}))
             store = json.loads(subprocess.check_output([node, '-e', store_js, str(ROOT / 'tools/store-build.js'), str(store_input)], text=True))
             present = expected or not marked_optional
-            for result in [desktop, store]:
+            dropped_field = definition is not None and 'getter' not in definition  # {} is truthy in the shell's JS
+            desktop_present = present and not (GENERIC and not marked_optional and dropped_field)
+            for result, present in [(desktop, desktop_present), (store, present)]:
                 assert (NAV in result['proxies']) == present, (label, marked_optional, result)
                 assert result['proxies'][MANDATORY] == manifest['proxies'][MANDATORY]
                 assert result['proxies'][MDRIVE] == manifest['proxies'][MDRIVE]
@@ -95,7 +99,7 @@ with tempfile.TemporaryDirectory(prefix='redline-optional-guidance-') as temp:
                     assert result['proxies'][NAV]['instances'] == 'Main_Instance'
                 assert all('w' not in flags for proxy in result['proxies'].values() for flags in proxy['attributes'].values())
             assert hashlib.sha256(catalog_file.read_bytes()).digest() == catalog_hash
-            assert missing.exists() == (marked_optional and not expected)
+            assert missing.exists() == ((marked_optional and not expected) or not desktop_present)
     # The real catalog has a separate named instance table. A getter is not
     # enough: accepting an absent Main_Instance caused an un-installable proxy.
     for instances in [None, {}, {'1': 1}, {'Other_Instance': 1}, {'Main_Instance': None}, {'Main_Instance': 1}]:
@@ -204,20 +208,35 @@ with tempfile.TemporaryDirectory(prefix='redline-optional-guidance-') as temp:
                 desktop = json.loads(target.read_text())
                 store_input.write_text(json.dumps({'manifest':requested,'catalog':catalog,'optional':optional}))
                 store = json.loads(subprocess.check_output([node,'-e',store_js,str(ROOT/'tools/store-build.js'),str(store_input)],text=True))
+                # Newer upstream (issue #145) trims an unmarked interface to what the unit has, or drops it,
+                # instead of refusing the app; the Store builder keeps the older refusal.
+                trimmed = GENERIC and not marked_optional and desktop['proxies'].get(phone) != store['proxies'].get(phone)
                 for result in [desktop,store]:
                     assert result['proxies'][MANDATORY] == manifest['proxies'][MANDATORY], (phone,label)
                     assert result['proxies'][NAV] == manifest['proxies'][NAV], (phone,label)
                     assert result['proxies'][MDRIVE] == manifest['proxies'][MDRIVE], (phone,label)
+                    if trimmed and result is desktop:
+                        kept = result['proxies'].get(phone, {}).get('attributes', {})
+                        asked = requested['proxies'][phone]['attributes']
+                        assert all(k in asked and set(v) <= set(asked[k]) for k, v in kept.items()), (phone,label,kept)
+                        continue
                     present = expected_attrs is not None or not marked_optional
                     assert (phone in result['proxies']) == present, (phone,label,marked_optional,result)
                     if present:
                         expected = expected_attrs if marked_optional else requested['proxies'][phone]['attributes']
                         assert result['proxies'][phone]['attributes'] == expected, (phone,label,marked_optional,result['proxies'][phone])
                         assert result['proxies'][phone]['instances'] == instance_name
-                assert desktop == store, (phone,label,marked_optional)
+                if trimmed:
+                    assert {k: v for k, v in desktop['proxies'].items() if k != phone} == {k: v for k, v in store['proxies'].items() if k != phone}
+                else:
+                    assert desktop == store, (phone,label,marked_optional)
                 assert hashlib.sha256(catalog_file.read_bytes()).digest() == catalog_hash
-                assert missing.exists() == (marked_optional and expected_attrs is None)
-                if missing.exists(): assert phone in json.loads(missing.read_text())
+                expect_missing = (marked_optional and expected_attrs is None) or trimmed
+                # Newer upstream also notes an access it trimmed (e.g. "s" with no notifier); the manifest still matches.
+                noted = GENERIC and desktop['proxies'].get(phone, {}).get('attributes') != requested['proxies'][phone]['attributes']
+                assert missing.exists() == expect_missing or (noted and missing.exists()), (phone,label,marked_optional)
+                # Newer upstream names what went, e.g. "<interface>: instance X".
+                if missing.exists(): assert any(k == phone or k.startswith(phone + ': ') for k in json.loads(missing.read_text()))
     # Shared Store tooling must still run for Circuit without any Redline tree.
     circuit = folder/'circuit-only'
     (circuit/'tools').mkdir(parents=True)

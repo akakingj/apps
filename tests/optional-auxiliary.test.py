@@ -9,7 +9,7 @@ start=re.search(r'^optional_missing\(\) \{',source,re.M).start();end=source.inde
 cds='de.bmw.infotainment.vehicle.CDS';fes='de.bmw.infotainment.drivingexcitement.FES';env='de.bmw.infrastructure.EnvironmentalInformation'
 fields={cds:['statusEngineSpeed2','statusEngineTemperature','statusBattery2'],fes:['statusActualValueTorque2','statusSwitchDriveDynamicSport2'],cds+'2':['statusInjectionVolume','statusLateralAccelerationMassCenter','statusLongitudinalAccelerationMassCenter'],env:['UnitBN2020','ExteriorTemperature'],'de.bmw.infotainment.KombiIF':['statusBordcomputerAverage']}
 extras=[(i,k) for i,keys in fields.items() for k in keys if k not in ['statusEngineSpeed2','statusActualValueTorque2','UnitBN2020']]
-catalog={'interfaces':{i:{'fields':{k:{'getter':{'id':n+1},'notifier':{'id':32770+n}} for n,k in enumerate(keys)}} for i,keys in fields.items()},'instanceIDs':{}}
+catalog={'interfaces':{i:{'fields':{k:{'getter':{'id':n+1},'notifier':{'id':32770+n}} for n,k in enumerate(keys)}} for i,keys in fields.items()},'instanceIDs':{i:{'1':1} for i in fields}}
 manifest={'proxies':{i:{'attributes':{k:'rs' for k in keys},'instances':'1'} for i,keys in fields.items()}}
 variants=[('supported','none'),('missing extras','missing'),('poll only','notifier_missing'),('invalid notifier','notifier_bad'),('invalid getter','getter_bad')]
 with tempfile.TemporaryDirectory(prefix='aux-optional-') as tmp:
@@ -33,7 +33,9 @@ with tempfile.TemporaryDirectory(prefix='aux-optional-') as tmp:
    for i,k in [(cds,'statusEngineSpeed2'),(fes,'statusActualValueTorque2'),(env,'UnitBN2020')]:assert out['proxies'][i]['attributes'][k]=='rs',label
    for i,k in extras:
     attrs=out['proxies'].get(i,{}).get('attributes',{})
-    if kind in ['missing','getter_bad']:assert k not in attrs,label
+    # v9: a field with an unusable getter but a valid notifier is still subscribed.
+    if kind=='missing':assert k not in attrs,label
+    elif kind=='getter_bad':assert attrs[k]=='s',label
     else:assert attrs[k]==('rs' if kind=='none' else 'r'),label
 print('PASS: Store/desktop parity for six optional fields, missing/invalid getter isolation, notifier downgrade, read-only access and preserved core RPM/torque/unit inputs')
 # The voltage transport is optional and may expose only the named read API.
