@@ -270,7 +270,7 @@ function drawLayer(cv, f, layer) {
     const want = (part) => !f.only || f.only === part;
     if (X.STYLES.includes(o.style)) { X.drawX(cv, f, layer, { P: P, gearText: gearText, gearFont: gearFont, scaled: scaled }); return; }
     if (o.style === 'arc' || o.style === 'ramp' || o.style === 'dial') {
-        M.drawM(cv, f, layer, { P: P, gearText: gearText, drawDown: drawDown, lightCol: lightCol, RACE_BLUE: RACE_BLUE, gearFont: gearFont });
+        M.drawM(cv, f, layer, { P: P, gearText: gearText, drawDown: drawDown, lightCol: lightCol, RACE_BLUE: RACE_BLUE, gearFont: gearFont, seg7: seg7, seg7text: seg7text });
         return;
     }
     // the gearbox mode (D / S / M) as a small letter by the gear

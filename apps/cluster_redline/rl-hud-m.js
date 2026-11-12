@@ -1,7 +1,8 @@
 'use strict';
 // From jaimeen77-cmyk/appsKOR apps/redline/hud-m.js at 9cd5badd6c7a8bb23086a8414c7ad2782a5bc9e2
 // (cauliflowermossgrape/idrive7-apps Redline; HUD output by @biscotit), MIT License: see NOTICE.
-// Local changes: module paths, a fallback when the kit has no fonts.has(), no other drawing changes.
+// Local changes: module paths, a fallback when the kit has no fonts.has(); the ramp (G80) is redrawn after
+// the car's own cluster (Cluster Redline 1.2.31, see drawRamp).
 /**
  * Part of Redline's experimental features; README.md in this folder has the whole picture.
  *
@@ -154,87 +155,132 @@ function drawArc(cv, f, layer, h) {
 }
 
 /* ---------- ramp (G80) ---------- */
-// the band's lower edge: from bottom left up to the knee, then flat; rpm runs along it by length
-const RP = { x0: 34, y0: 74, kx: 104, ky: 30, x1: 372, t: 11, slant: 4 };
-const RC = { line: '#f4f1e6', fill: '#f4f1e6', yellow: '#ffc21a', red: '#ff2b1c', text: '#f4f1e6' };
-const rLen = (() => { const a = Math.hypot(RP.kx - RP.x0, RP.ky - RP.y0); return { a: a, all: a + (RP.x1 - RP.kx) }; })();
-function rAt(rpm, max) {
-    const s = clamp(rpm / max, 0, 1) * rLen.all;
-    if (s <= rLen.a) { const k = s / rLen.a; return [RP.x0 + (RP.kx - RP.x0) * k, RP.y0 + (RP.ky - RP.y0) * k]; }
-    return [RP.kx + (s - rLen.a), RP.ky];
+// Cluster Redline 1.2.31: redrawn after the G80/G82 M3/M4 cluster (owner's photo), in that photo's pixels
+// (582 wide) scaled to the layout's 400. A cream band climbs from 0, bends round at 2000 rpm and runs flat
+// to the end; it is solid (grey-edged, a red mark at its end) up to the rpm and only its top line past it,
+// notched every 1000 rpm; yellow then red dashes mark the redline zone. Above the flat part the rpm
+// alert: 6 slanted blocks from the bend to the redline and 2 longer ones past it, lit yellow with the rpm
+// and all red from the shift point. Square digits: 0-8 scale, gear (and mode), a line with "rpm" over the
+// rpm; the readouts under 6 and 8.
+const RK = 400 / 582;
+const RC = { band: '#e4dfd1', edge: '#8a877e', yellow: '#f3c936', red: '#e8352a', off: '#a2301f', text: '#e4dfd1', sep: '#6f6c64' };
+const RP = (() => {
+    const P0 = [40, 124], K = [104, 55], E = [538, 55], r = 36, t = 18;
+    const L0 = Math.hypot(K[0] - P0[0], K[1] - P0[1]), u = [(K[0] - P0[0]) / L0, (K[1] - P0[1]) / L0];
+    const th = Math.acos(u[0]), dd = r * Math.tan(th / 2);
+    const A = [K[0] - u[0] * dd, K[1] - u[1] * dd], B = [K[0] + dd, K[1]], C = [B[0], B[1] + r];
+    const pts = [];
+    const push = (p) => { const q = pts[pts.length - 1]; pts.push({ x: p[0], y: p[1], s: q ? q.s + Math.hypot(p[0] - q.x, p[1] - q.y) : 0 }); };
+    push(P0); push(A);
+    const a0 = Math.atan2(A[1] - C[1], A[0] - C[0]), a1 = Math.atan2(B[1] - C[1], B[0] - C[0]);
+    for (let k = 1; k <= 16; k++) { const a = a0 + (a1 - a0) * k / 16; push([C[0] + r * Math.cos(a), C[1] + r * Math.sin(a)]); }
+    const sA = pts[1].s, sB = pts[pts.length - 1].s;
+    push(E);
+    return { pts, sA, sB, L: pts[pts.length - 1].s, t, knee: 2000, flatX: B[0], y: E[1], x1: E[0] };
+})();
+const rS = (rpm, max) => { const r = clamp(rpm, 0, max); return r <= RP.knee ? r / RP.knee * RP.sB : RP.sB + (r - RP.knee) / Math.max(1, max - RP.knee) * (RP.L - RP.sB); };
+function rPt(s) {
+    const p = RP.pts; let i = 1; while (i < p.length - 1 && p[i].s < s) i++;
+    const a = p[i - 1], b = p[i], k = clamp((s - a.s) / Math.max(1e-6, b.s - a.s), 0, 1), L = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const ux = (b.x - a.x) / L, uy = (b.y - a.y) / L;
+    return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, nx: uy, ny: -ux };
 }
-/** The band between rpm a and b (gaps g px at each end), as quads split at the knee. */
-function rSeg(cv, a, b, max, c, g, outline) {
-    const kneeR = rLen.a / rLen.all * max, parts = a < kneeR && b > kneeR ? [[a, kneeR], [kneeR, b]] : [[a, b]];
-    parts.forEach((p, i) => {
-        const pa = rAt(p[0], max), pb = rAt(p[1], max);
-        const ga = i === 0 ? g : 0, gb = i === parts.length - 1 ? g : 0;
-        const L = Math.hypot(pb[0] - pa[0], pb[1] - pa[1]) || 1, ux = (pb[0] - pa[0]) / L, uy = (pb[1] - pa[1]) / L;
-        const A0 = [pa[0] + ux * ga, pa[1] + uy * ga], B0 = [pb[0] - ux * gb, pb[1] - uy * gb];
-        const sl = RP.slant;
-        const q = [[A0[0] + sl, A0[1] - RP.t], [B0[0] + sl, B0[1] - RP.t], B0, A0];
-        if (outline) cv.polyline(q.concat([q[0]]), outline, c); else cv.quad(q, c);
+const off = (q, d) => [q.x + q.nx * d, q.y + q.ny * d];
+/** Pieces of the band between rpm a and b: straight runs whole, the bend in short pieces. */
+function rPieces(a, b, max) {
+    const s0 = rS(a, max), s1 = rS(b, max), cuts = [s0], out = [];
+    [RP.sA, RP.sB].forEach((x) => { if (x > s0 && x < s1) cuts.push(x); });
+    cuts.push(s1);
+    for (let k = 0; k + 1 < cuts.length; k++) {
+        const u0 = cuts[k], u1 = cuts[k + 1], bend = u0 >= RP.sA - 1e-6 && u1 <= RP.sB + 1e-6, n = bend ? Math.max(1, Math.ceil((u1 - u0) / 4)) : 1;
+        for (let m = 0; m < n; m++) out.push([rPt(u0 + (u1 - u0) * m / n), rPt(u0 + (u1 - u0) * (m + 1) / n)]);
+    }
+    return out;
+}
+function rFill(cv, a, b, max, c, inset) {
+    const h = RP.t / 2 - (inset || 0);
+    rPieces(a, b, max).forEach(([p, q], i, all) => {
+        const L = Math.hypot(q.x - p.x, q.y - p.y) || 1, ex = (q.x - p.x) / L * 0.7, ey = (q.y - p.y) / L * 0.7;
+        const P = { x: p.x - (i ? ex : 0), y: p.y - (i ? ey : 0), nx: p.nx, ny: p.ny }, Q = { x: q.x + (i < all.length - 1 ? ex : 0), y: q.y + (i < all.length - 1 ? ey : 0), nx: q.nx, ny: q.ny };
+        cv.quad([off(P, h), off(Q, h), off(Q, -h), off(P, -h)], c);
     });
 }
-function drawRamp(cv, f, layer, h) {
+function rEdge(cv, a, b, max, d, w, c) { rPieces(a, b, max).forEach(([p, q]) => { const A = off(p, d), B = off(q, d); cv.line(A[0], A[1], B[0], B[1], w, c); }); }
+/** Square digits as in the photo (bars meeting at the corners). */
+const BD = { 0: 'abcdef', 1: 'bc', 2: 'abged', 3: 'abgcd', 4: 'fgbc', 5: 'afgcd', 6: 'afgedc', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg',
+    P: 'abefg', R: 'abcefg', N: 'abcef', D: 'bcdeg', '-': 'g', ' ': '' };
+function bDigit(cv, ch, x, y, w, h, t, c) {
+    const on = BD[ch] !== undefined ? BD[ch] : '', m = (h - t) / 2;
+    const R = { a: [x, y, w, t], g: [x, y + m, w, t], d: [x, y + h - t, w, t], f: [x, y, t, m + t], b: [x + w - t, y, t, m + t], e: [x, y + m, t, h - m], c: [x + w - t, y + m, t, h - m] };
+    for (const k of on) cv.fillRect(R[k][0], R[k][1], R[k][2], R[k][3], c);
+}
+function bText(cv, str, x, y, w, h, t, gap, c) { for (let i = 0; i < str.length; i++) bDigit(cv, str[i], x + i * (w + gap), y, w, h, t, c); }
+/** Alert block i (slanted): 6 from the bend to the redline, then 2 past it (the last twice as long). */
+function rBlock(cv, i, max, redline, c, outline) {
+    const x0 = 152, xr = Math.max(x0 + 60, rPt(rS(redline, max)).x + 4), xe = 536;
+    const w = i < 6 ? (xr - x0) / 6 : i === 6 ? (xe - xr) / 3 : (xe - xr) * 2 / 3, x = i < 6 ? x0 + i * w : i === 6 ? xr : xr + (xe - xr) / 3;
+    const top = 16, bot = 38, sl = 14, g = 4;
+    const q = [[x + sl, top], [x + w - g + sl, top], [x + w - g, bot], [x, bot]];
+    if (outline) cv.polyline(q.concat([q[0]]), 1.6, c); else cv.quad(q, c);
+}
+function drawRamp(cv0, f, layer, h) {
+    const cv = require('./rl-hud-draw').scaled(cv0, RK, 0, 0);
     const o = f.opts, d = f.d, cue = f.cue, BG = layer !== 'fg', fg = layer !== 'bg', max = f.max, want = wants(f);
-    const step = 500, fl = flashOn(o, cue), flashCol = flashColour(o, cue, h, RC.red);
-    // what colour the field from r..r+step is when lit
-    const fieldCol = (r) => {
-        const m = r + step / 2;
-        if (!o.lights || m < cue.from) return RC.fill;
-        if (!ownColours(o)) return m >= cue.at ? RC.red : RC.yellow;
-        // Race / one colour: the count-in as the app's lights, the last field the flash's colour
-        return m >= cue.at ? flashColour(o, { limiter: false }, h, RC.red) : h.lightCol(o.lightStyle, h.P, clamp((m - cue.from) / (cue.at - cue.from), 0, 1));
-    };
-    if ((o.bar !== false || o.lights) && want('gauge')) {
+    const rpm = isNum(d.rpm) ? clamp(d.rpm, 0, max) : 0, shift = isNum(cue.at) ? cue.at : f.redline;
+    const atShift = rpm > 50 && rpm >= shift, flash = cue.limiter && f.blink, H = RP.t / 2;
+    if (want('alert')) {
+        const start = (i) => (i < 6 ? RP.knee + (f.redline - RP.knee) * i / 6 : f.redline + (max - f.redline) * (i === 6 ? 0 : 1 / 3));
+        for (let i = 0; i < 8; i++) {
+            if (BG && !(fg && rpm > 50 && rpm >= start(i))) rBlock(cv, i, max, f.redline, RC.off, true);
+            if (fg && rpm > 50 && rpm >= start(i) && !(cue.limiter && !f.blink)) rBlock(cv, i, max, f.redline, atShift || flash ? RC.red : RC.yellow);
+        }
+    }
+    if (want('gauge')) {
         if (BG) {
-            for (let r = 0; r < max; r += step) {
-                if (o.dim) rSeg(cv, r, Math.min(max, r + step), max, withAlpha(RC.line, 0.12), 1.2);
-                rSeg(cv, r, Math.min(max, r + step), max, withAlpha(RC.line, 0.75), 1.2, 1.3);
-            }
-            // red zone: a strip over the band from the redline
-            const a = rAt(f.redline, max), b = rAt(max, max);
-            cv.fillRect(a[0] + RP.slant, a[1] - RP.t - 4, b[0] - a[0], 2.5, RC.red);
-            // ticks and the scale under the band
+            // past the rpm only the band's top line shows, with a notch every 1000 rpm and a cap at the end
+            rEdge(cv, 0, max, max, H - 1, 2.6, RC.band);
+            const end = rPt(rS(max, max));
+            cv.polyline([[end.x - 5, end.y - H], [end.x - 5, end.y - H + 9], [end.x - 2, end.y - H + 12], [end.x + 1, end.y - H + 9], [end.x + 1, end.y - H]], 2.4, RC.band);
+            for (let r = 1000; r < max; r += 1000) { const q = rPt(rS(r, max)), a = off(q, H - 1); cv.line(a[0], a[1], a[0] - q.nx * 0 + 0, a[1] + 7, 3.4, RC.band); }
+            // the scale under the band (0 a little left of the start), square digits
             const lab = max <= 9000 ? 2000 : 3000;
-            for (let r = 0; r <= max; r += 1000) {
-                const p = rAt(r, max), big = r % lab === 0;
-                cv.line(p[0], p[1] + 1, p[0], p[1] + (big ? 5 : 3), 1.4, RC.line);
-                if (big) cv.text(String(r / 1000), p[0], p[1] + 17, 12, RC.text, { align: 'center', font: 'bold' });
+            for (let r = 0; r <= max; r += lab) {
+                const q = rPt(rS(r, max));
+                if (r === 0) bText(cv, '0', q.x - 20, q.y + 6, 17, 13, 3.4, 0, RC.text);
+                else bText(cv, String(r / 1000), q.x - 9, q.y + H + 8, 17, 13, 3.4, 0, RC.text);
             }
+            // redline zone: a yellow dash and dot, then red dashes along the band
+            const y = RP.y - H + 6, xa = rPt(rS(Math.max(RP.knee, f.redline - 600), max)).x, xr = rPt(rS(f.redline, max)).x, xe = rPt(rS(max, max)).x - 8;
+            cv.fillRect(xa, y, Math.max(4, (xr - xa) * 0.55), 2.6, RC.yellow);
+            cv.fillRect(xa + (xr - xa) * 0.7, y, 3, 2.6, RC.yellow);
+            const m = xr + (xe - xr) * 0.32;
+            cv.fillRect(xr, y, m - xr - 4, 2.6, RC.red); cv.fillRect(m + 4, y, xe - m - 4, 2.6, RC.red);
         }
-        if (fg && isNum(d.rpm) && d.rpm > 50) {
-            const top = Math.min(d.rpm, max);
-            // burst: the lit fields pop in the grade's colour for 300 ms
-            const pop = burstOn(f.chip, 300) ? chipCol(f.chip, h.P) : null;
-            for (let r = 0; r < top; r += step) {
-                const c = fl ? (f.blink ? flashCol : null) : pop || fieldCol(r);
-                if (c) rSeg(cv, r, Math.min(top, r + step), max, c, 1.2);
-            }
-        }
-        if (fg && isNum(f.peak) && f.peak > 0 && !(isNum(d.rpm) && d.rpm >= f.peak - 50)) {
-            const p = rAt(Math.min(f.peak, max), max), sl = RP.slant;
-            cv.line(p[0], p[1], p[0] + sl, p[1] - RP.t, 2.2, '#ffffff');
+        if (fg && rpm > 50) {
+            // the lit band: grey edge, cream inside, segment lines every 1000 rpm, a red mark at its end
+            rFill(cv, 0, rpm, max, RC.edge);
+            rFill(cv, 0, rpm, max, flash ? RC.red : RC.band, 1.4);
+            for (let r = 1000; r < rpm; r += 1000) { const q = rPt(rS(r, max)), a = off(q, H), b = off(q, -H); cv.line(a[0], a[1], b[0], b[1], 1.2, RC.sep); }
+            const q = rPt(rS(rpm, max)), a = off(q, -H + 6), b = off(q, -H);
+            cv.line(a[0] - 1.5, a[1], b[0] - 1.5, b[1], 3.4, RC.red);
         }
     }
-    if (!fg) return;
-    const gx = 222, items = f.readouts || [];
-    if (f.chip && want('gear')) ring(cv, gx, 74, 22, 58, f.chip, h.P);
-    // readouts 2-4: a list on the right, label left and value right
-    [1, 2, 3].forEach((i, k) => { if (items[i] && want('read' + 'ABCD'[i])) small(cv, 284, 66 + k * 26, items[i], h.P, o, RC.text, 'row', 112); });
-    if (o.gear && want('gear')) cv.text(h.gearText(d), gx, 90, 44, cue.limiter && f.blink ? RC.red : RC.text, { align: 'center', font: h.gearFont(o) });
-    if (f.mode && o.gear && want('mode')) cv.text(f.mode, gx + 22, 66, 14, withAlpha(RC.text, 0.85), { font: 'bold' });
-    if (want('readA')) cv.fillRect(gx - 30, 96, 60, 1.6, RC.text);   // the line over the first readout
-    if (want('gear')) h.drawDown(cv, gx - 50, 62, f.down || 0, 1, h.P.arrow);
-    if (f.chip) { if (want('readA')) grade(cv, gx, 124, f.chip, h.P, 22); }
-    else {
-        const it = items[0];
-        if (it && want('readA')) {
-            cv.text(it.value, gx, 124, 24, it.tone && it.tone !== 'text' ? h.P[it.tone] : RC.text, { align: 'center', font: o.valFont || 'bold' });
-            fitLabel(cv, it.label.toLowerCase(), gx + 32, 102, labelOf(o, RC.text).s, RC.text, 284 - gx - 36, { spacing: 0 });
-        }
+    const items = f.readouts || [];
+    if (o.gear && want('gear') && fg) bDigit(cv, h.gearText(d).slice(0, 1), 120, 92, 47, 38, 10, atShift || flash ? RC.red : RC.text);
+    if (fg && f.mode && o.gear && want('mode')) cv.text(f.mode, 177, 109, 16, RC.text, { font: 'bold' });
+    if (fg && want('gear')) h.drawDown(cv0, 66, 76, f.down || 0, 0.8, h.P.arrow);
+    if (o.rpm !== false && want('rpm')) {
+        if (BG) { cv.fillRect(68, 140, 125, 2, RC.text); cv.text('rpm', 199, 147, 15, RC.text, { font: 'bold' }); }
+        const txt = isNum(d.rpm) && d.rpm < 9995 ? String(Math.max(0, Math.round(d.rpm / 10) * 10)).padStart(4, ' ') : '----';
+        if (fg) bText(cv, txt, 57, 150, 34, 27, 7, 4.5, RC.text);
     }
+    // readouts: label centred under 6, value right-aligned under 8, one row each
+    if (fg) [0, 1, 2, 3].forEach((i) => {
+        const it = items[i]; if (!it || !want('read' + 'ABCD'[i])) return;
+        const y = 113 + i * 22;
+        fitLabel(cv, it.label.toUpperCase(), 400, y, 15, RC.text, 120, { align: 'center' });
+        cv.text(it.value, 566, y + 2, 23, it.tone && it.tone !== 'text' ? h.P[it.tone] : RC.text, { align: 'right', font: 'bold' });
+    });
 }
 
 /* ---------- dial (E60) ---------- */

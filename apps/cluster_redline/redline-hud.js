@@ -92,7 +92,7 @@ function rect(cfg,face0,d){
 const ELEMENTS={
  standard:['mode','gear','alert','gauge','read','mark'],minimal:['mode','gear','alert','mark'],wings:['mode','alert','gauge','gear','mark'],
  digital:['mode','alert','gauge','gear','rpm','read','mark'],vfd:['mode','alert','gauge','gear','rpm','read','mark'],vector:['mode','gear','alert','gauge','read','mark'],
- arc:['alert','gauge','gear','mode','readD','readA','readB','readC','mark'],ramp:['gauge','readB','readC','readD','gear','mode','readA','mark'],dial:['gauge','readB','readC','readD','gear','mode','readA','mark'],
+ arc:['alert','gauge','gear','mode','readD','readA','readB','readC','mark'],ramp:['alert','gauge','gear','mode','rpm','readA','readB','readC','readD','mark'],dial:['gauge','readB','readC','readD','gear','mode','readA','mark'],
  shift:['alert','gear','mode','rpm','read','mark'],logger:['gauge','gear','mode','rpm','readA','readB','readC','readD','mark'],needle:['gauge','gear','mode','readA','readB','readC','readD','mark'],
  rings:['gmeter','gauge','gear','mode','rpm','read','mark'],ribbon:['gauge','gear','mode','readA','readB','readC','readD','mark'],
  hexagon:['gauge','alert','gear','mode','rpm','readA','readB','readC','readD','mark']};

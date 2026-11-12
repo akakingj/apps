@@ -13,6 +13,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.31
+
+- **Ramp (G80 M3/M4) redrawn after the G80/G82 cluster**: a cream band climbing from 0 and bending round at 2000 rpm, solid up to the rpm with a red end mark and only its top line past it, notched every 1000 rpm, yellow / red dashes in the redline zone; square digits for the 0-8 scale, the gear and the rpm (with a line and "rpm"); readouts under 6 and 8.
+- **RPM alert on the ramp**: 6 slanted blocks from the bend to the redline and 2 longer ones past it, lit yellow with the rpm and all red from the shift point. New elements in Position / size: RPM alert and RPM number.
+
 ### 1.2.30
 
 - English edition: the settings watermark shows only "BMW Coding" and the Naver address (no Korean cafe name or profile picture).
