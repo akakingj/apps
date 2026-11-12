@@ -56,5 +56,65 @@ function rect(cfg,face){
  const x=Math.round(face.x+face.w/2-w/2+(cfg.hudRpmGaugeOffsetX||0)*face.w/800),y=Math.round(face.y+10*face.h/240+(cfg.hudRpmGaugeOffsetY||0)*face.h/240);
  return {x:Math.max(0,Math.min(800-w,x)),y:Math.max(0,Math.min(480-h,y)),w,h};
 }
+// Elements of each layout that move, size and hide on their own (Position / size), in drawing order.
+// Readouts are one group on the bar layouts and one element each on the M layouts.
+const ELEMENTS={
+ standard:['mode','gear','alert','gauge','read'],minimal:['mode','gear','alert'],wings:['mode','alert','gauge','gear'],
+ digital:['mode','alert','gauge','gear','rpm','read'],vfd:['mode','alert','gauge','gear','rpm','read'],vector:['mode','gear','alert','gauge','read'],
+ arc:['alert','gauge','gear','mode','readD','readA','readB','readC'],ramp:['gauge','readB','readC','readD','gear','mode','readA'],dial:['gauge','readB','readC','readD','gear','mode','readA']};
+const PART={gear:'RlGear',mode:'RlMode',alert:'RlAlert',rpm:'RlRpm',gauge:'RlGauge',read:'RlRead',readA:'RlReadA',readB:'RlReadB',readC:'RlReadC',readD:'RlReadD'};
+const PART_NAMES=Object.keys(PART).map(k=>PART[k]);
+const LABELS={RlGear:'Gear',RlMode:'Drive mode',RlAlert:'RPM alert',RlRpm:'RPM number',RlGauge:'RPM gauge',RlRead:'Readouts',RlReadA:'Readout 1',RlReadB:'Readout 2',RlReadC:'Readout 3',RlReadD:'Readout 4'};
+function readoutCount(cfg){const a=auxConfig(cfg.hudAuxConfig);return a.mode==='off'?0:Math.min(4,a.items.length);}
+// The elements the chosen layout draws with the chosen readouts: [{id, key}].
+function elements(cfg){
+ const st=style(cfg);if(!st)return [];const n=readoutCount(cfg);
+ return ELEMENTS[st].filter(id=>id==='read'?n>0:/^read[A-D]$/.test(id)?'ABCD'.indexOf(id[4])<n:true).map(id=>({id,key:PART[id]}));
+}
+// An element's extent in the 400x130 image, measured from a full frame (top revs, all lights lit, a wide
+// gear and readouts) so it doesn't change with the live values.
+function bboxCanvas(){
+ const {Canvas}=kit(),probe=new Canvas(1,1),b={x0:Infinity,y0:Infinity,x1:-Infinity,y1:-Infinity};
+ const add=(x,y)=>{if(!isNum(x)||!isNum(y))return;b.x0=Math.min(b.x0,x);b.y0=Math.min(b.y0,y);b.x1=Math.max(b.x1,x);b.y1=Math.max(b.y1,y);};
+ const box=(x,y,w,h)=>{add(x,y);add(x+w,y+h);};
+ const pt=(cx,cy,r,a)=>add(cx+r*Math.sin(a*Math.PI/180),cy-r*Math.cos(a*Math.PI/180));
+ const width=(t,size,o)=>{try{return probe.textWidth(String(t),size,o);}catch(e){return String(t).length*size*0.6;}};
+ return {b,
+  circle:(cx,cy,r)=>box(cx-r,cy-r,2*r,2*r),
+  arc:(cx,cy,r0,r1,a0,a1)=>{const lo=Math.min(a0,a1),hi=Math.max(a0,a1);for(let a=lo;;a=Math.min(hi,a+2)){pt(cx,cy,r0,a);pt(cx,cy,r1,a);if(a>=hi)break;}},
+  fillRect:(x,y,w,h)=>box(x,y,w,h),
+  quad:(pts)=>pts.forEach(p=>add(p[0],p[1])),
+  polyline:(pts,w)=>pts.forEach(p=>box(p[0]-w/2,p[1]-w/2,w,w)),
+  line:(xa,ya,xb,yb,w)=>{box(xa-w/2,ya-w/2,w,w);box(xb-w/2,yb-w/2,w,w);},
+  text:(t,x,y,size,c,o)=>{const w=width(t,size,o),al=o&&o.align;box(al==='center'?x-w/2:al==='right'?x-w:x,y-size*0.8,w,size*1.05);},
+  textWidth:(t,size,o)=>width(t,size,o),
+ };
+}
+const boundsCache=new Map();
+function bounds(state,id){
+ const cfg=state.config,f=frame(Object.assign({},state,{rpm:cfg.maxRpm,gear:'M8',flash:true}),0);
+ f.d=Object.assign({},f.d,{rpm:f.max,gear:8,stage:'D'});f.mode='M';f.blink=true;f.cue=Object.assign({},f.cue,{shift:true});
+ f.readouts=(f.readouts||[]).map(r=>Object.assign({},r,{value:'88.88'}));f.only=id;
+ const k=JSON.stringify([id,f.opts.style,f.max,f.redline,f.readouts.map(r=>r.label)]);
+ if(boundsCache.has(k))return boundsCache.get(k);
+ const cv=bboxCanvas();kit().DRAW.drawLayer(cv,f);
+ const b=cv.b,r=b.x1>b.x0?{x:Math.floor(b.x0)-2,y:Math.floor(b.y0)-2,w:Math.ceil(b.x1-b.x0)+4,h:Math.ceil(b.y1-b.y0)+4}:null;
+ if(boundsCache.size>200)boundsCache.clear();boundsCache.set(k,r);return r;
+}
+// Where an element lands on the HUD: the whole layout's place (rect), then the element's own move and
+// size (in the image's units, sized uniformly round its centre).
+function partRect(cfg,layout,b,key){
+ const k=layout.w/IW,s=(cfg['hud'+key+'WidthScale']||100)/100,ox=cfg['hud'+key+'OffsetX']||0,oy=cfg['hud'+key+'OffsetY']||0;
+ return {x:Math.round(layout.x+(b.x+b.w*(1-s)/2+ox)*k),y:Math.round(layout.y+(b.y+b.h*(1-s)/2+oy)*k),w:Math.max(1,Math.round(b.w*s*k)),h:Math.max(1,Math.round(b.h*s*k))};
+}
+// One element painted at its own size (no resampling): {W, H, draw(state) -> Canvas}.
+function partPainter(state,id,b,r){
+ return {W:r.w,H:r.h,draw:v=>{const {Canvas,DRAW}=kit(),cv=new Canvas(r.w,r.h),k=r.w/b.w;cv.clear([0,0,0,0]);const f=frame(v,0);f.only=id;DRAW.drawLayer(DRAW.scaled(cv,k,-b.x*k,-b.y*k),f);return cv;}};
+}
+// The visible elements with their places: [{id, key, b, r}].
+function placed(state,layout){
+ const cfg=state.config;
+ return elements(cfg).filter(e=>!cfg['hud'+e.key+'Hidden']).map(e=>{const b=bounds(state,e.id);return b&&Object.assign({b,r:partRect(cfg,layout,b,e.key)},e);}).filter(Boolean);
+}
 function key(state){const f=frame(state,0);return JSON.stringify([f.opts.style,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode]);}
-module.exports={STYLES,NAMES,IW,IH,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key};
+module.exports={STYLES,NAMES,IW,IH,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,elements,bounds,partRect,partPainter,placed};

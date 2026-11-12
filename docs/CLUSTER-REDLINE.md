@@ -1,4 +1,4 @@
-# Cluster Redline 1.2.7 user guide
+# Cluster Redline 1.2.8 user guide
 
 [한국어](CLUSTER-REDLINE.ko.md) · [Installation](INSTALL.md) · [All screenshots](../screenshots/README.md) · [Changelog](../CHANGELOG.md)
 
@@ -136,6 +136,11 @@ The custom settings UI no longer refreshes the unused generic HMI settings page.
 - **Shift alert:** Sport unchanged; Comfort/Eco and other modes use 90 % of the shift RPM with 50/80/100 % green/yellow/red.
 - **Position / size:** Save / load (three slots) and two-press reset; the selected part is drawn while adjusting even when hidden or without guidance (expires two minutes after the last edit, clears on Back).
 - **Outside temperature:** diagnostics in the status file. Stock HUD music/phone popups still take priority (renderer policy).
+
+## 1.2.8 changes
+
+- **Redline app layouts, element by element**: Position / size lists *Whole layout* and then each element of the chosen layout (gear, drive mode, RPM alert, RPM number, RPM gauge, readouts: one group on the bar layouts, one each on Arc, Ramp and Dial). Each moves, sizes and hides on its own and is included in Save / load and Reset.
+- **Clock**: the Korean version shows Korean time (UTC+9) by default.
 
 ## 1.2.7 fixes
 

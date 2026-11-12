@@ -13,6 +13,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.8
+
+- **Redline app layouts, element by element**: with a Redline app layout chosen as the HUD design, Position / size lists *Whole layout* (as before) and then each element of that layout: gear, drive mode, RPM alert, RPM number, RPM gauge and the readouts (one group on Standard, 80s digital dash, VFD glow and Vector arcade; each readout on its own on Arc, Ramp and Dial, Ramp's line over the first readout going with it). Each moves, sizes (one Size control: text keeps its proportions) and hides on its own, and is saved, loaded and reset with the other parts. Each element is painted at its own final size, so moved and enlarged elements stay sharp; at default positions the layout looks as before. Layouts only offer the elements they draw (Vector arcade has no RPM number; Minimal and Split wings no readouts).
+- The element positions are stored with the app's other saved settings outside `app.json` (as the HUD design is), so the Store's settings templates stay valid. They are shared by the nine layouts.
+- **Clock in Korean time**: the Korean version shows the clock readout in Korean time (UTC+9) unless *Head unit time* was chosen; the head unit's own clock is usually UTC. The English version keeps the head unit time by default.
+
 ### 1.2.7
 
 - Outside temperature is read the way the eDrive app reads it: from `EnvironmentalInformation.ExteriorTemperature` notifications whenever the car sends them, no longer by polling the getter every 10 s on cars that offer both (some cars' getter answers without a usable value, so the HUD showed `--` while eDrive showed the temperature). An invalid reading (e.g. 255 while the sensor settles) keeps the last good value, as eDrive does; losing the interface still clears it. Cars with only a getter keep polling. Install-time access (`r` / `s` / `rs`) is unchanged.

@@ -11,12 +11,14 @@ const RENDERER_NOTICE='Install Cluster renderer (cluster-render) from MGU Store 
 const MAP_WARNING='Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
 const HUD_WARNING='HUD navigation shows received turn guidance; unavailable data preserves stock guidance.';
 // Keys saved, loaded and reset by the position/size presets of each tab.
-const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
+const RL_KEYS=Object.keys(DEFAULTS).filter(k=>/^hudRl/.test(k)),defaultOf=(schema,k)=>{const d=schema.find(s=>s.key===k);return d&&d.default!==undefined?d.default:DEFAULTS[k];};
+const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlRead|RlReadA|RlReadB|RlReadC|RlReadD)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
 const NAV_KEYS=['hudNavOffsetX','hudNavOffsetY','navUniformScale','hudNavWidthScale','hudNavHeightScale','hudTextOffsetX','hudTextOffsetY','hudTextScale','hudLanesOffsetX','hudLanesOffsetY','hudLanesScale','hudNavHidden','hudTextHidden','hudLanesHidden'];
 function layoutKeys(tab,schema){
  const name=tab===3?'nav':tab===2?'cluster':'hud',known=new Set(schema.map(s=>s.key));
  const keys=name==='nav'?NAV_KEYS:Object.keys(DEFAULTS).filter(k=>{const m=FACE_KEY.exec(k);return m&&m[1]===name;}).concat([name+'OffsetX',name+'OffsetY',name+'WidthScale',name+'HeightScale'],name==='hud'?['hudAuxTextOffsetY']:[]);
- return keys.filter((k,i,a)=>known.has(k)&&a.indexOf(k)===i);
+ // Redline layout elements are kept outside the schema (like hudDesign).
+ return keys.filter((k,i,a)=>(known.has(k)||/^hudRl/.test(k))&&a.indexOf(k)===i);
 }
 function options(item,cfg){
  if(!item)return [];
@@ -34,7 +36,7 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign'].forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign'].concat(RL_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return GROUPS[this.tab];}
  item(){const key=this.keys()[this.focus];if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
@@ -190,8 +192,8 @@ class SettingsPage{
  slotKey(i){return (this.tab===3?'nav':this.display())+'LayoutSlot'+i;}
  slot(i){try{const v=JSON.parse(this.settings.get(this.slotKey(i))||'null');return v&&v.values&&typeof v.values==='object'?v:null;}catch(e){return null;}}
  saveSlot(i){const values={};layoutKeys(this.tab,this.settings.schema).forEach(k=>{values[k]=this.settings.get(k);});this.settings.set(this.slotKey(i),JSON.stringify({version:1,values}));this.presetMessage=tr('Saved to slot')+' '+i;this.changed();}
- loadSlot(i){const slot=this.slot(i);if(!slot){this.presetMessage=tr('Slot is empty');this.changed();return;}const values={};layoutKeys(this.tab,this.settings.schema).forEach(k=>{const v=slot.values[k],d=this.settings.schema.find(s=>s.key===k);if(v!==undefined&&typeof v===typeof d.default)values[k]=v;});Object.assign(values,this.previewRefresh());this.setValues(values);this.presetMessage=tr('Loaded slot')+' '+i;this.changed();}
- resetLayout(){if(!this.resetArmed){this.resetArmed=true;this.presetMessage=tr('Press again to reset to defaults');this.changed();return;}this.resetArmed=false;const values={};layoutKeys(this.tab,this.settings.schema).forEach(k=>{const d=this.settings.schema.find(s=>s.key===k);values[k]=d.default!==undefined?d.default:DEFAULTS[k];});Object.assign(values,this.previewRefresh());this.setValues(values);this.presetMessage=tr('Reset to defaults');this.changed();}
+ loadSlot(i){const slot=this.slot(i);if(!slot){this.presetMessage=tr('Slot is empty');this.changed();return;}const values={};layoutKeys(this.tab,this.settings.schema).forEach(k=>{const v=slot.values[k];if(v!==undefined&&typeof v===typeof defaultOf(this.settings.schema,k))values[k]=v;});Object.assign(values,this.previewRefresh());this.setValues(values);this.presetMessage=tr('Loaded slot')+' '+i;this.changed();}
+ resetLayout(){if(!this.resetArmed){this.resetArmed=true;this.presetMessage=tr('Press again to reset to defaults');this.changed();return;}this.resetArmed=false;const values={};layoutKeys(this.tab,this.settings.schema).forEach(k=>{values[k]=defaultOf(this.settings.schema,k);});Object.assign(values,this.previewRefresh());this.setValues(values);this.presetMessage=tr('Reset to defaults');this.changed();}
  drawPresets(cv,cfg,targets){
   const local=[],name=t(this.tab===3?'NAV display setting':this.tab===2?'CLUSTER display setting':'HUD display setting');
   cv.text(tr('Save / load positions')+' · '+name,100,126,32,'#ef4050',{literal:true});
@@ -223,7 +225,7 @@ class SettingsPage{
  }
  adjust(param,delta){
   this.layoutParam=param;const cfg=this.config(),nav=this.tab===3,parts=this.selectedLayoutParts();if(!parts.length)return;
-  if(!nav&&parts.length>1&&param>=2){
+  if(!nav&&(parts.length>1||parts.some(p=>p.uniform))&&param>=2){
    const values=parts.map(p=>{const prefix=this.layoutPrefix(p),w=cfg[prefix+'WidthScale'],h=cfg[prefix+'HeightScale'];return {prefix,w,h,lo:Math.max(20-w,20-h,Math.ceil((Math.max(w-1.3*h,h-1.3*w)/0.3-1e-7)/5)*5),hi:Math.min(200-w,200-h)};});
    const step=Math.max(...values.map(v=>v.lo),Math.min(delta*5,...values.map(v=>v.hi)));
    const changes=this.previewRefresh();values.forEach(v=>{changes[v.prefix+'WidthScale']=v.w+step;changes[v.prefix+'HeightScale']=v.h+step;});this.setValues(changes);this.changed();return;
@@ -240,24 +242,24 @@ class SettingsPage{
  drawLayout(cv,cfg,targets){
   const local=[],nav=this.tab===3,display=this.display(),parts=this.layoutParts();this.layoutPart=Math.min(this.layoutPart,parts.length-1);
   const columns=5,cell=292;
-  parts.forEach((p,i)=>this.button(cv,local,p.label,84+(i%columns)*cell,96+Math.floor(i/columns)*62,278,56,()=>this.selectLayoutPart(i),this.layoutSelected.has(p.key),'part'+i));
+  parts.forEach((p,i)=>this.button(cv,local,tr(p.label),84+(i%columns)*cell,96+Math.floor(i/columns)*62,278,56,()=>this.selectLayoutPart(i),this.layoutSelected.has(p.key),'part'+i));
   const presetCell=parts.length<=4?4:9;
   this.button(cv,local,tr('Save / load'),84+(presetCell%columns)*cell,96+Math.floor(presetCell/columns)*62,278,56,()=>{this.open='layoutPresets';this.choice=0;this.resetArmed=false;this.presetMessage='';this.changed();},false,'presets');
   const selected=parts[this.layoutPart],prefix=this.layoutPrefix(selected),group=this.selectedLayoutParts();
   cv.text('Position',100,241,28,'#b8c5d4');
   const btn=(label,x,y,act,id)=>this.button(cv,local,label,x,y,110,56,act,false,id);
   btn('Up',300,246,()=>this.adjust(1,-1),'up');btn('Left',170,307,()=>this.adjust(0,-1),'left');btn('Right',430,307,()=>this.adjust(0,1),'right');btn('Down',300,368,()=>this.adjust(1,1),'down');
-  const rows=nav||group.length>1?['Size']:['Width','Height'];rows.forEach((label,i)=>{
+  const uniform=group.some(p=>p.uniform),rows=nav||group.length>1||uniform?['Size']:['Width','Height'];rows.forEach((label,i)=>{
    const y=240+i*84,key=nav?selected.scale:prefix+(i?'HeightScale':'WidthScale');
-   cv.text(label,790,y+20,28,'#b8c5d4');btn('−',1010,y+26,()=>this.adjust(i+2,-1),'size-minus'+i);btn('+',1140,y+26,()=>this.adjust(i+2,1),'size-plus'+i);cv.text(!nav&&group.length>1?cfg[prefix+'WidthScale']+' × '+cfg[prefix+'HeightScale']+' %':String(cfg[key])+' %',1500,y+67,30,'#f3f5f7',{align:'right',font:'num'});
+   cv.text(label,790,y+20,28,'#b8c5d4');btn('−',1010,y+26,()=>this.adjust(i+2,-1),'size-minus'+i);btn('+',1140,y+26,()=>this.adjust(i+2,1),'size-plus'+i);cv.text(!nav&&group.length>1&&!uniform?cfg[prefix+'WidthScale']+' × '+cfg[prefix+'HeightScale']+' %':String(cfg[key])+' %',1500,y+67,30,'#f3f5f7',{align:'right',font:'num'});
   });
   let width,height;
   if(nav){const rect=D.navRect(cfg,selected.key);width=rect.w;height=rect.h;}
-  else if(display==='hud'&&RL.active(cfg)){const r=RL.rect(cfg,placement(cfg,'hud',HUD));width=r.w;height=r.h;}
+  else if(display==='hud'&&RL.active(cfg)){const layout=RL.rect(cfg,placement(cfg,'hud',HUD)),e=RL.elements(cfg).find(v=>v.key===selected.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id),r=b?RL.partRect(cfg,layout,b,e.key):layout;width=r.w;height=r.h;}
   else{const painter=display==='hud'?HUD:CLUSTER,b=measurePart(painter,{config:cfg,rpm:0,gear:this.liveState&&this.liveState.gear||'--'},display,selected.key,cv)||{w:0,h:0},r=placement(cfg,display==='hud'?'hud':cfg.displayTarget==='panel'?'panel':'map',painter);width=Math.round(b.w*cfg[prefix+'WidthScale']/100*r.w/painter.W);height=Math.round(b.h*cfg[prefix+'HeightScale']/100*r.h/painter.H);}
-  cv.text(group.length?group.length+' '+t('selected')+' · '+t(selected.label):t('Select items to adjust'),84,456,21,'#b8c5d4',{literal:true});
+  cv.text(group.length?group.length+' '+t('selected')+' · '+tr(selected.label):t('Select items to adjust'),84,456,21,'#b8c5d4',{literal:true});
   cv.text(group.length?'X '+cfg[prefix+'OffsetX']+' · Y '+cfg[prefix+'OffsetY']+' · '+width+' × '+height+' px':'',84,500,21,'#ffad45',{literal:true});
-  cv.text(nav?'Width and height scale together.':'Width / height difference limited to 30%.',790,432,18,'#a8b6c8');
+  cv.text(nav||uniform?'Width and height scale together.':'Width / height difference limited to 30%.',790,432,18,'#a8b6c8');
   const hidden=group.length&&group.every(p=>cfg[this.layoutPrefix(p)+'Hidden']);
   const marks=!nav&&group.some(p=>/^Mark/.test(p.key));
   this.button(cv,local,hidden?'Show selected':'Hide selected',650,448,marks?260:540,56,()=>this.toggleHidden(false),hidden,'toggle-Hidden');

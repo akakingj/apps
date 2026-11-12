@@ -28,7 +28,7 @@ assert.strictEqual(new Set(Object.values(images).map(b=>b.toString('base64'))).s
 // Position / size moves and scales the layout through the RPM gauge part.
 const moved=settings({hudDesign:'rl-standard',hudRpmGaugeOffsetX:40,hudRpmGaugeOffsetY:20,hudRpmGaugeWidthScale:150}),r0=RL.rect(settings({hudDesign:'rl-standard'}),placement(settings({}),'hud',face)),r1=RL.rect(moved,placement(moved,'hud',face));
 assert.strictEqual(r1.w,600);assert(r1.x!==r0.x&&r1.y>r0.y);
-assert.deepStrictEqual(D.partsFor('hud',settings({hudDesign:'rl-arc'})).map(p=>p.key),['RpmGauge']);
+assert.deepStrictEqual(D.partsFor('hud',settings({hudDesign:'rl-arc'})).map(p=>p.key),['RpmGauge','RlGear','RlMode','RlAlert','RlGauge','RlReadA','RlReadB'],'Whole layout, then each element (default readouts: two)');
 // Navigation and lanes stay alongside a layout.
 const nav={visible:true,maneuverVisible:true,kind:'intersection',maneuver:'RIGHT',distanceText:'300 m',description:'강남대로',lanes:{visible:true,lanes:[{directions:['STRAIGHT_ON'],other:[],highlighted:true}]}};
 const withNav=HUD.draw(Object.assign({},base,{config:settings({hudDesign:'rl-dial'}),navigation:nav}));assert(alpha(withNav,0,250,800,480)>500);
@@ -41,7 +41,7 @@ const page=new SettingsPage({schema:spec.settings,get:k=>values[k],set:(k,v)=>{v
 const english=[];const draw=()=>{const cv=new Canvas(1600,520),text=cv.text;cv.text=function(v,x,y,z,c,o){const shown=o&&o.literal?String(v):t(v);if(/[A-Za-z]{4,}/.test(shown.replace(/\b(HUD|RPM|Redline|appsKOR|MIT|VFD|M3|M4|M5|F80|G80|E60)\b/g,'')))english.push(shown);return text.apply(this,arguments);};page.draw(cv);};
 page.selectTab(1);page.activate(page.keys().indexOf('design'));draw();page.choose(2);assert.strictEqual(page.open,'rlDesign');draw();
 page.choose(6);assert.strictEqual(values.hudDesign,'rl-arc');assert(/F80/.test(page.value(page.item(),page.config())));
-page.activate(page.keys().indexOf('layout'));assert.deepStrictEqual(page.layoutParts().map(p=>p.key),['RpmGauge']);draw();page.back();
+page.activate(page.keys().indexOf('layout'));assert.deepStrictEqual(page.layoutParts().map(p=>p.key),['RpmGauge','RlGear','RlMode','RlAlert','RlGauge','RlReadA','RlReadB']);draw();page.back();
 page.activate(page.keys().indexOf('design'));page.choose(1);assert.strictEqual(values.hudDesign,'own');assert.strictEqual(values.hudAlertStyle,'circle');
 page.selectTab(2);page.activate(page.keys().indexOf('design'));assert.strictEqual(page.open,'design');page.choose(2);assert.notStrictEqual(page.open,'rlDesign','cluster has no Redline layouts');
 if(getLanguage()==='ko')assert.deepStrictEqual(english,[],'untranslated labels');

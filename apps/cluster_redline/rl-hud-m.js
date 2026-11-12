@@ -20,6 +20,8 @@ const IW = 400;
 const isNum = (x) => typeof x === 'number' && isFinite(x);
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const flashing = (cue) => cue.shift || cue.limiter;
+// f.only (Cluster Redline): one element at a time; readouts readA..readD are items 0..3. No f.only: all.
+const wants = (f) => (part) => !f.only || f.only === part;
 
 /* ---------- shared: readouts, the shift grade, the burst ---------- */
 const GRADE = { 'SPOT ON': 'low', EARLY: 'mid', LATE: 'high', LIMITER: 'limit', 'COLD REV': 'cold', KNOCK: 'limit' };
@@ -94,8 +96,8 @@ function cbox(cv, cx, cy, a0, a1, r0, r1, c, w) {
     cv.arc(cx, cy, r0, r1, a0, a0 + da, c); cv.arc(cx, cy, r0, r1, a1 - da, a1, c);
 }
 function drawArc(cv, f, layer, h) {
-    const o = f.opts, d = f.d, cue = f.cue, bg = layer !== 'fg', fg = layer !== 'bg', R = (r) => aAng(r / f.max);
-    if (o.lights) {
+    const o = f.opts, d = f.d, cue = f.cue, bg = layer !== 'fg', fg = layer !== 'bg', R = (r) => aAng(r / f.max), want = wants(f);
+    if (o.lights && want('alert')) {
         const n = 8, gap = 1.3, step = 2 * A.span / n, fl = flashing(cue);
         // "Shift light style": M is the F80's own amber and red; Race and one colour as the app's lights
         const own = o.lightStyle === 'f1' || o.lightStyle === 'mono';
@@ -107,7 +109,7 @@ function drawArc(cv, f, layer, h) {
             if (fg && i < lit && (!fl || f.blink)) cbox(cv, A.cx, A.cy, a0, a1, A.l0, A.l1, fl ? flashCol : col, 0);
         }
     }
-    if (o.bar !== false) {
+    if (o.bar !== false && want('gauge')) {
         const warn = Math.max(0, f.redline - 500);
         if (bg) {
             if (o.dim) cv.arc(A.cx, A.cy, A.b0, A.b1, R(0), R(warn), withAlpha(AC.unlit, 0.9));
@@ -131,23 +133,23 @@ function drawArc(cv, f, layer, h) {
     }
     if (!fg) return;
     const W = '#f4f4f4', P = h.P, items = f.readouts || [];
-    if (f.chip) ring(cv, A.cx, 102, 28, 70, f.chip, P);
-    if (o.gear) cv.text(h.gearText(d), A.cx, 124, 62, cue.limiter && f.blink ? AC.red : W, { align: 'center', font: h.gearFont(o) });
-    if (f.mode && o.gear) cv.text(f.mode, A.cx + 30, 86, 16, withAlpha(W, 0.85), { font: 'bold' });
-    h.drawDown(cv, A.cx - 40, 112, f.down || 0, 0.8, P.arrow);
+    if (f.chip && want('gear')) ring(cv, A.cx, 102, 28, 70, f.chip, P);
+    if (o.gear && want('gear')) cv.text(h.gearText(d), A.cx, 124, 62, cue.limiter && f.blink ? AC.red : W, { align: 'center', font: h.gearFont(o) });
+    if (f.mode && o.gear && want('mode')) cv.text(f.mode, A.cx + 30, 86, 16, withAlpha(W, 0.85), { font: 'bold' });
+    if (want('gear')) h.drawDown(cv, A.cx - 40, 112, f.down || 0, 0.8, P.arrow);
     // left, under the band and kept high (BMW's assistance graphic sits bottom left): readout 4
-    if (items[3]) small(cv, 132, 82, items[3], P, o, W, 'stack', 'center');
+    if (items[3] && want('readD')) small(cv, 132, 82, items[3], P, o, W, 'stack', 'center');
     // right: readout 1 big beside the gear, 2 and 3 stacked at the far right; the grade takes them over
-    if (f.chip) grade(cv, 312, 122, f.chip, P, 24);
+    if (f.chip) { if (want('readA')) grade(cv, 312, 122, f.chip, P, 24); }
     else {
-        if (items[0]) {
+        if (items[0] && want('readA')) {
             const lb = labelOf(o, W);
             fitLabel(cv, items[0].label, 288, 100, lb.s, lb.c, 48, { align: 'center' });
             cv.text(items[0].value, 288, 125, 26, toneCol(items[0], P, W), { align: 'center', font: o.valFont || 'bold' });
         }
         // from just right of the first readout (it ends by x 313) to the edge, values a size smaller
-        if (items[1]) small(cv, 318, 104, items[1], P, o, W, 'row', 80, 17);
-        if (items[2]) small(cv, 318, 126, items[2], P, o, W, 'row', 80, 17);
+        if (items[1] && want('readB')) small(cv, 318, 104, items[1], P, o, W, 'row', 80, 17);
+        if (items[2] && want('readC')) small(cv, 318, 126, items[2], P, o, W, 'row', 80, 17);
     }
 }
 
@@ -175,7 +177,7 @@ function rSeg(cv, a, b, max, c, g, outline) {
     });
 }
 function drawRamp(cv, f, layer, h) {
-    const o = f.opts, d = f.d, cue = f.cue, BG = layer !== 'fg', fg = layer !== 'bg', max = f.max;
+    const o = f.opts, d = f.d, cue = f.cue, BG = layer !== 'fg', fg = layer !== 'bg', max = f.max, want = wants(f);
     const step = 500, fl = flashOn(o, cue), flashCol = flashColour(o, cue, h, RC.red);
     // what colour the field from r..r+step is when lit
     const fieldCol = (r) => {
@@ -185,7 +187,7 @@ function drawRamp(cv, f, layer, h) {
         // Race / one colour: the count-in as the app's lights, the last field the flash's colour
         return m >= cue.at ? flashColour(o, { limiter: false }, h, RC.red) : h.lightCol(o.lightStyle, h.P, clamp((m - cue.from) / (cue.at - cue.from), 0, 1));
     };
-    if (o.bar !== false || o.lights) {
+    if ((o.bar !== false || o.lights) && want('gauge')) {
         if (BG) {
             for (let r = 0; r < max; r += step) {
                 if (o.dim) rSeg(cv, r, Math.min(max, r + step), max, withAlpha(RC.line, 0.12), 1.2);
@@ -218,17 +220,17 @@ function drawRamp(cv, f, layer, h) {
     }
     if (!fg) return;
     const gx = 222, items = f.readouts || [];
-    if (f.chip) ring(cv, gx, 74, 22, 58, f.chip, h.P);
+    if (f.chip && want('gear')) ring(cv, gx, 74, 22, 58, f.chip, h.P);
     // readouts 2-4: a list on the right, label left and value right
-    [1, 2, 3].forEach((i, k) => { if (items[i]) small(cv, 284, 66 + k * 26, items[i], h.P, o, RC.text, 'row', 112); });
-    if (o.gear) cv.text(h.gearText(d), gx, 90, 44, cue.limiter && f.blink ? RC.red : RC.text, { align: 'center', font: h.gearFont(o) });
-    if (f.mode && o.gear) cv.text(f.mode, gx + 22, 66, 14, withAlpha(RC.text, 0.85), { font: 'bold' });
-    cv.fillRect(gx - 30, 96, 60, 1.6, RC.text);
-    h.drawDown(cv, gx - 50, 62, f.down || 0, 1, h.P.arrow);
-    if (f.chip) grade(cv, gx, 124, f.chip, h.P, 22);
+    [1, 2, 3].forEach((i, k) => { if (items[i] && want('read' + 'ABCD'[i])) small(cv, 284, 66 + k * 26, items[i], h.P, o, RC.text, 'row', 112); });
+    if (o.gear && want('gear')) cv.text(h.gearText(d), gx, 90, 44, cue.limiter && f.blink ? RC.red : RC.text, { align: 'center', font: h.gearFont(o) });
+    if (f.mode && o.gear && want('mode')) cv.text(f.mode, gx + 22, 66, 14, withAlpha(RC.text, 0.85), { font: 'bold' });
+    if (want('readA')) cv.fillRect(gx - 30, 96, 60, 1.6, RC.text);   // the line over the first readout
+    if (want('gear')) h.drawDown(cv, gx - 50, 62, f.down || 0, 1, h.P.arrow);
+    if (f.chip) { if (want('readA')) grade(cv, gx, 124, f.chip, h.P, 22); }
     else {
         const it = items[0];
-        if (it) {
+        if (it && want('readA')) {
             cv.text(it.value, gx, 124, 24, it.tone && it.tone !== 'text' ? h.P[it.tone] : RC.text, { align: 'center', font: o.valFont || 'bold' });
             fitLabel(cv, it.label.toLowerCase(), gx + 32, 102, labelOf(o, RC.text).s, RC.text, 284 - gx - 36, { spacing: 0 });
         }
@@ -239,7 +241,7 @@ function drawRamp(cv, f, layer, h) {
 const D = { cx: 200, cy: 70, r0: 50, r1: 60, a0: -125, a1: 110 };
 const DC = { green: '#a6d64a', orange: '#ff8a2e', red: '#f0313a', text: '#ff8a2e', speed: '#ff5a2e' };
 function drawDial(cv, f, layer, h) {
-    const o = f.opts, d = f.d, cue = f.cue, BG = layer !== 'fg', fg = layer !== 'bg', max = f.max, fl = flashOn(o, cue);
+    const o = f.opts, d = f.d, cue = f.cue, BG = layer !== 'fg', fg = layer !== 'bg', max = f.max, fl = flashOn(o, cue), want = wants(f);
     const flashCol = flashColour(o, cue, h, DC.red);
     const ang = (r) => D.a0 + (D.a1 - D.a0) * clamp(r / max, 0, 1);
     // the E60's advance warning field: the last 1000 rpm before the redline (fixed, so the cached static
@@ -249,7 +251,7 @@ function drawDial(cv, f, layer, h) {
     const Z = o.lightStyle === 'f1' ? [h.P.low, h.P.high, h.RACE_BLUE] : o.lightStyle === 'mono' ? [h.P.text, h.P.text, h.P.text] : [DC.green, DC.orange, DC.red];
     const zone = (r) => (r >= f.redline ? Z[2] : r >= warn ? Z[1] : Z[0]);
     const step = 250;
-    if (o.bar !== false || o.lights) {
+    if ((o.bar !== false || o.lights) && want('gauge')) {
         if (BG) for (let r = 0; r < max; r += step) {
             // the zones always faintly there; a hairline gap every 1000 rpm
             const g = (r + step) % 1000 === 0 ? 0.9 : 0;
@@ -269,18 +271,18 @@ function drawDial(cv, f, layer, h) {
     }
     if (!fg) return;
     const items = f.readouts || [];
-    if (f.chip) ring(cv, D.cx, D.cy, D.r1 + 2, D.r1 + 34, f.chip, h.P);
+    if (f.chip && want('gauge')) ring(cv, D.cx, D.cy, D.r1 + 2, D.r1 + 34, f.chip, h.P);
     // readouts 2 and 3: a list on the right; 4: top left (kept high, clear of BMW's assistance graphic)
-    [1, 2].forEach((i, k) => { if (items[i]) small(cv, 284, 30 + k * 28, items[i], h.P, o, DC.speed, 'row', 112); });
-    if (items[3]) small(cv, 70, 30, items[3], h.P, o, DC.speed, 'stack', 'center');
-    if (o.gear) cv.text(h.gearText(d), D.cx, D.cy + 20, 56, cue.limiter && f.blink ? DC.red : DC.text, { align: 'center', font: h.gearFont(o) });
-    if (f.mode && o.gear) cv.text(f.mode, D.cx + 24, D.cy - 14, 14, withAlpha(DC.text, 0.85), { font: 'bold' });
-    h.drawDown(cv, D.cx, D.cy + 30, f.down || 0, 0.9, h.P.arrow);
+    [1, 2].forEach((i, k) => { if (items[i] && want('read' + 'ABCD'[i])) small(cv, 284, 30 + k * 28, items[i], h.P, o, DC.speed, 'row', 112); });
+    if (items[3] && want('readD')) small(cv, 70, 30, items[3], h.P, o, DC.speed, 'stack', 'center');
+    if (o.gear && want('gear')) cv.text(h.gearText(d), D.cx, D.cy + 20, 56, cue.limiter && f.blink ? DC.red : DC.text, { align: 'center', font: h.gearFont(o) });
+    if (f.mode && o.gear && want('mode')) cv.text(f.mode, D.cx + 24, D.cy - 14, 14, withAlpha(DC.text, 0.85), { font: 'bold' });
+    if (want('gear')) h.drawDown(cv, D.cx, D.cy + 30, f.down || 0, 0.9, h.P.arrow);
     // bottom right, where the E60 shows the speed: the first readout, or the shift grade
-    if (f.chip) grade(cv, 330, 122, f.chip, h.P, 22);
+    if (f.chip) { if (want('readA')) grade(cv, 330, 122, f.chip, h.P, 22); }
     else {
         const it = items[0];
-        if (it) {
+        if (it && want('readA')) {
             cv.text(it.value, 300, 122, 26, it.tone && it.tone !== 'text' ? h.P[it.tone] : DC.speed, { align: 'right', font: o.valFont || 'bold' });
             fitLabel(cv, it.label.toLowerCase(), 304, 122, labelOf(o, DC.speed).s, DC.speed, 94, { spacing: 0 });
         }

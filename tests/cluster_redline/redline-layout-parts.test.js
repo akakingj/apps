@@ -1,0 +1,56 @@
+'use strict';
+// Redline app layouts on the HUD: each element (gear, drive mode, RPM alert, RPM number, RPM gauge, readouts)
+// moves, sizes and hides on its own in Position / size, and is saved, loaded and reset with the other parts.
+// Usage: node redline-layout-parts.test.js <built cluster_redline stage>
+const assert=require('assert'),path=require('path'),root=path.join(path.resolve(process.argv[2]),'source/javascript');
+const RL=require(root+'/redline-hud'),D=require(root+'/display-config'),{settings}=require(root+'/policy');
+const {Canvas}=require(root+'/kit/canvas'),{blitScaled}=require(root+'/component-canvas'),{SettingsPage}=require(root+'/settings-ui');
+const spec=require(root+'/kit/app-spec.json');
+const AUX=JSON.stringify({mode:'values',items:['boost','torque','outside','oil']});
+const stateOf=cfg=>({config:cfg,rpm:5200,gear:'M4',aux:{boost:1.2,outside:18,oil:95},mode:'SPORT'});
+const layout={x:200,y:100,w:400,h:130};
+function compose(state){const cv=new Canvas(800,480);cv.clear([0,0,0,0]);RL.placed(state,layout).forEach(e=>blitScaled(cv,RL.partPainter(state,e.id,e.b,e.r).draw(state),e.r));return cv;}
+function litBox(cv,r){let n=0;for(let y=Math.max(0,r.y);y<Math.min(cv.h,r.y+r.h);y++)for(let x=Math.max(0,r.x);x<Math.min(cv.w,r.x+r.w);x++)if(cv.d[(y*cv.w+x)*4+3])n++;return n;}
+
+// 1. At default positions every layout looks as the single Redline image did.
+const expected={standard:['mode','gear','alert','gauge','read'],minimal:['mode','gear','alert'],wings:['mode','alert','gauge','gear'],digital:['mode','alert','gauge','gear','rpm','read'],
+ vfd:['mode','alert','gauge','gear','rpm','read'],vector:['mode','gear','alert','gauge','read'],arc:['alert','gauge','gear','mode','readD','readA','readB','readC'],
+ ramp:['gauge','readB','readC','readD','gear','mode','readA'],dial:['gauge','readB','readC','readD','gear','mode','readA']};
+RL.STYLES.forEach(st=>{
+ const cfg=settings({hudDesign:'rl-'+st,hudAuxConfig:AUX}),state=stateOf(cfg);
+ assert.deepStrictEqual(RL.elements(cfg).map(e=>e.id),expected[st],st+' elements');
+ const a=new Canvas(800,480);a.clear([0,0,0,0]);blitScaled(a,RL.drawSized(state,400,130),layout);const b=compose(state);
+ let worst=0;for(let i=0;i<a.d.length;i++)worst=Math.max(worst,Math.abs(a.d[i]-b.d[i]));
+ assert(worst<=48,st+': default positions match the original image (worst channel difference '+worst+')');
+ const off=settings({hudDesign:'rl-'+st,hudAuxConfig:JSON.stringify({mode:'off',items:['boost']})});
+ assert(!RL.elements(off).some(e=>/^read/.test(e.id)),st+': no readout elements without readouts');
+});
+
+// 2. Move, size and hide one element; the others stay put.
+const base=settings({hudDesign:'rl-standard',hudAuxConfig:AUX}),moved=settings(Object.assign({},base,{hudRlGearOffsetX:120,hudRlAlertHidden:true,hudRlReadWidthScale:150,hudRlReadHeightScale:100}));
+assert.strictEqual(moved.hudRlReadHeightScale,150,'element size is uniform: height follows width');
+const before=RL.placed(stateOf(base),layout),after=RL.placed(stateOf(moved),layout),at=(list,id)=>list.find(e=>e.id===id);
+assert.strictEqual(at(after,'gear').r.x-at(before,'gear').r.x,120,'gear moved by its offset (400-unit image at scale 1)');
+assert.deepStrictEqual(at(after,'gauge').r,at(before,'gauge').r,'other elements stay');
+assert(!at(after,'alert'),'hidden element not drawn');
+assert(Math.abs(at(after,'read').r.w-Math.round(at(before,'read').r.w*1.5))<=1,'readouts sized 150 %');
+const cv=compose(stateOf(moved));assert(litBox(cv,at(after,'gear').r)>100,'moved gear is drawn where it went');
+const hideAll=settings(Object.assign({},base,{hudRpmGaugeHidden:true}));assert.strictEqual(RL.elements(hideAll).length,5);assert(!D.faceVisible(hideAll,'hud'),'Whole layout hidden hides every element');
+assert(D.faceVisible(base,'hud'));
+
+// 3. Position / size: parts listed, uniform size, save / load / reset with the other parts.
+const values={};spec.settings.forEach(s=>{values[s.key]=s.default;});values.hudDesign='rl-arc';values.hudAuxConfig=AUX;
+const store={schema:spec.settings,get:k=>values[k],set:(k,v)=>{values[k]=v;},setMany(c){Object.assign(values,c);}};
+const page=new SettingsPage(store,null,'test');page.selectTab(1);page.activate(page.keys().indexOf('layout'));
+const parts=page.layoutParts();
+assert.deepStrictEqual(parts.map(p=>p.key),['RpmGauge','RlGear','RlMode','RlAlert','RlGauge','RlReadA','RlReadB','RlReadC','RlReadD']);
+assert.strictEqual(parts[0].label,'Whole layout');
+page.selectLayoutPart(1,true);page.adjust(0,1);page.adjust(1,-1);
+assert.strictEqual(values.hudRlGearOffsetX,10);assert.strictEqual(values.hudRlGearOffsetY,-10);
+page.adjust(2,1);assert.strictEqual(values.hudRlGearWidthScale,105);assert.strictEqual(values.hudRlGearHeightScale,105,'one Size control');
+page.toggleHidden(false);assert.strictEqual(values.hudRlGearHidden,true);
+page.saveSlot(1);assert.strictEqual(JSON.parse(values.hudLayoutSlot1).values.hudRlGearOffsetX,10,'saved with the slot');
+page.resetLayout();page.resetLayout();assert.strictEqual(values.hudRlGearOffsetX,0);assert.strictEqual(values.hudRlGearHidden,false,'reset to defaults');
+page.loadSlot(1);assert.strictEqual(values.hudRlGearOffsetX,10);assert.strictEqual(values.hudRlGearWidthScale,105);assert.strictEqual(values.hudRlGearHidden,true,'loaded back');
+assert(!spec.settings.some(s=>/^hudRl/.test(s.key)),'kept outside app.json: the Store settings templates stay valid');
+console.log('PASS: Redline layouts split into elements matching the original image; each moves, sizes uniformly and hides; Whole layout still moves all; Position / size lists them and saves, loads and resets them');

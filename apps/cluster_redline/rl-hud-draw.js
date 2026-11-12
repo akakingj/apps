@@ -1,7 +1,8 @@
 'use strict';
 // From jaimeen77-cmyk/appsKOR apps/redline/hud-draw.js at 9cd5badd6c7a8bb23086a8414c7ad2782a5bc9e2
 // (cauliflowermossgrape/idrive7-apps Redline; HUD output by @biscotit), MIT License: see NOTICE.
-// Local changes: module paths, a fallback when the kit has no fonts.has(), no other drawing changes.
+// Local changes: module paths, a fallback when the kit has no fonts.has(), and f.only (Cluster Redline
+// draws one element at a time so each can be moved and sized); with no f.only it draws as the original.
 /**
  * Part of Redline's experimental features; README.md in this folder has the whole picture.
  *
@@ -265,12 +266,14 @@ function lightsRow(x, y, w, d) {
  */
 function drawLayer(cv, f, layer) {
     const o = f.opts, d = f.d, P = palette(o.style === 'vfd' ? 'vfd' : o.palette), cue = f.cue;
+    // f.only: one element ('gear', 'mode', 'alert', 'rpm', 'gauge', 'read' or 'readA'..'readD'), else all
+    const want = (part) => !f.only || f.only === part;
     if (o.style === 'arc' || o.style === 'ramp' || o.style === 'dial') {
         M.drawM(cv, f, layer, { P: P, gearText: gearText, drawDown: drawDown, lightCol: lightCol, RACE_BLUE: RACE_BLUE, gearFont: gearFont });
         return;
     }
     // the gearbox mode (D / S / M) as a small letter by the gear
-    if (layer !== 'bg' && f.mode && o.gear) {
+    if (layer !== 'bg' && f.mode && o.gear && want('mode')) {
         const at = o.style === 'wings' ? [IW / 2 + 34, 24] : o.style === 'digital' || o.style === 'vfd' ? [58, 22] : [56, 24];
         cv.text(f.mode, at[0], at[1], 18, withAlpha(P.text, 0.85), { font: 'bold' });
     }
@@ -284,30 +287,31 @@ function drawLayer(cv, f, layer) {
         // 80s digital dash / VFD: 7-segment gear on the left, square lights, a 40-segment bar graph,
         // 7-segment rpm under it, then the readouts (or the grade)
         const ghost = o.style === 'vfd' || o.dim ? withAlpha(P.text, 0.1) : null;
-        if (o.lights) {
+        if (o.lights && want('alert')) {
             const pts = [], n = 12, x0 = 76, w0 = IW - x0, pitch = w0 / n;
             for (let i = 0; i < n; i++) pts.push([x0 + pitch * (i + 0.5), 8]);
             drawLights(cv, pts, pts.map((p, i) => (o.gt3 ? Math.min(i, 11 - i) : i)), o.gt3 ? 6 : 12, 6, Object.assign({}, s, { shape: 'rect', ghost: o.style === 'vfd' }));
         }
-        if (o.bar !== false) drawGraph(cv, 76, 18, IW - 76, 36, s, o.style === 'vfd');
-        if (o.gear) seg7(cv, gearText(d).slice(0, 1), 4, 10, 50, 86, 9, gearCol, ghost, false, layer);
-        if (fg) drawDown(cv, 29, 106, f.down || 0, 1, P.arrow);
+        if (o.bar !== false && want('gauge')) drawGraph(cv, 76, 18, IW - 76, 36, s, o.style === 'vfd');
+        if (o.gear && want('gear')) seg7(cv, gearText(d).slice(0, 1), 4, 10, 50, 86, 9, gearCol, ghost, false, layer);
+        if (fg && want('gear')) drawDown(cv, 29, 106, f.down || 0, 1, P.arrow);
         const rpmTxt = isNum(d.rpm) && d.rpm < 9995 ? String(Math.max(0, Math.round(d.rpm / 10) * 10)).padStart(4, ' ') : '----';
-        if (o.rpm !== false) seg7text(cv, rpmTxt, 76, 64, 16, 30, 4, 5, P.text, ghost, false, layer);
+        if (o.rpm !== false && want('rpm')) seg7text(cv, rpmTxt, 76, 64, 16, 30, 4, 5, P.text, ghost, false, layer);
+        if (!want('read')) return;
         if (f.chip) { if (fg) drawChip(cv, 166, IW, 62, f.chip, P); } else drawReadouts(cv, 166, IW, 62, f.readouts || [], P, layer, o.clearLabels);
         return;
     }
 
     if (o.style === 'wings') {
         // gear centred, 6 lights each side filling towards it (outermost first), the bar underneath
-        if (o.lights) {
+        if (o.lights && want('alert')) {
             const pts = [], pos = [], d0 = 16;
             for (let i = 0; i < 6; i++) { pts.push([14 + i * 26, 30]); pos.push(i); }
             for (let i = 0; i < 6; i++) { pts.push([IW - 14 - i * 26, 30]); pos.push(i); }
             drawLights(cv, pts, pos, 6, d0 / 2, s);
         }
-        if (o.bar !== false) drawBar(cv, 0, 84, IW, 40, s);
-        if (fg) {
+        if (o.bar !== false && want('gauge')) drawBar(cv, 0, 84, IW, 40, s);
+        if (fg && want('gear')) {
             if (o.gear) cv.text(gearText(d), IW / 2, 70, 72, gearCol, { align: 'center', font: gearFont(o) });
             drawDown(cv, IW / 2 + 52, 34, f.down || 0, 1, P.arrow);
         }
@@ -318,29 +322,30 @@ function drawLayer(cv, f, layer) {
     if (o.style === 'vector') {
         // the standard layout in outline: rings, outlined segments, an outlined 7-segment gear
         s.outline = true; s.shape = 'ring';
-        if (o.gear) seg7(cv, gearText(d).slice(0, 1), 8, 12, 44, 72, 8, gearCol, withAlpha(P.text, 0.12), true, layer);
-        if (fg) drawDown(cv, 30, 92, f.down || 0, 1, P.arrow);
-    } else if (fg && o.gear) {
+        if (o.gear && want('gear')) seg7(cv, gearText(d).slice(0, 1), 8, 12, 44, 72, 8, gearCol, withAlpha(P.text, 0.12), true, layer);
+        if (fg && want('gear')) drawDown(cv, 30, 92, f.down || 0, 1, P.arrow);
+    } else if (fg && o.gear && want('gear')) {
         cv.text(gearText(d), 30, 78, 72, gearCol, { align: 'center', font: gearFont(o) });
         drawDown(cv, 30, 90, f.down || 0, 1, P.arrow);
     }
     if (o.style === 'minimal') {
         // bigger lights only, centred on the gear's height
-        if (o.lights) {
+        if (o.lights && want('alert')) {
             const r = lightsRow(tx, 26, tw, 22);
             drawLights(cv, r.pts, r.pts.map((p, i) => (o.gt3 ? Math.min(i, 11 - i) : i)), o.gt3 ? 6 : 12, r.rad, s);
         }
         // the knock warning in the room under the lights (Minimal shows no grades)
-        if (fg && knock) cv.text('KNOCK', tx + tw / 2, 100, 26, P.limit, { align: 'center', font: 'bold', spacing: 2 });
+        if (fg && knock && want('alert')) cv.text('KNOCK', tx + tw / 2, 100, 26, P.limit, { align: 'center', font: 'bold', spacing: 2 });
         return;
     }
 
     // standard (and vector): lights, bar, readouts or a shift grade
-    if (o.lights) {
+    if (o.lights && want('alert')) {
         const r = lightsRow(tx, 2, tw, 14);
         drawLights(cv, r.pts, r.pts.map((p, i) => (o.gt3 ? Math.min(i, 11 - i) : i)), o.gt3 ? 6 : 12, r.rad, s);
     }
-    if (o.bar !== false) drawBar(cv, tx, o.lights ? 20 : 2, tw, o.lights ? 38 : 56, s);
+    if (o.bar !== false && want('gauge')) drawBar(cv, tx, o.lights ? 20 : 2, tw, o.lights ? 38 : 56, s);
+    if (!want('read')) return;
     if (f.chip) { if (fg) drawChip(cv, TEMP_X, IW, 66, f.chip, P); } else drawReadouts(cv, TEMP_X, IW, 66, f.readouts || [], P, layer, o.clearLabels);
 }
 

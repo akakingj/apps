@@ -26,7 +26,7 @@ policy.modeSample(1,20);policy.rpmSample(5100,20);assert.strictEqual(policy.eval
 assert.deepStrictEqual(D.auxConfig({mode:'values',items:['clock','oil']}).items,['oil']);
 assert.deepStrictEqual(D.auxConfig({mode:'gauges',items:['clock','oil']}).items,['clock','oil']);
 assert.strictEqual(D.clockText(settings({clockZone:'utc9'}),new Date('2026-11-11T14:05:00Z')),'23:05');
-assert.strictEqual(settings({clockZone:'bad'}).clockZone,'auto');
+assert.strictEqual(settings({clockZone:'bad'}).clockZone,getLanguage()==='ko'?'utc9':'auto','unknown: Korean time in the Korean version, else the head unit time');assert.strictEqual(settings({clockZone:'auto'}).clockZone,'auto','a chosen zone is kept');
 const clockConfig=settings({hudAuxConfig:JSON.stringify({mode:'gauges',items:['boost','clock']}),clusterAuxConfig:JSON.stringify({mode:'gauges',items:['boost','clock']})});
 const face=(painter,clock)=>painter.draw({config:clockConfig,renderRpm:true,rpm:3000,gear:'M3',torqueNm:300,powerPS:200,mode:'SPORT',aux:{boost:0.8,clock}});
 for(const painter of [HUD,CLUSTER])assert(!Buffer.from(face(painter,'23:00').d).equals(Buffer.from(face(painter,'09:41').d)),'clock value is drawn');
