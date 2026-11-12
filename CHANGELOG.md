@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.30
+
+- English edition: the settings watermark shows only "BMW Coding" and the Naver address (no Korean cafe name or profile picture).
+
 ### 1.2.29
 
 - Settings background now shows on the car: the car's renderer takes no pixel images, so the photo is drawn once into a cached layer as thin vertical gradient columns (1.2.28 showed it only on the PC preview).

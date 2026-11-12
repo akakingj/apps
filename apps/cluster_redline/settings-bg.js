@@ -23,12 +23,14 @@ function columns(cv,w,h){
  if(!source())return;const cw=4,step=10;
  for(let x=0;x<w;x+=cw){const stops=[];for(let y=0;y<=h;y+=step){const c=sample((x+cw/2)*W/w-0.5,y*H/h-0.5);stops.push([Math.min(1,y/h),[c[0],c[1],c[2],255]]);}cv.gradientRect(x,0,Math.min(cw,w-x),h,stops);}
 }
-function korean(){try{return require('./kit/fonts').has('korean');}catch(e){return false;}}
+function korean(){try{return require('./strings').language()==='ko'&&require('./kit/fonts').has('korean');}catch(e){return false;}}
 // Watermark: profile picture, cafe address and name, in the free space at the bottom right of the HUD,
 // cluster and navigation tabs (under their last row, right of their notes), never over a setting.
 function watermark(cv,w,h){
  const R=w-14,ko=korean(),a=170;
- const brand=ko?'BMW Coding 배움터':'BMW Coding Study Cafe',top=(ko?'서울II잼님':'jaimeen77')+'  ·  Http://blog.naver.com/codingbmw';
+ // English edition: "BMW Coding" and the Naver address only (no Korean cafe name or profile picture).
+ if(!ko){cv.text('Http://blog.naver.com/codingbmw',R,h-50,19,[230,236,242,a],{align:'right',literal:true});cv.text('BMW Coding',R,h-14,30,[255,255,255,a+30],{align:'right',literal:true});return;}
+ const brand='BMW Coding 배움터',top='서울II잼님  ·  Http://blog.naver.com/codingbmw';
  const w1=cv.textWidth?cv.textWidth(top,19,{literal:true}):430,w2=cv.textWidth?cv.textWidth(brand,30,{literal:true}):280;
  if(!avatar)avatar=inflate(AVATAR);
  if(avatar){const S=2,ax=Math.round(R-Math.max(w1,w2)-12-AW*S),ay=h-70;
