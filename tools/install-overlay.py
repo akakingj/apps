@@ -40,6 +40,7 @@ def main():
         'docs/JAM-INTEGRATION.ko.md',
         'docs/VALIDATION.ko.md',
         'docs/CLUSTER-REDLINE.ko.md',
+        'docs/CLUSTER-REDLINE-HISTORY.ko.md',
         'docs/CLUSTER-REDLINE.md',
         'docs/INSTALL.ko.md',
         'docs/INSTALL.md',

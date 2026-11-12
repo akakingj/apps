@@ -1,4 +1,27 @@
-# iDrive 7 Jam Apps · 한국어
+# 계기판 레드라인 · iDrive 7 앱 모음 (한국어)
+
+![BMW Coding Study Cafe](screenshots/banner.png)
+
+**제작: jaimeen77**
+
+| | |
+|---|---|
+| 다운로드 (GitHub) | **[github.com/jaimeen77-cmyk/apps](https://github.com/jaimeen77-cmyk/apps)** |
+| MGU Store 소스 | 저장소 **`jaimeen77-cmyk/apps`** · 브랜치 **`main`** |
+| 한국어 앱 15개 소스 | **`jaimeen77-cmyk/appsKOR`** · 브랜치 **`main`** ([appsKOR](https://github.com/jaimeen77-cmyk/appsKOR)) |
+| 네이버 블로그 | **[blog.naver.com/jaimeen77](https://blog.naver.com/jaimeen77)** |
+| 설치·사용 설명서 | **[계기판 레드라인 설치·사용 설명서](docs/CLUSTER-REDLINE.ko.md)** (메뉴별 자세한 설명) |
+
+![HUD Redline 레이아웃](screenshots/guide/hud-redline-layouts.png)
+
+## 빠른 설치
+
+1. 차량에서 **MGU Store → Settings → 소스 추가** 를 엽니다.
+2. 저장소 **`jaimeen77-cmyk/apps`**, 브랜치 **`main`** 을 입력하고 **새로고침** 합니다.
+3. **계기판 레드라인 (한국어)** 를 **Install** 합니다. `cluster-render` 0.4.0 이상 설치 안내가 나오면 따릅니다.
+4. 앱을 열어 **기본설정 → 앱 실행 → 앱 켜기**. 자세한 메뉴 설명은 [설치·사용 설명서](docs/CLUSTER-REDLINE.ko.md)를 보세요.
+
+---
 
 **계기판 레드라인 1.2.27** · HUD에 길안내가 뜨면 클러스터 양보(웨이즈 포함), HUD 레이아웃 기본 위치·크기 조정, 외기 온도 수정 (1.2.8: Redline 레이아웃 요소별 조절, 시계 한국 시간). **아이드라이브 회로 1.0.0**, **저장공간 1.0.1**도 함께 제공합니다.
 
@@ -7,7 +30,7 @@
 | 설명서 | 한국어 | English |
 |---|---|---|
 | 설치 | [설치 안내](docs/INSTALL.ko.md) | [Installation](docs/INSTALL.md) |
-| 레드라인 사용 | [사용 설명서](docs/CLUSTER-REDLINE.ko.md) | [User guide](docs/CLUSTER-REDLINE.md) |
+| 레드라인 설치·사용 | [설치·사용 설명서](docs/CLUSTER-REDLINE.ko.md) | [User guide](docs/CLUSTER-REDLINE.md) |
 | 저장공간 사용 | [저장공간](apps/storage/README.ko.md) | [Storage](apps/storage/README.md) |
 | Circuit 사용 | [회로 퍼즐](apps/idrive_circuit/README.ko.md) | [Circuit](apps/idrive_circuit/README.md) |
 

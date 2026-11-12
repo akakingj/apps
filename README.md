@@ -1,5 +1,9 @@
 # iDrive 7 Jam Apps
 
+![BMW Coding Study Cafe](screenshots/banner.png)
+
+**Made by jaimeen77** · Download: [github.com/jaimeen77-cmyk/apps](https://github.com/jaimeen77-cmyk/apps) · MGU Store source: `jaimeen77-cmyk/apps` (branch `main`) · Blog: [blog.naver.com/jaimeen77](https://blog.naver.com/jaimeen77) · Korean guide: [설치·사용 설명서](docs/CLUSTER-REDLINE.ko.md)
+
 **Cluster Redline 1.2.27**: cluster released while guidance shows on the HUD (Waze included), tuned HUD layout defaults, outside temperature fix (1.2.8: Redline layouts element by element, Korean time for the clock). **iDrive Circuit 1.0.0** and **Storage 1.0.1** are also available.
 
 [한국어](README.ko.md)
