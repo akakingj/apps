@@ -13,6 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.14
+
+- The Five dials layout is removed; Hexagon stays. The picker holds fifteen layouts. A HUD or cluster set to Five dials falls back to the Cluster Redline design.
+
 ### 1.2.13
 
 - **Two more layouts** for the HUD and the cluster (the picker now holds sixteen, 4 x 4):

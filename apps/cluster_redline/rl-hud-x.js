@@ -1,6 +1,6 @@
 'use strict';
 // Cluster Redline's own layouts in the Redline layout family (redline-hud.js): M shift lights, data logger,
-// analog needle, G-force + RPM rings, mode ribbon, hexagon and five dials. Drawn in a 1088x480 design space scaled to the
+// analog needle, G-force + RPM rings, mode ribbon and hexagon. Drawn in a 1088x480 design space scaled to the
 // layouts' 400x176 image, so the same frame (f) and element filter (f.only) work as for the other layouts.
 // Readouts are the display's selected auxiliary items (f.readouts), like the other layouts.
 const {language}=require('./strings');
@@ -90,24 +90,7 @@ function drawHexagon(cv,f,h){
  box.forEach((b,i)=>{if(!want(f,'read'+'ABCD'[i])||!f.readouts[i])return;const [x,y,s]=b;cv.polyline([[x,y],[x+190*s,y],[x+220*s,y+30],[x+220*s,y+90],[x+30*s,y+90],[x,y+60],[x,y]],3,'#2a2f37');
   readout(cv,f.readouts[i],x+20*s,y+35,22,44,s>0?'left':'right');});
 }
-// Five dials: a large round tachometer with a needle and red zone, the gear and RPM inside it, a row of
-// shift lights, and four smaller round dials for the readouts.
-function drawFiveDials(cv,f,h){
- const d=f.d,max=f.max,q=cue(f),cx=544,cy=240,R=185,A=v=>-135+270*clamp(v,0,max)/max,pt=(a,r)=>[cx+r*Math.sin(a*Math.PI/180),cy-r*Math.cos(a*Math.PI/180)];
- if(want(f,'gauge')){
-  cv.circle(cx,cy,R,'#0d1014');ring(cv,cx,cy,R,5,'#5a616b');cv.arc(cx,cy,R-30,R-19,A(f.redline),135,'#e0262f');
-  for(let k=0;k*1000<=max;k++){const a=A(k*1000),o=pt(a,R-2),i=pt(a,R-24),l=pt(a,R-46),hot=k*1000>=f.redline;cv.line(o[0],o[1],i[0],i[1],5,hot?'#e0262f':'#f2f4f7');cv.text(String(k),l[0],l[1]+11,30,hot?'#ff4a55':'#f2f4f7',{align:'center',font:'bold'});}
-  for(let k=500;k<max;k+=1000){const a=A(k),o=pt(a,R-2),i=pt(a,R-13);cv.line(o[0],o[1],i[0],i[1],3,'#9aa6b6');}
-  cv.text('1/min x1000',cx,200,17,C.dim,{align:'center'});
-  const tip=pt(A(isNum(d.rpm)?d.rpm:0),R-26);cv.line(cx,cy,tip[0],tip[1],7,q.flash&&q.on?h.P.flash:'#ff2a1a');cv.circle(cx,cy,20,'#1a1e24');ring(cv,cx,cy,20,3,'#5a616b');}
- if(want(f,'alert')){const lit=q.flash?15:Math.floor(q.p*5+1e-6)*3;for(let i=0;i<5;i++){const col=i<2?h.P.low:i<4?h.P.mid:h.P.high,on=q.flash?q.on:i*3<lit;cv.circle(504+i*20,165,6,on?(q.flash?h.P.flash:col):C.off);}}
- if(want(f,'gear'))cv.text(h.gearText(d),cx,330,64,C.text,{align:'center',font:h.gearFont(f.opts)});
- if(want(f,'mode')&&f.mode)cv.text(f.mode,cx+40,300,26,C.accent,{font:'bold'});
- if(want(f,'rpm'))cv.text(rpmText(d)+' rpm',cx,372,26,'#9aa6b6',{align:'center',font:'bold',spacing:3});
- const dial=[[264,250,85,40],[824,250,85,40],[99,260,70,32],[989,260,70,32]];
- dial.forEach((g,i)=>{if(!want(f,'read'+'ABCD'[i])||!f.readouts[i])return;const [x,y,r,vs]=g;ring(cv,x,y,r,4,'#3a4048');readout(cv,f.readouts[i],x,y-12,r>80?20:18,vs,'center');});
-}
-const DRAW={shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,fivedial:drawFiveDials};
+const DRAW={shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon};
 // Each layout draws in one pass (no separate background layer); the bg layer request draws nothing.
 function drawX(cv,f,layer,h){if(layer==='bg')return;DRAW[f.opts.style](h.scaled(cv,S,0,0),f,h);}
 module.exports={STYLES:Object.keys(DRAW),IH,drawX};
