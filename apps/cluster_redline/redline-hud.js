@@ -54,14 +54,23 @@ function drawSized(state,w,h){const {Canvas}=kit(),cv=new Canvas(Math.max(1,Math
 function draw(state){return drawSized(state,IW);}
 // Where it sits on the HUD: centred on the RPM face's placement, 400x130 at the default 75 % HUD size,
 // moved and sized with the RPM gauge part (Position / size).
+// The layout's drawn extent (union of its elements, the M mark aside) in image units, from a full frame.
+function extent(cfg,d){
+ const st={config:cfg,rpm:0,gear:'--',aux:{}};let u=null;
+ elements(cfg,d).filter(e=>e.id!=='mark').forEach(e=>{const b=bounds(st,e.id,d);if(!b)return;u=u?{x0:Math.min(u.x0,b.x),y0:Math.min(u.y0,b.y),x1:Math.max(u.x1,b.x+b.w),y1:Math.max(u.y1,b.y+b.h)}:{x0:b.x,y0:b.y,x1:b.x+b.w,y1:b.y+b.h};});
+ return u||{x0:0,y0:0,x1:IW,y1:heightOf(style(cfg,d))};
+}
+// Where the whole layout goes: each layout fitted to the visible area (the HUD's 600x180 window, or the
+// cluster area) at 100 %, sized by Whole layout's Size and moved by its X / Y, and kept inside the area:
+// its size is capped and its position clamped so the drawn extent never leaves it.
 function rect(cfg,face,d){
- // On the cluster: 800x260 at 100 %, centred in the cluster area, moved in its pixels.
- if(d==='cluster'){const k=face.w/1088*2*(cfg.clusterRpmGaugeWidthScale||100)/100,w=Math.round(IW*k),h=Math.round(heightOf(style(cfg,d))*k);
-  const x=Math.round(face.x+(face.w-w)/2+(cfg.clusterRpmGaugeOffsetX||0)*face.w/1088),y=Math.round(face.y+(face.h-h)/2+(cfg.clusterRpmGaugeOffsetY||0)*face.h/480);
-  return {x:Math.max(face.x,Math.min(face.x+face.w-w,x)),y:Math.max(face.y,Math.min(face.y+face.h-h,y)),w,h};}
- const k=face.w/600*(cfg.hudRpmGaugeWidthScale||100)/100,w=Math.round(IW*k),h=Math.round(heightOf(style(cfg,d))*k);
- const x=Math.round(face.x+face.w/2-w/2+(cfg.hudRpmGaugeOffsetX||0)*face.w/800),y=Math.round(face.y+10*face.h/240+(cfg.hudRpmGaugeOffsetY||0)*face.h/240);
- return {x:Math.max(0,Math.min(800-w,x)),y:Math.max(0,Math.min(480-h,y)),w,h};
+ const p=(d||'hud')+'RpmGauge',u=extent(cfg,d),uw=u.x1-u.x0,uh=u.y1-u.y0,cl=d==='cluster';
+ const base=cl?face.w/1088*2:face.w/600,fit=Math.min(1,(face.w-8)/(uw*base),(face.h-8)/(uh*base)),cap=Math.min((face.w-4)/uw,(face.h-4)/uh);
+ const k=Math.min(cap,base*fit*(cfg[p+'WidthScale']||100)/100),w=Math.round(IW*k),h=Math.round(heightOf(style(cfg,d))*k);
+ const ox=(cfg[p+'OffsetX']||0)*face.w/(cl?1088:800),oy=(cfg[p+'OffsetY']||0)*face.h/(cl?480:240);
+ const ex=face.x+(face.w-uw*k)/2+ox,ey=cl?face.y+(face.h-uh*k)/2+oy:face.y+Math.min(8*face.h/180,(face.h-uh*k)/2)+oy;
+ const cx=Math.max(face.x+2,Math.min(face.x+face.w-2-uw*k,ex)),cy=Math.max(face.y+2,Math.min(face.y+face.h-2-uh*k,ey));
+ return {x:Math.round(cx-u.x0*k),y:Math.round(cy-u.y0*k),w,h};
 }
 // Elements of each layout that move, size and hide on their own (Position / size), in drawing order.
 // Readouts are one group on the bar layouts and one element each on the M layouts.
@@ -110,7 +119,7 @@ function bounds(state,id,d){
  if(id==='mark')return Object.assign({},MARK,MARK_AT[style(state.config,d)]||{});
  const cfg=state.config,f=frame(Object.assign({},state,{rpm:cfg.maxRpm,gear:'M8',flash:true}),0,d);
  f.d=Object.assign({},f.d,{rpm:f.max,gear:8,stage:'D'});f.mode='M';f.blink=true;f.cue=Object.assign({},f.cue,{shift:true});
- f.readouts=(f.readouts||[]).map(r=>Object.assign({},r,{value:'88.88'}));f.only=id;
+ f.readouts=(f.readouts||[]).map(r=>Object.assign({},r,{value:'88.88'}));f.drive='COMFORT';f.only=id;   // the longest drive-mode name
  const k=JSON.stringify([id,f.opts.style,f.max,f.redline,f.readouts.map(r=>r.label)]);
  if(boundsCache.has(k))return boundsCache.get(k);
  const cv=bboxCanvas();kit().DRAW.drawLayer(cv,f);
@@ -129,9 +138,12 @@ function partPainter(state,id,b,r,d){
  return {W:r.w,H:r.h,draw:v=>{const {Canvas,DRAW}=kit(),cv=new Canvas(r.w,r.h),k=r.w/b.w;cv.clear([0,0,0,0]);const f=frame(v,0,d);f.only=id;DRAW.drawLayer(DRAW.scaled(cv,k,-b.x*k,-b.y*k),f);return cv;}};
 }
 // The visible elements with their places: [{id, key, b, r}].
-function placed(state,layout,d){
+function clampTo(r,face){if(!face)return r;const w=Math.min(r.w,face.w),h=Math.min(r.h,face.h),s=Math.min(w/r.w,h/r.h),W=Math.max(1,Math.round(r.w*s)),H=Math.max(1,Math.round(r.h*s));
+ return {x:Math.max(face.x,Math.min(face.x+face.w-W,r.x)),y:Math.max(face.y,Math.min(face.y+face.h-H,r.y)),w:W,h:H};}
+// face: the visible area; a moved or enlarged element is kept inside it.
+function placed(state,layout,d,face){
  const cfg=state.config,p=d||'hud';
- return elements(cfg,d).filter(e=>!cfg[p+e.key+'Hidden']).map(e=>{const b=bounds(state,e.id,d);return b&&Object.assign({b,r:partRect(cfg,layout,b,e.key,d)},e);}).filter(Boolean);
+ return elements(cfg,d).filter(e=>!cfg[p+e.key+'Hidden']).map(e=>{const b=bounds(state,e.id,d);return b&&Object.assign({b,r:clampTo(partRect(cfg,layout,b,e.key,d),face)},e);}).filter(Boolean);
 }
 function key(state,d){const f=frame(state,0,d);return JSON.stringify([f.opts.style,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode]);}
-module.exports={STYLES,NAMES,IW,IH,heightOf,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,elements,bounds,partRect,partPainter,placed};
+module.exports={STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,elements,bounds,partRect,partPainter,placed};

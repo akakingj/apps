@@ -62,7 +62,7 @@ const CL=require(root+'/draw');
 const cl=settings({clusterDesign:'rl-arc',clusterAuxConfig:AUX,hudDesign:'own'}),clState=Object.assign(stateOf(cl),{mode:'SPORT'});
 assert(RL.active(cl,'cluster')&&!RL.active(cl,'hud'),'cluster and HUD designs are separate');
 assert.deepStrictEqual(D.partsFor('cluster',cl).map(p=>p.key),['RpmGauge','RlGear','RlMode','RlAlert','RlGauge','RlReadA','RlReadB','RlReadC','RlReadD','RlMark']);
-const area={x:0,y:0,w:1088,h:480},lay=RL.rect(cl,area,'cluster');assert.deepStrictEqual([lay.w,lay.h],[800,260],'800x260 at 100 %');assert.strictEqual(lay.x,144);
+const area={x:0,y:0,w:1088,h:480},lay=RL.rect(cl,area,'cluster');assert.deepStrictEqual([lay.w,lay.h],[800,260],'800x260 at 100 %');{const u=RL.extent(cl,'cluster'),k=lay.w/RL.IW;assert(Math.abs(lay.x+(u.x0+u.x1)/2*k-544)<=1,'drawn extent centred');}
 const img=CL.draw(clState);assert.strictEqual(img.w,1088);
 let lit=0;for(let i=3;i<img.d.length;i+=4)if(img.d[i])lit++;assert(lit>20000,'cluster layout drawn ('+lit+' px)');
 const clMoved=settings(Object.assign({},cl,{clusterRlGearOffsetX:100,clusterRlReadDHidden:true}));
@@ -95,4 +95,26 @@ mp.adjust(0,1);assert.strictEqual(mv.hudRlMarkOffsetX,10);mp.saveSlot(2);mp.togg
 mp.loadSlot(2);assert.strictEqual(mv.hudRlMarkHidden,false,'saved and loaded with the layout');mp.resetLayout();mp.resetLayout();assert.strictEqual(mv.hudRlMarkHidden,true,'reset: off');
 const drawn=[];const ecv=new Canvas(1600,520),text=ecv.text;ecv.text=function(v){drawn.push(String(v));return text.apply(this,arguments);};mp.toggleMMark();mp.draw(ecv,null,null);
 assert(mp.layoutActions.every(a=>a.x+a.w<=1600&&a.y+a.h<=520),'editor buttons fit');
+// 7. Each layout keeps its own positions; every layout stays inside the visible area (HUD 600x180 window,
+// cluster area) at any size or offset, elements too; Whole layout has one Size control; the design page's
+// two own-design pictures stay themselves while a Redline layout is chosen.
+{const {placement}=require(root+'/layout'),HUDP=require(root+'/hud-draw'),pv={};spec.settings.forEach(x=>{pv[x.key]=x.default;});pv.hudAuxConfig=AUX;
+ const pg=new SettingsPage({schema:spec.settings,get:k=>pv[k],set:(k,v)=>{pv[k]=v;},setMany(c){Object.assign(pv,c);}},null,'1.2.18');pg.selectTab(1);
+ const pick=st=>{pg.activate(pg.keys().indexOf('design'));pg.choose(2);pg.choose(RL.STYLES.indexOf(st));};
+ pick('arc');pg.activate(pg.keys().indexOf('layout'));pg.selectLayoutPart(1,true);pg.adjust(0,1);pg.adjust(0,1);pg.back();assert.strictEqual(pv.hudRlGearOffsetX,20);
+ pick('ramp');assert.strictEqual(pv.hudRlGearOffsetX,0,'another layout starts from its own (default) positions');pv.hudRlGearOffsetX=-30;
+ pick('arc');assert.strictEqual(pv.hudRlGearOffsetX,20,'back on Arc: its positions again');pick('ramp');assert.strictEqual(pv.hudRlGearOffsetX,-30);
+ pg.activate(pg.keys().indexOf('design'));pg.choose(0);assert.strictEqual(pv.hudDesign,'own');assert.strictEqual(pv.hudRlGearOffsetX,0);
+ pg.activate(pg.keys().indexOf('design'));assert.strictEqual(pg.choice,0,'own design focused');pick('arc');pg.activate(pg.keys().indexOf('design'));assert.strictEqual(pg.choice,2,'Redline layout focused');pg.back();
+ assert(D.partsFor('hud',settings({hudDesign:'rl-arc'}))[0].uniform,'Whole layout: one Size control');
+ const inside=(r,f)=>r.x>=f.x-1&&r.y>=f.y-1&&r.x+r.w<=f.x+f.w+1&&r.y+r.h<=f.y+f.h+1;
+ for(const d of ['hud','cluster'])for(const st of RL.STYLES)for(const ex of [{},{[d+'RpmGaugeWidthScale']:200,[d+'RpmGaugeOffsetX']:900,[d+'RpmGaugeOffsetY']:900},{[d+'RpmGaugeOffsetX']:-900,[d+'RpmGaugeOffsetY']:-900},{[d+'RlGearWidthScale']:200,[d+'RlGearOffsetX']:700,[d+'RlMarkHidden']:false,[d+'RlMarkOffsetY']:-700}]){
+  const c=settings(Object.assign({[d+'Design']:'rl-'+st,[d+'AuxConfig']:AUX},ex)),f=d==='hud'?placement(c,'hud',HUDP):{x:0,y:0,w:1088,h:480},l=RL.rect(c,f,d);
+  RL.placed({config:c,rpm:0,gear:'--',aux:{}},l,d,f).forEach(e=>assert(inside(e.r,f),[d,st,JSON.stringify(ex),e.id,JSON.stringify(e.r)].join(' ')));}
+ const own=settings({clusterDesign:'rl-hexagon'}),a1=CL.draw({config:Object.assign({},own,{clusterDesign:'own',clusterAlertStyle:'bar'}),rpm:4000,gear:'D3',aux:{}});
+ const page2=new SettingsPage({schema:spec.settings,get:k=>({clusterDesign:'rl-hexagon'})[k]!==undefined?'rl-hexagon':pv[k],set(){},setMany(){}},null,'1.2.18');
+ let calls=[];page2.preview=function(cv,c,x,y,w,d){calls.push(c[d+'Design']);};page2.selectTab(2);page2.activate(page2.keys().indexOf('design'));page2.draw(new Canvas(1600,520),null,null);
+ assert.deepStrictEqual(calls,['own','own'],'the two design pictures stay the own designs');}
+{const rb=settings({hudDesign:'rl-ribbon'}),m0=RL.bounds({config:rb,rpm:0,gear:'--',aux:{}},'mode','hud'),m1=RL.bounds({config:rb,rpm:0,gear:'--',aux:{},mode:'SPORT'},'mode','hud');
+ assert.deepStrictEqual(m0,m1,'mode extent independent of the live drive mode');const {Canvas:C2}=require(root+'/kit/canvas'),w=new C2(1,1).textWidth(require(root+'/strings').language()==='ko'?'컴포트':'COMFORT',34*400/1088,{font:'bold'});assert(m0.w>=w,'room for the longest drive-mode name');}
 console.log('PASS: Redline layouts split into elements matching the original image; each moves, sizes uniformly and hides; Whole layout still moves all; Position / size lists them and saves, loads and resets them; the same on the cluster with its own settings');

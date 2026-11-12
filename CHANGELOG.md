@@ -13,6 +13,14 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.18
+
+- **Positions and sizes per layout**: each design (the Cluster Redline design and every Redline layout, on the HUD and on the cluster separately) keeps its own Whole layout and element positions, sizes and hidden elements. Switching design saves the current one's and brings back the new one's (its defaults the first time). Save / load slots and Reset act on the current design.
+- **Every layout inside the visible area**: a layout is fitted at 100 % to the HUD's 600x180 window (or the cluster area) by its drawn extent, so the taller layouts no longer reach past the bottom; a larger Size is capped and X / Y are clamped so the layout never leaves the window, and a moved or enlarged element is kept inside it too. Before, 380 combinations of layout, size and offset left the window.
+- **Whole layout has one Size control** on a Redline layout. It showed Width and Height, and Height did nothing.
+- The Design page's two pictures (Top alert bar, Circle beside gear) show those designs again while a Redline layout is chosen, and the Redline layouts button is the focused one then.
+- Mode ribbon's drive-mode name is measured at its longest, so it is no longer cut off.
+
 ### 1.2.17
 
 - Minimal and Split wings are no longer offered: Standard with elements hidden in Position / size covers them. The picker holds thirteen layouts; a display set to either falls back to the Cluster Redline design.

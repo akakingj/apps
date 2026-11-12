@@ -74,7 +74,7 @@ class SettingsPage{
   if(index!==undefined)this.focus=index;const item=this.item();if(!item)return;
   this.choice=0;
   if(item.key==='aux')this.open='auxMode';
-  else if(item.key==='design'){this.open='design';this.choice=this.config()[this.display()+'AlertStyle']==='circle'?1:0;}
+  else if(item.key==='design'){this.open='design';this.choice=RL.active(this.config(),this.display())?2:this.config()[this.display()+'AlertStyle']==='circle'?1:0;}
   else if(item.key==='layout'){this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set([this.layoutParts()[0].key]);this.setPreview(true);}
   else if(item.type==='bool'){this.change(1);return;}
   else{this.open=item.key;this.choice=Math.max(0,options(item,this.config()).findIndex(o=>o[0]===this.settings.get(item.key)));}
@@ -86,8 +86,8 @@ class SettingsPage{
   if(this.open==='auxSelect'){if(index===D.METRICS.length)this.commitAux();else if(index===D.METRICS.length+1)this.toggleClockZone();else this.toggleMetric(D.METRICS[index]);return;}
   if(this.open==='design'){
    if(index===2){this.open='rlDesign';this.choice=Math.max(0,RL.STYLES.indexOf(RL.style(this.config(),this.display())));this.changed();return;}
-   const values={[this.display()+'AlertStyle']:index===1?'circle':'bar'};values[this.display()+'Design']='own';this.setValues(values);this.open=null;this.changed();return;}
-  if(this.open==='rlDesign'){const st=RL.STYLES[index];if(st){this.settings.set(this.display()+'Design','rl-'+st);this.open=null;this.changed();}return;}
+   const values=this.designSwitch('own');values[this.display()+'AlertStyle']=index===1?'circle':'bar';this.setValues(values);this.open=null;this.changed();return;}
+  if(this.open==='rlDesign'){const st=RL.STYLES[index];if(st){this.setValues(this.designSwitch('rl-'+st));this.open=null;this.changed();}return;}
   const list=options(this.item(),this.config());if(!list[index])return;
   this.settings.set(this.item().key,list[index][0]);if(this.item().key==='navDisplayMode')this.settings.set('hudNavigationEnabled',true);this.open=null;this.changed();
  }
@@ -166,7 +166,7 @@ class SettingsPage{
  drawDesign(cv,cfg,targets){
   const display=this.display();['Top alert bar','Circle beside gear'].forEach((label,i)=>{
    const x=84+i*740;this.button(cv,targets,label,x,106,712,64,()=>this.choose(i),this.choice===i,'design'+i);
-   const preview=Object.assign({},cfg);preview[display+'AlertStyle']=i?'circle':'bar';this.preview(cv,preview,x+10,182,display==='cluster'?590:690,display);
+   const preview=Object.assign({},cfg);preview[display+'AlertStyle']=i?'circle':'bar';preview[display+'Design']='own';this.preview(cv,preview,x+10,182,display==='cluster'?590:690,display);
   });this.button(cv,targets,tr('Redline app layouts')+(RL.active(cfg,display)?' · '+tr(RL.NAMES[RL.style(cfg,display)]):''),84,448,1100,64,()=>this.choose(2),RL.active(cfg,display),'design2');
   this.backButton(cv,targets);
  }
@@ -229,6 +229,17 @@ class SettingsPage{
   const show=parts.length&&parts.every(p=>cfg[this.layoutPrefix(p)+suffix]);
   const values=this.previewRefresh();parts.forEach(p=>{values[this.layoutPrefix(p)+suffix]=!show;});this.setValues(values);this.changed();
  }
+ // Each design keeps its own Whole layout / element positions and sizes: switching saves the current
+ // design's values under it (in <display>RlLayouts, outside app.json) and brings back the new design's,
+ // or its defaults the first time. Returns the values to set.
+ designSwitch(next){
+  const d=this.display(),cur=this.config()[d+'Design']||'own',values={[d+'Design']:next};if(cur===next)return values;
+  const keys=['RpmGauge'].concat(D.RL_PARTS).reduce((a,p)=>a.concat(['OffsetX','OffsetY','WidthScale','HeightScale','Hidden'].map(x=>d+p+x)),[]);
+  let saved={};try{saved=JSON.parse(this.settings.get(d+'RlLayouts')||'{}')||{};}catch(e){saved={};}
+  const now={};keys.forEach(k=>{const v=this.settings.get(k);if(v!==undefined)now[k]=v;});saved[cur]=now;
+  const back=saved[next]||{};keys.forEach(k=>{values[k]=back[k]!==undefined?back[k]:defaultOf(this.settings.schema,k);});
+  values[d+'RlLayouts']=JSON.stringify(saved);return values;
+ }
  // Add or remove the M mark on a Redline layout; added, it is selected so it can be moved straight away.
  toggleMMark(){const d=this.display(),on=!this.config()[d+'RlMarkHidden'],values=this.previewRefresh();values[d+'RlMarkHidden']=on;this.setValues(values);
   if(!on){const i=this.layoutParts().findIndex(p=>p.key==='RlMark');if(i>=0){this.layoutPart=i;this.layoutSelected=new Set(['RlMark']);}}this.changed();}
@@ -265,7 +276,7 @@ class SettingsPage{
   });
   let width,height;
   if(nav){const rect=D.navRect(cfg,selected.key);width=rect.w;height=rect.h;}
-  else if(RL.active(cfg,display)){const layout=display==='hud'?RL.rect(cfg,placement(cfg,'hud',HUD)):RL.rect(cfg,{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},'cluster'),e=RL.elements(cfg,display).find(v=>v.key===selected.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display),r=b?RL.partRect(cfg,layout,b,e.key,display):layout;width=r.w;height=r.h;}
+  else if(RL.active(cfg,display)){const face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display),e=RL.elements(cfg,display).find(v=>v.key===selected.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display),r=b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),face):layout;width=r.w;height=r.h;}
   else{const painter=display==='hud'?HUD:CLUSTER,b=measurePart(painter,{config:cfg,rpm:0,gear:this.liveState&&this.liveState.gear||'--'},display,selected.key,cv)||{w:0,h:0},r=placement(cfg,display==='hud'?'hud':cfg.displayTarget==='panel'?'panel':'map',painter);width=Math.round(b.w*cfg[prefix+'WidthScale']/100*r.w/painter.W);height=Math.round(b.h*cfg[prefix+'HeightScale']/100*r.h/painter.H);}
   cv.text(group.length?group.length+' '+t('selected')+' · '+tr(selected.label):t('Select items to adjust'),84,456,21,'#b8c5d4',{literal:true});
   cv.text(group.length?'X '+cfg[prefix+'OffsetX']+' · Y '+cfg[prefix+'OffsetY']+' · '+width+' × '+height+' px':'',84,500,21,'#ffad45',{literal:true});

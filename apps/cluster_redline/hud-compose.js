@@ -13,7 +13,7 @@ function draw(state) {
         if(RL.active(state.config)){
             // A Redline app layout replaces the RPM face; painted at HUD size (no resampling).
             // "Whole layout" (the RPM gauge part) places it; each element then has its own move, size and hide.
-            if(!state.config.hudRpmGaugeHidden){const key=RL.key(state);RL.placed(state,RL.rect(state.config,at)).forEach(e=>{const painter=RL.partPainter(state,e.id,e.b,e.r);if(cache)cache.navigation('redline.'+e.id,key,painter,state,e.r);else blitScaled(cv,painter.draw(state),e.r);});}
+            if(!state.config.hudRpmGaugeHidden){const key=RL.key(state);RL.placed(state,RL.rect(state.config,at,'hud'),'hud',at).forEach(e=>{const painter=RL.partPainter(state,e.id,e.b,e.r);if(cache)cache.navigation('redline.'+e.id,key,painter,state,e.r);else blitScaled(cv,painter.draw(state),e.r);});}
         }else drawWithParts(face,state,cv,at,'hud');
     }
     if(D.navAllowed(state.config,state.mode)&&state.navigation&&state.navigation.visible){
