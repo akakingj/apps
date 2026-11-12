@@ -70,10 +70,11 @@ function extent(cfg,d){
 function safe(face,d){if(!face||d==='cluster')return face;const x=Math.round(face.w*0.04),t=Math.round(face.h*0.15),b=Math.round(face.h*0.05);return {x:face.x+x,y:face.y+t,w:face.w-2*x,h:face.h-t-b};}
 function room(face,d){return d==='cluster'||!face||!face.tw?face:{x:0,y:0,w:face.tw,h:face.th};}
 // HUD defaults per layout, tuned on the car (1.2.21): Whole layout this many Down presses (10 each) lower,
+// lift: an element's extra [x, y] (or y) in presses of 10,
 // and the readouts (and Hexagon's RPM number) this much larger. Added to what Position / size stores, so
 // stored 0 / 100 % is this default and Reset brings it back.
 const HUD_BASE={standard:{y:10},digital:{y:10},vfd:{y:10},arc:{y:30},ramp:{y:10},dial:{y:20},
- shift:{y:30,read:200,lift:{RlRead:-40}},logger:{},needle:{y:20,read:150,lift:{RlReadA:-30,RlReadB:-30}},rings:{y:20,read:120,lift:{RlRead:-30}},ribbon:{y:20,read:120},hexagon:{y:30,read:200,rpm:150,lift:{RlReadA:-30,RlReadC:-30}}};
+ shift:{y:30,read:200,lift:{RlRead:-40}},logger:{},needle:{y:20,read:150,lift:{RlReadA:-80,RlReadB:-80}},rings:{y:30,read:120,lift:{RlRead:-30}},ribbon:{y:0,read:120},hexagon:{y:30,read:200,rpm:150,lift:{RlReadA:[50,-30],RlReadB:[50,-30],RlReadC:[-50,-30],RlReadD:[-50,-30]}}};
 function hudBase(cfg,d){return d==='cluster'?{}:HUD_BASE[style(cfg,d)]||{};}
 function baseScale(cfg,d,key){const b=hudBase(cfg,d);return (/^RlRead/.test(key)?b.read:key==='RlRpm'?b.rpm:0)||100;}
 function rect(cfg,face0,d){
@@ -163,7 +164,7 @@ function placed(state,layout,d,face0){
  const reads=list.filter(v=>/^RlRead/.test(v.e.key)),f=reads.length>1?baseScale(cfg,p,'RlRead')/100:1;
  const C=reads.length?{x:reads.reduce((a,v)=>a+v.b.x+v.b.w/2,0)/reads.length,y:reads.reduce((a,v)=>a+v.b.y+v.b.h/2,0)/reads.length}:null;
  const lift=hudBase(cfg,p).lift||{};
- return list.map(({e,b})=>{const spread=f!==1&&/^RlRead/.test(e.key)?{x:(b.x+b.w/2-C.x)*(f-1),y:(b.y+b.h/2-C.y)*(f-1)+(lift[e.key]||0)}:lift[e.key]?{x:0,y:lift[e.key]}:null;
+ return list.map(({e,b})=>{const L=Array.isArray(lift[e.key])?lift[e.key]:[0,lift[e.key]||0],spread=f!==1&&/^RlRead/.test(e.key)?{x:(b.x+b.w/2-C.x)*(f-1)+L[0],y:(b.y+b.h/2-C.y)*(f-1)+L[1]}:L[0]||L[1]?{x:L[0],y:L[1]}:null;
   return Object.assign({b,r:clampTo(partRect(cfg,layout,b,e.key,d,spread),wholeMoved||cfg[p+e.key+'OffsetX']||cfg[p+e.key+'OffsetY']?face:band)},e);});
 }
 function key(state,d){const f=frame(state,0,d);return JSON.stringify([f.opts.style,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode]);}
