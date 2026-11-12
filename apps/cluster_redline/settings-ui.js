@@ -12,7 +12,7 @@ const MAP_WARNING='Set Central display area to Map view or Off. Assist or route 
 const HUD_WARNING='HUD navigation shows received turn guidance; unavailable data preserves stock guidance.';
 // Keys saved, loaded and reset by the position/size presets of each tab.
 const RL_KEYS=Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k)),defaultOf=(schema,k)=>{const d=schema.find(s=>s.key===k);return d&&d.default!==undefined?d.default:DEFAULTS[k];};
-const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlGMeter|RlRead|RlReadA|RlReadB|RlReadC|RlReadD)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
+const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlGMeter|RlRead|RlReadA|RlReadB|RlReadC|RlReadD|RlMark)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
 const NAV_KEYS=['hudNavOffsetX','hudNavOffsetY','navUniformScale','hudNavWidthScale','hudNavHeightScale','hudTextOffsetX','hudTextOffsetY','hudTextScale','hudLanesOffsetX','hudLanesOffsetY','hudLanesScale','hudNavHidden','hudTextHidden','hudLanesHidden'];
 function layoutKeys(tab,schema){
  const name=tab===3?'nav':tab===2?'cluster':'hud',known=new Set(schema.map(s=>s.key));
@@ -229,6 +229,9 @@ class SettingsPage{
   const show=parts.length&&parts.every(p=>cfg[this.layoutPrefix(p)+suffix]);
   const values=this.previewRefresh();parts.forEach(p=>{values[this.layoutPrefix(p)+suffix]=!show;});this.setValues(values);this.changed();
  }
+ // Add or remove the M mark on a Redline layout; added, it is selected so it can be moved straight away.
+ toggleMMark(){const d=this.display(),on=!this.config()[d+'RlMarkHidden'],values=this.previewRefresh();values[d+'RlMarkHidden']=on;this.setValues(values);
+  if(!on){const i=this.layoutParts().findIndex(p=>p.key==='RlMark');if(i>=0){this.layoutPart=i;this.layoutSelected=new Set(['RlMark']);}}this.changed();}
  adjust(param,delta){
   this.layoutParam=param;const cfg=this.config(),nav=this.tab===3,parts=this.selectedLayoutParts();if(!parts.length)return;
   if(!nav&&(parts.length>1||parts.some(p=>p.uniform))&&param>=2){
@@ -247,10 +250,11 @@ class SettingsPage{
  }
  drawLayout(cv,cfg,targets){
   const local=[],nav=this.tab===3,display=this.display(),parts=this.layoutParts();this.layoutPart=Math.min(this.layoutPart,parts.length-1);
-  const columns=5,cell=292;
-  parts.forEach((p,i)=>this.button(cv,local,tr(p.label),84+(i%columns)*cell,96+Math.floor(i/columns)*62,278,56,()=>this.selectLayoutPart(i),this.layoutSelected.has(p.key),'part'+i));
-  const presetCell=parts.length<=4?4:9;
-  this.button(cv,local,tr('Save / load'),84+(presetCell%columns)*cell,96+Math.floor(presetCell/columns)*62,278,56,()=>{this.open='layoutPresets';this.choice=0;this.resetArmed=false;this.presetMessage='';this.changed();},false,'presets');
+  // Five columns, or six when a layout has many elements (two rows with Save / load in the last cell).
+  const columns=parts.length>=10?6:5,cell=columns===6?243:292;
+  parts.forEach((p,i)=>this.button(cv,local,tr(p.label),84+(i%columns)*cell,96+Math.floor(i/columns)*62,cell-14,56,()=>this.selectLayoutPart(i),this.layoutSelected.has(p.key),'part'+i));
+  const presetCell=parts.length<=columns-1?columns-1:2*columns-1;
+  this.button(cv,local,tr('Save / load'),84+(presetCell%columns)*cell,96+Math.floor(presetCell/columns)*62,cell-14,56,()=>{this.open='layoutPresets';this.choice=0;this.resetArmed=false;this.presetMessage='';this.changed();},false,'presets');
   const selected=parts[this.layoutPart],prefix=this.layoutPrefix(selected),group=this.selectedLayoutParts();
   cv.text('Position',100,241,28,'#b8c5d4');
   const btn=(label,x,y,act,id)=>this.button(cv,local,label,x,y,110,56,act,false,id);
@@ -268,7 +272,9 @@ class SettingsPage{
   cv.text(nav||uniform?'Width and height scale together.':'Width / height difference limited to 30%.',790,432,18,'#a8b6c8');
   const hidden=group.length&&group.every(p=>cfg[this.layoutPrefix(p)+'Hidden']);
   const marks=!nav&&group.some(p=>/^Mark/.test(p.key));
-  this.button(cv,local,hidden?'Show selected':'Hide selected',650,448,marks?260:540,56,()=>this.toggleHidden(false),hidden,'toggle-Hidden');
+  const mMark=!nav&&parts.some(p=>p.key==='RlMark'),markOn=mMark&&!cfg[display+'RlMarkHidden'];
+  this.button(cv,local,hidden?'Show selected':'Hide selected',650,448,marks||mMark?260:540,56,()=>this.toggleHidden(false),hidden,'toggle-Hidden');
+  if(mMark)this.button(cv,local,tr(markOn?'Remove M mark':'Add M mark'),930,448,260,56,()=>this.toggleMMark(),markOn,'toggle-MMark');
   if(marks){const list=group.filter(p=>/^Mark/.test(p.key)),lines=list.every(p=>cfg[this.layoutPrefix(p)+'LineHidden']);this.button(cv,local,lines?'Show line':'Hide line',930,448,260,56,()=>this.toggleHidden(true),lines,'toggle-LineHidden');}
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }

@@ -13,12 +13,12 @@ function compose(state,at){const cv=new Canvas(800,480);cv.clear([0,0,0,0]);RL.p
 function litBox(cv,r){let n=0;for(let y=Math.max(0,r.y);y<Math.min(cv.h,r.y+r.h);y++)for(let x=Math.max(0,r.x);x<Math.min(cv.w,r.x+r.w);x++)if(cv.d[(y*cv.w+x)*4+3])n++;return n;}
 
 // 1. At default positions every layout looks as the single Redline image did.
-const expected={standard:['mode','gear','alert','gauge','read'],minimal:['mode','gear','alert'],wings:['mode','alert','gauge','gear'],digital:['mode','alert','gauge','gear','rpm','read'],
- vfd:['mode','alert','gauge','gear','rpm','read'],vector:['mode','gear','alert','gauge','read'],arc:['alert','gauge','gear','mode','readD','readA','readB','readC'],
- ramp:['gauge','readB','readC','readD','gear','mode','readA'],dial:['gauge','readB','readC','readD','gear','mode','readA'],
- shift:['alert','gear','mode','rpm','read'],logger:['gauge','gear','mode','rpm','readA','readB','readC','readD'],needle:['gauge','gear','mode','readA','readB','readC','readD'],
- rings:['gmeter','gauge','gear','mode','rpm','read'],ribbon:['gauge','gear','mode','readA','readB','readC','readD'],
- hexagon:['gauge','alert','gear','mode','rpm','readA','readB','readC','readD']};
+const expected={standard:['mode','gear','alert','gauge','read','mark'],minimal:['mode','gear','alert','mark'],wings:['mode','alert','gauge','gear','mark'],digital:['mode','alert','gauge','gear','rpm','read','mark'],
+ vfd:['mode','alert','gauge','gear','rpm','read','mark'],vector:['mode','gear','alert','gauge','read','mark'],arc:['alert','gauge','gear','mode','readD','readA','readB','readC','mark'],
+ ramp:['gauge','readB','readC','readD','gear','mode','readA','mark'],dial:['gauge','readB','readC','readD','gear','mode','readA','mark'],
+ shift:['alert','gear','mode','rpm','read','mark'],logger:['gauge','gear','mode','rpm','readA','readB','readC','readD','mark'],needle:['gauge','gear','mode','readA','readB','readC','readD','mark'],
+ rings:['gmeter','gauge','gear','mode','rpm','read','mark'],ribbon:['gauge','gear','mode','readA','readB','readC','readD','mark'],
+ hexagon:['gauge','alert','gear','mode','rpm','readA','readB','readC','readD','mark']};
 RL.STYLES.forEach(st=>{
  const cfg=settings({hudDesign:'rl-'+st,hudAuxConfig:AUX}),state=stateOf(cfg);
  assert.deepStrictEqual(RL.elements(cfg).map(e=>e.id),expected[st],st+' elements');
@@ -39,7 +39,7 @@ assert.deepStrictEqual(at(after,'gauge').r,at(before,'gauge').r,'other elements 
 assert(!at(after,'alert'),'hidden element not drawn');
 assert(Math.abs(at(after,'read').r.w-Math.round(at(before,'read').r.w*1.5))<=1,'readouts sized 150 %');
 const cv=compose(stateOf(moved));assert(litBox(cv,at(after,'gear').r)>100,'moved gear is drawn where it went');
-const hideAll=settings(Object.assign({},base,{hudRpmGaugeHidden:true}));assert.strictEqual(RL.elements(hideAll).length,5);assert(!D.faceVisible(hideAll,'hud'),'Whole layout hidden hides every element');
+const hideAll=settings(Object.assign({},base,{hudRpmGaugeHidden:true}));assert.strictEqual(RL.elements(hideAll).length,6);assert(!D.faceVisible(hideAll,'hud'),'Whole layout hidden hides every element');
 assert(D.faceVisible(base,'hud'));
 
 // 3. Position / size: parts listed, uniform size, save / load / reset with the other parts.
@@ -47,7 +47,7 @@ const values={};spec.settings.forEach(s=>{values[s.key]=s.default;});values.hudD
 const store={schema:spec.settings,get:k=>values[k],set:(k,v)=>{values[k]=v;},setMany(c){Object.assign(values,c);}};
 const page=new SettingsPage(store,null,'test');page.selectTab(1);page.activate(page.keys().indexOf('layout'));
 const parts=page.layoutParts();
-assert.deepStrictEqual(parts.map(p=>p.key),['RpmGauge','RlGear','RlMode','RlAlert','RlGauge','RlReadA','RlReadB','RlReadC','RlReadD']);
+assert.deepStrictEqual(parts.map(p=>p.key),['RpmGauge','RlGear','RlMode','RlAlert','RlGauge','RlReadA','RlReadB','RlReadC','RlReadD','RlMark']);
 assert.strictEqual(parts[0].label,'Whole layout');
 page.selectLayoutPart(1,true);page.adjust(0,1);page.adjust(1,-1);
 assert.strictEqual(values.hudRlGearOffsetX,10);assert.strictEqual(values.hudRlGearOffsetY,-10);
@@ -61,7 +61,7 @@ assert(!spec.settings.some(s=>/^hudRl/.test(s.key)),'kept outside app.json: the 
 const CL=require(root+'/draw');
 const cl=settings({clusterDesign:'rl-arc',clusterAuxConfig:AUX,hudDesign:'own'}),clState=Object.assign(stateOf(cl),{mode:'SPORT'});
 assert(RL.active(cl,'cluster')&&!RL.active(cl,'hud'),'cluster and HUD designs are separate');
-assert.deepStrictEqual(D.partsFor('cluster',cl).map(p=>p.key),['RpmGauge','RlGear','RlMode','RlAlert','RlGauge','RlReadA','RlReadB','RlReadC','RlReadD']);
+assert.deepStrictEqual(D.partsFor('cluster',cl).map(p=>p.key),['RpmGauge','RlGear','RlMode','RlAlert','RlGauge','RlReadA','RlReadB','RlReadC','RlReadD','RlMark']);
 const area={x:0,y:0,w:1088,h:480},lay=RL.rect(cl,area,'cluster');assert.deepStrictEqual([lay.w,lay.h],[800,260],'800x260 at 100 %');assert.strictEqual(lay.x,144);
 const img=CL.draw(clState);assert.strictEqual(img.w,1088);
 let lit=0;for(let i=3;i<img.d.length;i+=4)if(img.d[i])lit++;assert(lit>20000,'cluster layout drawn ('+lit+' px)');
@@ -76,10 +76,23 @@ const demand=require(root+'/data-demand').demand;
 const rings=settings({clusterDesign:'rl-rings',clusterAuxConfig:JSON.stringify({mode:'values',items:['oil']}),allClusterOutput:'redline',sportClusterOutput:'redline'});
 assert(demand(rings,'SPORT').aux.has('gforce'),'G-force read for the G meter even when it is not a readout');
 assert(!demand(settings(Object.assign({},rings,{clusterRlGMeterHidden:true})),'SPORT').aux.has('gforce'),'not with the G meter hidden');
-assert.deepStrictEqual(D.partsFor('cluster',rings).map(p=>p.key),['RpmGauge','RlGear','RlMode','RlRpm','RlGauge','RlGMeter','RlRead']);
+assert.deepStrictEqual(D.partsFor('cluster',rings).map(p=>p.key),['RpmGauge','RlGear','RlMode','RlRpm','RlGauge','RlGMeter','RlRead','RlMark']);
 const labels=items=>RL.frame(stateOf(settings({clusterDesign:'rl-logger',clusterAuxConfig:JSON.stringify({mode:'values',items})})),0,'cluster').readouts.map(r=>r.label);
 assert.notDeepStrictEqual(labels(['boost','torque']),labels(['oil','economy']),'readouts follow the chosen auxiliary items');assert.strictEqual(labels(['oil','torque','economy']).length,3);
 const ribbon=mode=>{const st=Object.assign(stateOf(settings({hudDesign:'rl-ribbon'})),{mode,rpm:4000});const cv=new Canvas(800,480);cv.clear([0,0,0,0]);RL.placed(st,{x:200,y:100,w:400,h:176}).filter(e=>e.id==='gauge').forEach(e=>blitScaled(cv,RL.partPainter(st,e.id,e.b,e.r).draw(st),e.r));
  const n={};for(let i=0;i<cv.d.length;i+=4)if(cv.d[i+3]>200){const k=cv.d[i]>200&&cv.d[i+2]<80?'orange':cv.d[i+2]>200&&cv.d[i]<120?'blue':cv.d[i+1]>180&&cv.d[i]<120?'green':'';if(k)n[k]=(n[k]||0)+1;}return Object.keys(n).sort((x,y)=>n[y]-n[x])[0];};
 assert.strictEqual(ribbon('SPORT'),'orange');assert.strictEqual(ribbon('COMFORT'),'blue');assert.strictEqual(ribbon('ECO_PRO'),'green');
+// 6. M mark: on every layout, HUD and cluster; off until added (Add / Remove M mark), then a normal element.
+RL.STYLES.forEach(st=>assert(RL.elements(settings({hudDesign:'rl-'+st}),'hud').some(e=>e.id==='mark'),st+' offers the M mark'));
+const plain=settings({clusterDesign:'rl-hexagon'});assert.strictEqual(plain.clusterRlMarkHidden,true,'off by default');assert.strictEqual(plain.hudRlMarkHidden,true);
+assert(!RL.placed(stateOf(plain),{x:0,y:0,w:800,h:352},'cluster').some(e=>e.id==='mark'));
+const withMark=settings({clusterDesign:'rl-hexagon',clusterRlMarkHidden:false}),m=RL.placed(stateOf(withMark),{x:0,y:0,w:800,h:352},'cluster').find(e=>e.id==='mark');
+assert(m,'drawn once added');const mi=RL.partPainter(stateOf(withMark),'mark',m.b,m.r,'cluster').draw();let mpx=0;for(let i=3;i<mi.d.length;i+=4)if(mi.d[i])mpx++;assert(mpx>mi.w*mi.h*0.3,'the mark is painted');
+const mv={};spec.settings.forEach(x=>{mv[x.key]=x.default;});mv.hudDesign='rl-ramp';
+const mp=new SettingsPage({schema:spec.settings,get:k=>mv[k],set:(k,v)=>{mv[k]=v;},setMany(c){Object.assign(mv,c);}},null,'1.2.15');
+mp.selectTab(1);mp.activate(mp.keys().indexOf('layout'));mp.toggleMMark();assert.strictEqual(mv.hudRlMarkHidden,false,'added');assert.deepStrictEqual([...mp.layoutSelected],['RlMark'],'and selected');
+mp.adjust(0,1);assert.strictEqual(mv.hudRlMarkOffsetX,10);mp.saveSlot(2);mp.toggleMMark();assert.strictEqual(mv.hudRlMarkHidden,true,'removed');
+mp.loadSlot(2);assert.strictEqual(mv.hudRlMarkHidden,false,'saved and loaded with the layout');mp.resetLayout();mp.resetLayout();assert.strictEqual(mv.hudRlMarkHidden,true,'reset: off');
+const drawn=[];const ecv=new Canvas(1600,520),text=ecv.text;ecv.text=function(v){drawn.push(String(v));return text.apply(this,arguments);};mp.toggleMMark();mp.draw(ecv,null,null);
+assert(mp.layoutActions.every(a=>a.x+a.w<=1600&&a.y+a.h<=520),'editor buttons fit');
 console.log('PASS: Redline layouts split into elements matching the original image; each moves, sizes uniformly and hides; Whole layout still moves all; Position / size lists them and saves, loads and resets them; the same on the cluster with its own settings');

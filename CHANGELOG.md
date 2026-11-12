@@ -13,6 +13,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.15
+
+- **M mark on every layout**: each of the fifteen layouts, on the HUD and the cluster, has an M mark element (the Cluster Redline design's own procedural mark). It is off until added with **Add M mark** in Position / size; once added it is selected, and moves, sizes and hides like any element, and is saved, loaded and reset with the layout (Reset removes it). **Remove M mark** takes it off.
+- Position / size uses six columns when a layout has ten or more parts, so every part and Save / load fit (Hexagon with the mark has eleven).
+
 ### 1.2.14
 
 - The Five dials layout is removed; Hexagon stays. The picker holds fifteen layouts. A HUD or cluster set to Five dials falls back to the Cluster Redline design.

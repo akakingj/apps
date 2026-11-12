@@ -65,15 +65,15 @@ function rect(cfg,face,d){
 // Elements of each layout that move, size and hide on their own (Position / size), in drawing order.
 // Readouts are one group on the bar layouts and one element each on the M layouts.
 const ELEMENTS={
- standard:['mode','gear','alert','gauge','read'],minimal:['mode','gear','alert'],wings:['mode','alert','gauge','gear'],
- digital:['mode','alert','gauge','gear','rpm','read'],vfd:['mode','alert','gauge','gear','rpm','read'],vector:['mode','gear','alert','gauge','read'],
- arc:['alert','gauge','gear','mode','readD','readA','readB','readC'],ramp:['gauge','readB','readC','readD','gear','mode','readA'],dial:['gauge','readB','readC','readD','gear','mode','readA'],
- shift:['alert','gear','mode','rpm','read'],logger:['gauge','gear','mode','rpm','readA','readB','readC','readD'],needle:['gauge','gear','mode','readA','readB','readC','readD'],
- rings:['gmeter','gauge','gear','mode','rpm','read'],ribbon:['gauge','gear','mode','readA','readB','readC','readD'],
- hexagon:['gauge','alert','gear','mode','rpm','readA','readB','readC','readD']};
-const PART={gear:'RlGear',mode:'RlMode',alert:'RlAlert',rpm:'RlRpm',gauge:'RlGauge',read:'RlRead',readA:'RlReadA',readB:'RlReadB',readC:'RlReadC',readD:'RlReadD',gmeter:'RlGMeter'};
+ standard:['mode','gear','alert','gauge','read','mark'],minimal:['mode','gear','alert','mark'],wings:['mode','alert','gauge','gear','mark'],
+ digital:['mode','alert','gauge','gear','rpm','read','mark'],vfd:['mode','alert','gauge','gear','rpm','read','mark'],vector:['mode','gear','alert','gauge','read','mark'],
+ arc:['alert','gauge','gear','mode','readD','readA','readB','readC','mark'],ramp:['gauge','readB','readC','readD','gear','mode','readA','mark'],dial:['gauge','readB','readC','readD','gear','mode','readA','mark'],
+ shift:['alert','gear','mode','rpm','read','mark'],logger:['gauge','gear','mode','rpm','readA','readB','readC','readD','mark'],needle:['gauge','gear','mode','readA','readB','readC','readD','mark'],
+ rings:['gmeter','gauge','gear','mode','rpm','read','mark'],ribbon:['gauge','gear','mode','readA','readB','readC','readD','mark'],
+ hexagon:['gauge','alert','gear','mode','rpm','readA','readB','readC','readD','mark']};
+const PART={gear:'RlGear',mode:'RlMode',alert:'RlAlert',rpm:'RlRpm',gauge:'RlGauge',read:'RlRead',readA:'RlReadA',readB:'RlReadB',readC:'RlReadC',readD:'RlReadD',gmeter:'RlGMeter',mark:'RlMark'};
 const PART_NAMES=Object.keys(PART).map(k=>PART[k]);
-const LABELS={RlGear:'Gear',RlMode:'Drive mode',RlAlert:'RPM alert',RlRpm:'RPM number',RlGauge:'RPM gauge',RlRead:'Readouts',RlReadA:'Readout 1',RlReadB:'Readout 2',RlReadC:'Readout 3',RlReadD:'Readout 4',RlGMeter:'G-force meter'};
+const LABELS={RlGear:'Gear',RlMode:'Drive mode',RlAlert:'RPM alert',RlRpm:'RPM number',RlGauge:'RPM gauge',RlRead:'Readouts',RlReadA:'Readout 1',RlReadB:'Readout 2',RlReadC:'Readout 3',RlReadD:'Readout 4',RlGMeter:'G-force meter',RlMark:'M mark'};
 function readoutCount(cfg,d){const a=auxConfig(cfg[(d||'hud')+'AuxConfig']);return a.mode==='off'?0:Math.min(4,a.items.length);}
 // The elements the chosen layout draws with the chosen readouts: [{id, key}].
 function elements(cfg,d){
@@ -100,7 +100,10 @@ function bboxCanvas(){
  };
 }
 const boundsCache=new Map();
+// The M mark (m-mark.js, as on the Cluster Redline design): off until added, top right of the image.
+const MARK={x:IW-62,y:2,w:56,h:18};
 function bounds(state,id,d){
+ if(id==='mark')return Object.assign({},MARK);
  const cfg=state.config,f=frame(Object.assign({},state,{rpm:cfg.maxRpm,gear:'M8',flash:true}),0,d);
  f.d=Object.assign({},f.d,{rpm:f.max,gear:8,stage:'D'});f.mode='M';f.blink=true;f.cue=Object.assign({},f.cue,{shift:true});
  f.readouts=(f.readouts||[]).map(r=>Object.assign({},r,{value:'88.88'}));f.only=id;
@@ -118,6 +121,7 @@ function partRect(cfg,layout,b,key,d){
 }
 // One element painted at its own size (no resampling): {W, H, draw(state) -> Canvas}.
 function partPainter(state,id,b,r,d){
+ if(id==='mark')return {W:r.w,H:r.h,draw:()=>{const {Canvas}=kit(),cv=new Canvas(r.w,r.h);cv.clear([0,0,0,0]);require('./m-mark').drawMark(cv,r.w/2,0,r.w,r.h);return cv;}};
  return {W:r.w,H:r.h,draw:v=>{const {Canvas,DRAW}=kit(),cv=new Canvas(r.w,r.h),k=r.w/b.w;cv.clear([0,0,0,0]);const f=frame(v,0,d);f.only=id;DRAW.drawLayer(DRAW.scaled(cv,k,-b.x*k,-b.y*k),f);return cv;}};
 }
 // The visible elements with their places: [{id, key, b, r}].

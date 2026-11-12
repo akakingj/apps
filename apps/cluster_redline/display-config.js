@@ -10,7 +10,7 @@ const PART_LABELS=['RPM gauge','Gear','RPM alert','Auxiliary left','Auxiliary ri
 const LEGACY_PARTS=['Aux'];
 // The Redline app layouts' elements (redline-hud.js), on the HUD and the cluster. Kept in the saved settings like hudDesign,
 // outside app.json, so the Store's settings templates stay valid.
-const RL_PARTS=['RlGear','RlMode','RlAlert','RlRpm','RlGauge','RlGMeter','RlRead','RlReadA','RlReadB','RlReadC','RlReadD'];
+const RL_PARTS=['RlGear','RlMode','RlAlert','RlRpm','RlGauge','RlGMeter','RlRead','RlReadA','RlReadB','RlReadC','RlReadD','RlMark'];
 const NAV_PARTS=[{key:'Direction',label:'Direction',prefix:'hudNav',scale:'navUniformScale',w:240,h:112},{key:'Text',label:'Text',prefix:'hudText',scale:'hudTextScale',w:240,h:48},{key:'Lanes',label:'Lane guidance',prefix:'hudLanes',scale:'hudLanesScale',w:240,h:72}];
 const defaults={displaySettingsRevision:4,clusterAlertStyle:'circle',navDisplayMode:'all',navColor:'blue',navUniformScale:70,hudTextOffsetX:180,hudTextOffsetY:10,hudTextScale:65,hudLanesOffsetX:210,hudLanesOffsetY:115,hudLanesScale:70,hudAuxTextOffsetY:10,clockZone:'auto',layoutPreview:'',hudDesign:'own',clusterDesign:'own'};
 NAV_PARTS.forEach(p=>{defaults[p.prefix+'Hidden']=false;});
@@ -19,10 +19,10 @@ NAV_PARTS.forEach(p=>{defaults[p.prefix+'Hidden']=false;});
  PARTS.concat(LEGACY_PARTS).forEach(p=>{defaults[d+p+'OffsetX']=0;defaults[d+p+'OffsetY']=d==='cluster'&&/^Aux(Left|Right)$/.test(p)?50:0;defaults[d+p+'WidthScale']=100;defaults[d+p+'HeightScale']=100;defaults[d+p+'Hidden']=false;});
  ['Mark','MarkTop','MarkBottom'].forEach(p=>{defaults[d+p+'Hidden']=false;defaults[d+p+'LineHidden']=false;});
 });
-['hud','cluster'].forEach(d=>RL_PARTS.forEach(p=>{defaults[d+p+'OffsetX']=0;defaults[d+p+'OffsetY']=0;defaults[d+p+'WidthScale']=100;defaults[d+p+'HeightScale']=100;defaults[d+p+'Hidden']=false;}));
+['hud','cluster'].forEach(d=>RL_PARTS.forEach(p=>{defaults[d+p+'OffsetX']=0;defaults[d+p+'OffsetY']=0;defaults[d+p+'WidthScale']=100;defaults[d+p+'HeightScale']=100;defaults[d+p+'Hidden']=p==='RlMark';}));
 function partsFor(display,cfg){
  // A Redline app layout: the RPM gauge part moves and sizes it whole, then each of its elements on its own.
- if(cfg[display+'Design']&&cfg[display+'Design']!=='own'){const RL=require('./redline-hud');const order=['RlGear','RlMode','RlAlert','RlRpm','RlGauge','RlGMeter','RlRead','RlReadA','RlReadB','RlReadC','RlReadD'];return [{key:'RpmGauge',label:'Whole layout'}].concat(RL.elements(cfg,display).sort((x,y)=>order.indexOf(x.key)-order.indexOf(y.key)).map(e=>({key:e.key,label:RL.LABELS[e.key],uniform:true})));}
+ if(cfg[display+'Design']&&cfg[display+'Design']!=='own'){const RL=require('./redline-hud');const order=['RlGear','RlMode','RlAlert','RlRpm','RlGauge','RlGMeter','RlRead','RlReadA','RlReadB','RlReadC','RlReadD','RlMark'];return [{key:'RpmGauge',label:'Whole layout'}].concat(RL.elements(cfg,display).sort((x,y)=>order.indexOf(x.key)-order.indexOf(y.key)).map(e=>({key:e.key,label:RL.LABELS[e.key],uniform:true})));}
  const keys=display==='hud'?['RpmGauge','Gear'].concat(cfg.hudAlertStyle==='circle'?[]:['Alert'],['AuxLeft','AuxRight','RpmValue','Mark']):['RpmGauge','Gear','Alert','AuxLeft','AuxRight','RpmValue','MarkTop','MarkBottom'];
  return keys.map(key=>({key,label:display==='hud'&&key==='Gear'&&cfg.hudAlertStyle==='circle'?'Gear + circle alert':PART_LABELS[PARTS.indexOf(key)]}));
 }
@@ -46,7 +46,7 @@ function normalize(raw,out){
   ['Mark','MarkTop','MarkBottom'].forEach(p=>['Hidden','LineHidden'].forEach(s=>{out[d+p+s]=raw[d+p+s]===true;}));
  });
  // Redline layout elements size uniformly (text can't stretch): height follows width.
- ['hud','cluster'].forEach(d=>RL_PARTS.forEach(p=>{const k=d+p;out[k+'Hidden']=raw[k+'Hidden']===true;['OffsetX','OffsetY'].forEach(s=>{const v=raw[k+s];if(typeof v==='number'&&isFinite(v))out[k+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});const v=raw[k+'WidthScale'];if(typeof v==='number'&&isFinite(v))out[k+'WidthScale']=Math.max(20,Math.min(200,Math.round(v/5)*5));out[k+'HeightScale']=out[k+'WidthScale'];}));
+ ['hud','cluster'].forEach(d=>RL_PARTS.forEach(p=>{const k=d+p;out[k+'Hidden']=p==='RlMark'?raw[k+'Hidden']!==false:raw[k+'Hidden']===true;['OffsetX','OffsetY'].forEach(s=>{const v=raw[k+s];if(typeof v==='number'&&isFinite(v))out[k+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});const v=raw[k+'WidthScale'];if(typeof v==='number'&&isFinite(v))out[k+'WidthScale']=Math.max(20,Math.min(200,Math.round(v/5)*5));out[k+'HeightScale']=out[k+'WidthScale'];}));
  ['hudText','hudLanes'].forEach(prefix=>['OffsetX','OffsetY','Scale'].forEach(s=>{const k=prefix+s,v=raw[k];if(typeof v==='number'&&isFinite(v))out[k]=s==='Scale'?Math.max(20,Math.min(200,Math.round(v/5)*5)):Math.max(-1000,Math.min(1000,Math.round(v)));}));
  NAV_PARTS.forEach(p=>{out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
  if(typeof raw.hudAuxTextOffsetY==='number'&&isFinite(raw.hudAuxTextOffsetY))out.hudAuxTextOffsetY=Math.max(-1000,Math.min(1000,raw.hudAuxTextOffsetY));
