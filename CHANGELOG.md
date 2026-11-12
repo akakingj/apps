@@ -13,6 +13,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.29
+
+- Settings background now shows on the car: the car's renderer takes no pixel images, so the photo is drawn once into a cached layer as thin vertical gradient columns (1.2.28 showed it only on the PC preview).
+- Cafe watermark (profile picture, 서울II잼님, Http://blog.naver.com/codingbmw, BMW Coding 배움터) in the free bottom-right corner of the HUD, cluster and navigation tabs, never over a setting.
+
 ### 1.2.28
 
 - Settings screen background: the BMW Coding Study Cafe photo (sky and car), darkened so every menu stays readable. Built into the app (no extra file).

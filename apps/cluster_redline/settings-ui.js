@@ -136,6 +136,8 @@ class SettingsPage{
   });
   if(this.tab===1||this.tab===2){cv.text('All modes Redline also applies in Sport.',84,492,23,'#91a1b6');const o=this.outsideStatus(cfg);if(o)cv.text(o,84,462,22,'#ffad45',{literal:true});}
   if(this.tab===3){const y=this.yieldStatus(cfg);if(y)cv.text(y,84,462,22,'#ffad45',{literal:true});}
+  // Cafe watermark in the free bottom-right corner of the HUD, cluster and navigation tabs (not on Basic: its rows fill the screen).
+  if(this.tab>0)require('./settings-bg').mark(cv,W,H);
   if(this.tab===3){cv.text(HUD_WARNING,84,390,25,'#91a1b6');cv.text(tr('Yield: while phone (Waze) or chosen route guidance runs, the cluster RPM display steps aside for the stock map.'),84,426,25,'#91a1b6');}
  }
  // Live check lines (from the background app's status) so a car without the value can be told apart.
