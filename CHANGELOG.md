@@ -4,6 +4,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Storage
 
+### 1.0.3
+
+- The mark reads "코딩나눔터 동이/카자미/잼님".
+
 ### 1.0.2
 
 - New app icon (database with a usage ring).
