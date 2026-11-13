@@ -4,6 +4,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Storage
 
+### 1.0.2
+
+- New app icon (database with a usage ring).
+- Background: the BMW Coding photo from Cluster Redline's settings screen, darkened behind the translucent panels (on the car recorded once as a layer).
+- Mark "코딩나눔터 동이/카자미" and `Http://blog.naver.com/codingbmw` (English edition: "BMW Coding" and the address), bottom right only where the page has room: under the file-system list, and under the app list's second column when it is free.
+
 ### 1.0.1
 
 - Publish separate Korean (`storage`) and English (`storage_en`) MGU Store entries, both version 1.0.1, with offline SDK-free builds and independent RHMI identities.

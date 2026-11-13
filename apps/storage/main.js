@@ -18,6 +18,7 @@ const mgu = require('./kit/mgu');
 const G = require('./kit/gauges');
 const { withAlpha, ScaledCanvas } = require('./kit/canvas');
 const S = require('./sysinfo');
+const BG = require('./bg');
 const { t } = require('./kit/i18n');
 const tr = (text, values) => Object.keys(values || {}).reduce((out, key) => out.split('{' + key + '}').join(String(values[key])), t(text));
 
@@ -171,6 +172,9 @@ mgu.run({
                 const rest = list.slice(rows.length);
                 cv.text(tr('+ {count} more: {paths}', { count: rest.length, paths: rest.map((r) => r.mount).join(', ') }), 48, rtop + rows.length * rowH + 28, 20, t.dim);
             }
+            // the cafe mark, bottom right of the file-system panel, only below the last line
+            const used = rtop + (rows.length + (list.length > rows.length ? 1 : 0)) * rowH;
+            if (L.y + L.h - used >= 80) BG.mark(cv, 1060, L.y + L.h - 16);
 
             const x = 1108, w = 468, gap = 16, th = (bottom - top - gap) / 2;
             const ny = Math.min(150, th * 0.6);     // 큰 숫자 y: 패널이 좁아지면(배너 등) 위로 당겨 캡션과 안 겹치게
@@ -224,7 +228,12 @@ mgu.run({
                 const rest = list.slice(rows.length), i = rows.length, c = Math.floor(i / per), k = i % per;
                 cv.text(tr('+ {count} smaller: {size}', { count: rest.length, size: sz(rest.reduce((a, r) => a + r.bytes, 0)) }), 48 + c * (colW + 24), rtop + k * rowH + 28, 22, t.dim);
             }
-            if (list.some((r) => r.denied || r.partial)) cv.text(tr('* incomplete measurement: at least this much'), 1552, bottom - 14, 18, t.dim, { align: 'right' });
+            const note = list.some((r) => r.denied || r.partial);
+            if (note) cv.text(tr('* incomplete measurement: at least this much'), 1552, bottom - 14, 18, t.dim, { align: 'right' });
+            // the cafe mark, bottom right, only where the second column has room under its last line
+            const filled = rows.length + (list.length > rows.length ? 1 : 0), second = Math.max(0, filled - per);
+            const base = L.y + L.h - 16 - (note ? 30 : 0);
+            if (base - 60 >= rtop + second * rowH) BG.mark(cv, 1552, base);
         }
 
         async function render() {
@@ -233,6 +242,7 @@ mgu.run({
             if (PAGES[page] === 'apps' && !apps.t && !apps.scanning) scanApps();
             lastDraw = now;
             const t = ctx.theme(), cv = ctx.canvas(W, H).clear(t.bg);
+            BG.paint(cv, W, H);
             const alert = over();
             const BH = 50, top = G.TOP + (alert ? BH + 8 : 0);
             if (alert) drawBanner(cv, t, G.TOP + 2, BH);

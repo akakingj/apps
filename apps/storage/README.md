@@ -1,4 +1,4 @@
-# Storage 1.0.1
+# Storage 1.0.2
 
 [한국어](README.ko.md)
 
@@ -9,7 +9,7 @@ configured warning threshold (80% by default). It does not delete files or
 change vehicle settings; the warning is within the app/widget.
 
 In MGU Store add source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh,
-then install **Storage (English) 1.0.1** or **저장공간 (한국어) 1.0.1**.
+then install **Storage (English) 1.0.2** or **저장공간 (한국어) 1.0.2**.
 Both editions install independently. Requires `mgu-deploy >= 0.7.17` and the
 vehicle's SDK donor, supplied by MGU Store during installation.
 
