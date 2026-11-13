@@ -80,8 +80,13 @@ function draw(state,target) {
     if(/^ARRIVAL_/.test(dir)) {
         // Arrival flag, never a turn arrow. Preserve the supplied roadside position.
         const x=dir==='ARRIVAL_LEFT'?25:dir==='ARRIVAL_RIGHT'?68:47;
+        // A pole with a waving chequered finish flag (4 x 3 squares, each column bent along a gentle wave).
         line([[x,92],[x,20]]);
-        cv.polyline([[x,22],[x+28,28],[x+28,49],[x,43]],4,WHITE);
+        const cols=4,rows=3,w=7,h=9,left=x+3,top=20,wave=(i)=>Math.sin(i/cols*Math.PI)*3;
+        for(let r=0;r<rows;r++)for(let q=0;q<cols;q++){
+            const x0=left+q*w,x1=x0+w,y0=top+r*h,a=wave(q),b=wave(q+1);
+            cv.quad([[x0,y0+a],[x1,y0+b],[x1,y0+h+b],[x0,y0+h+a]],(r+q)%2?'#1d2733':WHITE);
+        }
     } else if(/^LANE_/.test(dir)) {
         // Offset lane-change arrow differs from a90-degree intersection turn.
         let pts=[[76,90],[76,70],[28,45],[28,20]],head=[[10,38],[28,20],[46,38]];

@@ -1,4 +1,4 @@
-# Cluster Redline 1.2.39
+# Cluster Redline 1.2.40
 
 [한국어](README.ko.md)
 

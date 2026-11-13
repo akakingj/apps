@@ -23,6 +23,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.40
+
+- HUD guidance: the arrival sign is a waving chequered finish flag (4 x 3 squares) on the pole, in place of the outlined flag; it keeps the roadside position (left / ahead / right).
+
 ### 1.2.39
 
 - **Less to send to the renderer.** Each frame's changes were sent as one rectangle per band of rows, as wide as the outermost change (an arc's two ends took the whole width between them). Changed columns are now grouped into runs and the rectangles merged down to at most 12 (the renderer client sends a whole frame beyond 16). Bytes per frame while the revs move: cluster Luxury arc 80 → 33 KB, Sport dial 74 → 33 KB, 80s digital 68 → 10 KB; HUD Data logger 25 → 1.5 KB. In a 6-minute run through every design at 20 frames/s, traffic fell from about 795 to 480 KB/s and frames held back by the upload limit from 752 to 392 (of 7200).
