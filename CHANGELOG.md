@@ -23,6 +23,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.41
+
+- HUD guidance: the arrival sign is a red swallowtail flag (white outline, notched fly end) on the pole, reached by a short dotted trail; roadside position kept.
+
 ### 1.2.40
 
 - HUD guidance: the arrival sign is a waving chequered finish flag (4 x 3 squares) on the pole, in place of the outlined flag; it keeps the roadside position (left / ahead / right).

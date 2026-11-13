@@ -74,19 +74,19 @@ function draw(state,target) {
         return cv;
     }
     const dir=state.maneuver;
-    const color=state.color==='gray'?'#929aa3':state.color==='white'?WHITE:ARROW;
+    const color=state.color==='gray'?'#929aa3':state.color==='white'?WHITE:ARROW,FLAG='#e5322d';
     const line=(points)=>cv.polyline(points,10,color);
     const mirror=(points)=>points.map((p)=>[104-p[0],p[1]]);
     if(/^ARRIVAL_/.test(dir)) {
         // Arrival flag, never a turn arrow. Preserve the supplied roadside position.
         const x=dir==='ARRIVAL_LEFT'?25:dir==='ARRIVAL_RIGHT'?68:47;
-        // A pole with a waving chequered finish flag (4 x 3 squares, each column bent along a gentle wave).
+        // A pole with a red swallowtail flag (white outline, notched fly end), reached by a dotted trail.
         line([[x,92],[x,20]]);
-        const cols=4,rows=3,w=7,h=9,left=x+3,top=20,wave=(i)=>Math.sin(i/cols*Math.PI)*3;
-        for(let r=0;r<rows;r++)for(let q=0;q<cols;q++){
-            const x0=left+q*w,x1=x0+w,y0=top+r*h,a=wave(q),b=wave(q+1);
-            cv.quad([[x0,y0+a],[x1,y0+b],[x1,y0+h+b],[x0,y0+h+a]],(r+q)%2?'#1d2733':WHITE);
-        }
+        const L=x+3,R=x+29,T=20,B=45,N=R-10,M=(T+B)/2;
+        cv.quad([[L,T],[N,T],[N,B],[L,B]],FLAG);
+        cv.quad([[N,T],[R,T],[N,M],[N,M]],FLAG);cv.quad([[N,M],[R,B],[N,B],[N,B]],FLAG);
+        cv.polyline([[L,T],[R,T],[N,M],[R,B],[L,B]],3,WHITE);
+        for(let k=1;k<=4;k++)cv.arc(x-k*6,96+k*3,0,1.8,0,360,color);
     } else if(/^LANE_/.test(dir)) {
         // Offset lane-change arrow differs from a90-degree intersection turn.
         let pts=[[76,90],[76,70],[28,45],[28,20]],head=[[10,38],[28,20],[46,38]];
