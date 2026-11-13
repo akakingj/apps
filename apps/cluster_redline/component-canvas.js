@@ -57,4 +57,39 @@ function measurePart(painter,state,display,name,textCanvas){
  let bounds=null;const noop=()=>{},cv={clear:noop,text:noop,line:noop,polyline:noop,quad:noop,arc:noop,fillRect:noop,roundRect:noop,blit:noop,textWidth:(v,s,o)=>textCanvas.textWidth(v,s,o),part:(cfg,d,n,b)=>{if(d===display&&n===name)bounds=b;}};
  painter.draw(state,cv);return bounds;
 }
-module.exports={part,blitScaled,translated,drawWithParts,measurePart};
+// What changed between two frames (RGBA, w x h) as at most `max` rectangles and their rows packed one rectangle
+// after another, for the renderer. Rows are scanned in bands; within a band the changed columns are grouped into
+// runs (gaps shorter than `gap` joined), so an arc's ends or two readouts do not drag the whole width along; then
+// the rectangles are merged, cheapest union first, down to `max` (the renderer client falls back to a whole frame
+// beyond 16 pending rectangles).
+function dirtyRects(previous,next,w,h,opt){
+ const o=opt||{},band=o.band||20,gap=o.gap||24,max=o.max||12,stride=w*4;
+ const aligned=previous.byteOffset%4===0&&next.byteOffset%4===0;
+ const A=aligned?new Uint32Array(previous.buffer,previous.byteOffset,w*h):null,B=aligned?new Uint32Array(next.buffer,next.byteOffset,w*h):null;
+ const cols=new Uint8Array(w);let rects=[];
+ for(let top=0;top<h;top+=band){
+  const bottom=Math.min(h,top+band);let first=-1,last=-1,lo=w,hi=-1;cols.fill(0);
+  for(let y=top;y<bottom;y++){
+   const off=y*stride;if(previous.compare(next,off,off+stride,off,off+stride)===0)continue;
+   if(first<0)first=y;last=y;const row=y*w;
+   for(let x=0;x<w;x++){const same=aligned?A[row+x]===B[row+x]:previous.readUInt32LE((row+x)*4)===next.readUInt32LE((row+x)*4);if(!same){cols[x]=1;if(x<lo)lo=x;if(x>hi)hi=x;}}
+  }
+  if(first<0)continue;
+  let x=lo;while(x<=hi){if(!cols[x]){x++;continue;}let end=x,blank=0;for(let k=x+1;k<=hi;k++){if(cols[k]){end=k;blank=0;}else if(++blank>=gap)break;}
+   rects.push({x,y:first,w:end-x+1,h:last-first+1});x=end+1;}
+ }
+ const union=(a,b)=>{const x=Math.min(a.x,b.x),y=Math.min(a.y,b.y);return {x,y,w:Math.max(a.x+a.w,b.x+b.w)-x,h:Math.max(a.y+a.h,b.y+b.h)-y};};
+ const area=r=>r.w*r.h,overlap=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
+ // overlapping rectangles are always merged (rows must not be sent twice), then the cheapest pairs
+ for(let again=true;again;){again=false;for(let i=0;i<rects.length&&!again;i++)for(let j=i+1;j<rects.length;j++)if(overlap(rects[i],rects[j])){rects[i]=union(rects[i],rects[j]);rects.splice(j,1);again=true;break;}}
+ while(rects.length>max){let best=null,cost=Infinity;
+  for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;j++){const u=union(rects[i],rects[j]),c=area(u)-area(rects[i])-area(rects[j]);if(c<cost){cost=c;best=[i,j,u];}}
+  rects[best[0]]=best[2];rects.splice(best[1],1);
+  for(let again=true;again;){again=false;for(let i=0;i<rects.length&&!again;i++)for(let j=i+1;j<rects.length;j++)if(overlap(rects[i],rects[j])){rects[i]=union(rects[i],rects[j]);rects.splice(j,1);again=true;break;}}
+ }
+ rects.sort((a,b)=>a.y-b.y||a.x-b.x);
+ let size=0;rects.forEach(r=>{size+=r.w*r.h*4;});const px=Buffer.allocUnsafe(size);let at=0;
+ rects.forEach(r=>{for(let y=r.y;y<r.y+r.h;y++){const s=(y*w+r.x)*4;next.copy(px,at,s,s+r.w*4);at+=r.w*4;}});
+ return {rects,pixels:px};
+}
+module.exports={dirtyRects,part,blitScaled,translated,drawWithParts,measurePart};

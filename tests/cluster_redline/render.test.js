@@ -48,7 +48,7 @@ assert.strictEqual(redDigits(redzone), 0);
 const a = Buffer.from(face.d), b = Buffer.from(draw(Object.assign({}, normal, { rpm: 6500, shift: true, gear: 'S4' })).d);
 assert.strictEqual(a.length, W * H * 4); assert.strictEqual(difference(a, a).rects.length, 0);
 const d = difference(a, b), copy = Buffer.from(a); let off = 0;
-assert(d.rects.length > 0 && d.rects.length <= 6);
+assert(d.rects.length > 0 && d.rects.length <= 12);
 d.rects.forEach((r) => {
     assert(r.x >= 0 && r.y >= 0 && r.x + r.w <= W && r.y + r.h <= H);
     for (let y = r.y; y < r.y + r.h; y++) { const bytes = r.w * 4; d.pixels.copy(copy, (y * W + r.x) * 4, off, off + bytes); off += bytes; }

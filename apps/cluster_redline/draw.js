@@ -75,26 +75,5 @@ function draw(state,target) {
     return cv;
 }
 // Four independent horizontal regions keep updates below the link budget.
-function difference(previous, next) {
-    const stride = W * 4, rects = [], parts = [];
-    const regions = [[0, 0, W, 90], [0, 90, W, 205], [0, 205, W, 308],
-        [0, 308, 480, H], [480, 308, 608, H], [608, 308, W, H]];
-    regions.forEach((region) => {
-        const [x0, top, x1, bottom] = region;
-        let left = x1, right = -1, first = H, last = -1;
-        for (let y = top; y < bottom; y++) {
-            const off = y * stride;
-            if (previous.slice(off + x0 * 4, off + x1 * 4).equals(next.slice(off + x0 * 4, off + x1 * 4))) continue;
-            let a = x0, b = x1 - 1;
-            while (a < x1 && previous.readUInt32LE(off + a * 4) === next.readUInt32LE(off + a * 4)) a++;
-            while (b > a && previous.readUInt32LE(off + b * 4) === next.readUInt32LE(off + b * 4)) b--;
-            left = Math.min(left, a); right = Math.max(right, b); first = Math.min(first, y); last = y;
-        }
-        if (last < first) return;
-        const r = { x: left, y: first, w: right - left + 1, h: last - first + 1 };
-        rects.push(r);
-        for (let y = r.y; y < r.y + r.h; y++) parts.push(next.slice(y * stride + r.x * 4, y * stride + (r.x + r.w) * 4));
-    });
-    return { rects: rects, pixels: Buffer.concat(parts) };
-}
+function difference(previous, next) { return require('./component-canvas').dirtyRects(previous, next, W, H); }
 module.exports = { draw, difference, W, H, layout: L, key:state=>require('./render-state').key(state,'cluster'),createCache:()=>new (require('./retained-scene').RetainedScene)() };

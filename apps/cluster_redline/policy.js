@@ -34,7 +34,29 @@ const SPORT = ['SPORT', 'SPORT_PLUS', 'SPORT_INDIVIDUAL', 'PHEV_SPORT_STANDARD',
 // Sport selection is restricted to Sport modes; all includes every valid catalog mode.
 const AUTOMATIC_MODES = SPORT;
 Object.assign(DEFAULTS,displayConfig.defaults);
+// Settings already normalised here carry their normalised values under this symbol (enumerable, so
+// Object.assign copies it; JSON and Object.keys skip symbols). The worker, the outputs and both controllers each
+// used to normalise the same settings every frame. A copy that still matches them, except for the outputs' own
+// overrides with valid values, is taken as it is; any other change is normalised in full.
+const NORMALISED = Symbol('normalised');
+const OVERRIDES = { displayMode: ['sport', 'all'], displayTarget: ['map', 'hud', 'panel'], appEnabled: [true, false] };
+function unchanged(raw) {
+    const snap = raw[NORMALISED], keys = Object.keys(raw);
+    if (!snap || typeof snap !== 'object' || keys.length !== Object.keys(snap).length) return false;
+    for (let i = 0; i < keys.length; i++) {
+        const k = keys[i];
+        if (raw[k] === snap[k]) continue;
+        if (!OVERRIDES[k] || OVERRIDES[k].indexOf(raw[k]) < 0 || !Object.prototype.hasOwnProperty.call(snap, k)) return false;
+    }
+    return true;
+}
 function settings(raw) {
+    if (raw && raw[NORMALISED] && unchanged(raw)) return Object.assign({}, raw);
+    const out = full(raw);
+    out[NORMALISED] = Object.assign({}, out);
+    return out;
+}
+function full(raw) {
     raw = raw || {};
     const out = Object.assign({}, DEFAULTS);
     // Retain an old owner's OFF choice; removed manual scales/prefixes are ignored.
