@@ -23,6 +23,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.42
+
+- Arrival sign: the dotted trail under the flag is removed; the red swallowtail flag stays.
+
 ### 1.2.41
 
 - HUD guidance: the arrival sign is a red swallowtail flag (white outline, notched fly end) on the pole, reached by a short dotted trail; roadside position kept.

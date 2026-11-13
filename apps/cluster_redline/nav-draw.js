@@ -80,13 +80,12 @@ function draw(state,target) {
     if(/^ARRIVAL_/.test(dir)) {
         // Arrival flag, never a turn arrow. Preserve the supplied roadside position.
         const x=dir==='ARRIVAL_LEFT'?25:dir==='ARRIVAL_RIGHT'?68:47;
-        // A pole with a red swallowtail flag (white outline, notched fly end), reached by a dotted trail.
+        // A pole with a red swallowtail flag (white outline, notched fly end).
         line([[x,92],[x,20]]);
         const L=x+3,R=x+29,T=20,B=45,N=R-10,M=(T+B)/2;
         cv.quad([[L,T],[N,T],[N,B],[L,B]],FLAG);
         cv.quad([[N,T],[R,T],[N,M],[N,M]],FLAG);cv.quad([[N,M],[R,B],[N,B],[N,B]],FLAG);
         cv.polyline([[L,T],[R,T],[N,M],[R,B],[L,B]],3,WHITE);
-        for(let k=1;k<=4;k++)cv.arc(x-k*6,96+k*3,0,1.8,0,360,color);
     } else if(/^LANE_/.test(dir)) {
         // Offset lane-change arrow differs from a90-degree intersection turn.
         let pts=[[76,90],[76,70],[28,45],[28,20]],head=[[10,38],[28,20],[46,38]];
